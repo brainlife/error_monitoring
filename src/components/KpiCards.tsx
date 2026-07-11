@@ -1,4 +1,4 @@
-import { Activity, CheckCircle2, XCircle, Clock, Heart, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { Activity, CheckCircle2, XCircle, Clock, Heart, AlertTriangle, ShieldAlert, Server } from 'lucide-react';
 import { useCountUp } from '../hooks/useCountUp';
 
 import type { Task, ComputeResource } from '../data';
@@ -83,28 +83,72 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
       {/* 1. Global Status (Health & Critical Alerts) */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[280px_1fr]">
         
-        {/* System Health Card */}
+        {/* System Status Card */}
         <div className="glass relative overflow-hidden rounded-2xl p-5 flex flex-col justify-between shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)]">
           <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full blur-[30px] bg-accent-purple opacity-[0.08]" />
           
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
-              System Health
-            </span>
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-purple/10 text-accent-purple">
-              <Heart className="h-4.5 w-4.5 animate-pulse" strokeWidth={2} />
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
+                System Status
+              </span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent-purple/10 text-accent-purple">
+                <Heart className="h-4.5 w-4.5 animate-pulse" strokeWidth={2} />
+              </div>
+            </div>
+
+            <div className="mt-4 flex items-center gap-2">
+              <span className="relative flex h-3 w-3 shrink-0">
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+                  healthScore > 90 ? 'bg-status-success' : healthScore > 80 ? 'bg-status-warning' : 'bg-status-error'
+                }`}></span>
+                <span className={`relative inline-flex rounded-full h-3 w-3 ${
+                  healthScore > 90 ? 'bg-status-success' : healthScore > 80 ? 'bg-status-warning' : 'bg-status-error'
+                }`}></span>
+              </span>
+              <span className={`text-[15px] font-extrabold tracking-wider uppercase font-mono ${
+                healthScore > 90 ? 'text-status-success' : healthScore > 80 ? 'text-status-warning' : 'text-status-error'
+              }`}>
+                {healthScore > 90 ? 'Operational' : healthScore > 80 ? 'Degraded' : 'Critical'}
+              </span>
             </div>
           </div>
 
-          <div className="mt-4.5 flex items-center gap-4">
-            <CircularProgress percentage={healthScore} color={healthScore > 90 ? '#10B981' : healthScore > 80 ? '#F59E0B' : '#EF4444'} />
-            <div>
-              <div className="text-xs font-bold text-text-main">
-                {healthScore > 90 ? 'Excellent' : healthScore > 80 ? 'Degraded' : 'Critical'}
+          <div className="mt-5 space-y-3.5 border-t border-white/[0.04] pt-4">
+            <div className="flex items-center justify-between text-[11px] leading-none">
+              <div className="flex items-center gap-2 text-text-muted">
+                <AlertTriangle className={`h-4 w-4 shrink-0 ${criticalAlerts.length > 0 ? 'text-status-error' : 'text-text-faint'}`} />
+                <span>Active Incidents</span>
               </div>
-              <div className="mt-1 text-[10px] text-text-muted leading-relaxed">
-                {healthScore > 90 ? 'All services routing normally' : 'Minor routing lag detected'}
+              <span className={`font-mono font-bold text-xs ${
+                criticalAlerts.length > 0 ? 'text-status-error' : 'text-text-muted'
+              }`}>
+                {criticalAlerts.length}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] leading-none">
+              <div className="flex items-center gap-2 text-text-muted">
+                <Server className={`h-4 w-4 shrink-0 ${errorResources > 0 ? 'text-status-error' : 'text-text-faint'}`} />
+                <span>Resources Offline</span>
               </div>
+              <span className={`font-mono font-bold text-xs ${
+                errorResources > 0 ? 'text-status-error' : 'text-text-muted'
+              }`}>
+                {errorResources}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between text-[11px] leading-none">
+              <div className="flex items-center gap-2 text-text-muted">
+                <Clock className={`h-4 w-4 shrink-0 ${queued > 0 ? 'text-status-warning' : 'text-text-faint'}`} />
+                <span>Average Queue</span>
+              </div>
+              <span className={`font-mono font-bold text-xs ${
+                queued > 0 ? 'text-accent-cyan' : 'text-text-muted'
+              }`}>
+                {queued > 0 ? `${queued * 3}m` : '0m'}
+              </span>
             </div>
           </div>
         </div>
@@ -138,7 +182,7 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
                 <span className="font-medium tracking-wide">All monitored systems and cluster nodes are fully operational</span>
               </div>
             ) : (
-              criticalAlerts.slice(0, 2).map((alert) => (
+              criticalAlerts.slice(0, 3).map((alert) => (
                 <div
                   key={alert.id}
                   onClick={() => onNavigate && onNavigate('resources')}
@@ -230,38 +274,3 @@ function CountUpVal({ value }: { value: number }) {
   return <>{count}</>;
 }
 
-function CircularProgress({ percentage, color }: { percentage: number; color: string }) {
-  const radius = 18;
-  const circumference = 2 * Math.PI * radius;
-  const offset = circumference - (percentage / 100) * circumference;
-
-  return (
-    <div className="relative flex h-11 w-11 items-center justify-center shrink-0">
-      <svg viewBox="0 0 48 48" className="h-full w-full -rotate-90">
-        <circle
-          cx="24"
-          cy="24"
-          r={radius}
-          fill="none"
-          stroke="rgba(255, 255, 255, 0.04)"
-          strokeWidth="3.5"
-        />
-        <circle
-          cx="24"
-          cy="24"
-          r={radius}
-          fill="none"
-          stroke={color}
-          strokeWidth="3.5"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          className="transition-all duration-1000 ease-out"
-        />
-      </svg>
-      <span className="absolute font-mono text-[9px] font-bold text-text-main">
-        {percentage}%
-      </span>
-    </div>
-  );
-}

@@ -18,8 +18,8 @@ export default {
         'status-error': '#EF4444',
         'status-running': '#00E5FF',
         'text-main': '#F8FAFC',
-        'text-muted': '#94A3B8',
-        'text-faint': '#64748B',
+        'text-muted': '#CBD5E1',
+        'text-faint': '#94A3B8',
       },
       spacing: {
         '4.5': '1.125rem',

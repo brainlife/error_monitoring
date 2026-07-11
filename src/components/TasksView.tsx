@@ -10,6 +10,8 @@ interface TasksViewProps {
   onRefresh: () => void;
   projectNamesMap?: Record<string, string>;
   userNamesMap?: Record<string, string>;
+  onNavigateToResource?: (resourceName: string) => void;
+  onNavigateToUser?: (userId: string) => void;
 }
 
 const statusColors = {
@@ -21,7 +23,16 @@ const statusColors = {
   unknown: 'bg-accent-purple/10 text-accent-purple border-accent-purple/25',
 };
 
-export default function TasksView({ tasks, onSelect, selectedId, onRefresh, projectNamesMap, userNamesMap }: TasksViewProps) {
+export default function TasksView({ 
+  tasks, 
+  onSelect, 
+  selectedId, 
+  onRefresh, 
+  projectNamesMap, 
+  userNamesMap,
+  onNavigateToResource,
+  onNavigateToUser
+}: TasksViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'running' | 'finished' | 'failed' | 'queued' | 'cancelled'>('all');
   
@@ -34,6 +45,9 @@ export default function TasksView({ tasks, onSelect, selectedId, onRefresh, proj
   const selectedTask = useMemo(() => {
     return tasks.find(t => t.id === selectedId) || null;
   }, [tasks, selectedId]);
+
+  const ownerId = String(rawTask?.user_id || selectedTask?.userId || '');
+  const ownerName = ownerId ? (userNamesMap?.[ownerId] || ownerId) : 'Unassigned';
 
   // Fetch raw database task object when selection changes
   useEffect(() => {
@@ -305,19 +319,28 @@ console.log(tasks)
               {/* Resource */}
               <div className="flex justify-between items-center border-b border-white/[0.02] pb-2">
                 <span className="text-text-faint font-mono text-[10px] uppercase">Resource</span>
-                <span className="text-text-main font-semibold truncate max-w-[180px]">{selectedTask.resource}</span>
+                <button
+                  onClick={() => onNavigateToResource?.(selectedTask.resource)}
+                  className="text-accent-cyan font-semibold truncate max-w-[180px] hover:underline cursor-pointer transition-colors text-right"
+                >
+                  {selectedTask.resource} →
+                </button>
               </div>
 
               {/* User */}
-              {!!rawTask?.user_id && (
+              {!!ownerId && (
                 <div className="flex justify-between items-center border-b border-white/[0.02] pb-2">
                   <span className="text-text-faint font-mono text-[10px] uppercase flex items-center gap-1">
                     <User className="h-3.5 w-3.5 text-text-faint" />
-                    Owner ID
+                    Owner
                   </span>
-                  <span className="font-mono text-text-muted truncate max-w-[160px]" title={String(rawTask.user_id)}>
-                    {String(rawTask.user_id)}
-                  </span>
+                  <button
+                    onClick={() => selectedTask.userId && onNavigateToUser?.(selectedTask.userId)}
+                    className="font-semibold text-accent-cyan truncate max-w-[160px] hover:underline cursor-pointer transition-colors text-right"
+                    title={ownerName}
+                  >
+                    {ownerName} →
+                  </button>
                 </div>
               )}
             </div>

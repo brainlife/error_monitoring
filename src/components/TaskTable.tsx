@@ -8,6 +8,8 @@ interface TaskTableProps {
   selectedId: string | null;
   projectNamesMap?: Record<string, string>;
   userNamesMap?: Record<string, string>;
+  onNavigateToResource?: (resourceName: string) => void;
+  onNavigateToUser?: (userId: string) => void;
 }
 
 const statusConfig = {
@@ -19,7 +21,15 @@ const statusConfig = {
   unknown: { label: 'Unknown', dot: 'bg-accent-purple', text: 'text-accent-purple' },
 };
 
-export default function TaskTable({ tasks, onSelect, selectedId, projectNamesMap, userNamesMap }: TaskTableProps) {
+export default function TaskTable({ 
+  tasks, 
+  onSelect, 
+  selectedId, 
+  projectNamesMap, 
+  userNamesMap,
+  onNavigateToResource,
+  onNavigateToUser
+}: TaskTableProps) {
   const [showAll, setShowAll] = useState(false);
 
   const sorted = useMemo(() => {
@@ -111,10 +121,16 @@ export default function TaskTable({ tasks, onSelect, selectedId, projectNamesMap
 
                   {/* Resource */}
                   <td className="px-5 py-3.5 whitespace-nowrap">
-                    <div className="flex items-center gap-2 text-text-muted">
-                      <RIcon className="h-3.5 w-3.5 text-text-faint" strokeWidth={1.75} />
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onNavigateToResource?.(t.resource);
+                      }}
+                      className="flex items-center gap-2 text-text-muted hover:text-accent-cyan hover:underline cursor-pointer transition-colors text-left"
+                    >
+                      <RIcon className="h-3.5 w-3.5 text-text-faint group-hover:text-accent-cyan transition-colors" strokeWidth={1.75} />
                       <span>{t.resource}</span>
-                    </div>
+                    </button>
                   </td>
 
                   {/* Runtime (duration) */}
@@ -143,7 +159,17 @@ export default function TaskTable({ tasks, onSelect, selectedId, projectNamesMap
 
                   {/* User */}
                   <td className="px-5 py-3.5 text-text-muted font-semibold whitespace-nowrap">
-                    {t.userId ? (userNamesMap?.[t.userId] || t.userId) : '--'}
+                    {t.userId ? (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onNavigateToUser?.(t.userId as string);
+                        }}
+                        className="hover:text-accent-cyan hover:underline cursor-pointer transition-colors text-left font-semibold"
+                      >
+                        {userNamesMap?.[t.userId] || t.userId}
+                      </button>
+                    ) : '--'}
                   </td>
                 </tr>
               );

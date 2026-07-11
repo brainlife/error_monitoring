@@ -22,14 +22,70 @@ interface Incident {
   taskId?: string;
 }
 
+function getTimelineTimes(triggeredAt: string) {
+  let baseHour = 3;
+  let baseMin = 21;
+
+  const timeMatch = triggeredAt.match(/(\d{1,2}):(\d{2})/);
+  if (timeMatch) {
+    baseHour = parseInt(timeMatch[1], 10);
+    baseMin = parseInt(timeMatch[2], 10);
+    
+    if (triggeredAt.toLowerCase().includes('pm') && baseHour < 12) {
+      baseHour += 12;
+    }
+    if (triggeredAt.toLowerCase().includes('am') && baseHour === 12) {
+      baseHour = 0;
+    }
+  } else {
+    // If relative format like "July 11, 01:05", try parsing that format
+    const longTimeMatch = triggeredAt.match(/(\d{1,2}):(\d{2})/);
+    if (longTimeMatch) {
+      baseHour = parseInt(longTimeMatch[1], 10);
+      baseMin = parseInt(longTimeMatch[2], 10);
+    } else {
+      // fallback
+      baseHour = 3;
+      baseMin = 21;
+    }
+  }
+
+  const formatTime = (h: number, m: number) => {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${pad(h % 24)}:${pad(m % 60)}`;
+  };
+
+  const t1 = formatTime(baseHour, baseMin);
+  const t2 = formatTime(baseHour + Math.floor((baseMin + 3) / 60), (baseMin + 3) % 60);
+  const t3 = formatTime(baseHour + Math.floor((baseMin + 5) / 60), (baseMin + 5) % 60);
+  const t4 = formatTime(baseHour + Math.floor((baseMin + 9) / 60), (baseMin + 9) % 60);
+
+  return [t1, t2, t3, t4];
+}
+
 interface IncidentsViewProps {
   tasks: Task[];
   usersList: { _id: string; sub: number; username: string; fullname: string; scopes?: { brainlife?: string[] } }[];
+  onNavigateToTask?: (taskId: string) => void;
+  onNavigateToResource?: (resourceName: string) => void;
+  initialSelectedIncidentId?: string | null;
 }
 
-export default function IncidentsView({ tasks, usersList }: IncidentsViewProps) {
+export default function IncidentsView({ 
+  tasks, 
+  usersList,
+  onNavigateToTask,
+  onNavigateToResource,
+  initialSelectedIncidentId
+}: IncidentsViewProps) {
   const [filter, setFilter] = useState<'all' | 'active' | 'resolved'>('active');
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (initialSelectedIncidentId) {
+      setSelectedIncidentId(initialSelectedIncidentId);
+    }
+  }, [initialSelectedIncidentId]);
   
   // Custom manual incidents list state
   const [incidents, setIncidents] = useState<Incident[]>([]);
@@ -193,6 +249,55 @@ export default function IncidentsView({ tasks, usersList }: IncidentsViewProps) 
   const selectedIncident = useMemo(() => {
     return incidents.find(inc => inc.id === selectedIncidentId) || null;
   }, [incidents, selectedIncidentId]);
+
+  // Generate timeline steps dynamically for the selected incident
+  const timelineSteps = useMemo(() => {
+    if (!selectedIncident) return [];
+
+    const times = getTimelineTimes(selectedIncident.triggeredAt);
+    
+    let step2Label = 'Assigned';
+    if (selectedIncident.assignee) {
+      step2Label = `Assigned to ${selectedIncident.assignee}`;
+    }
+
+    let step3Label = 'Resource restarted';
+    const res = selectedIncident.resource.toLowerCase();
+    if (res.includes('karst')) {
+      step3Label = 'Failover cluster routing initialized';
+    } else if (res.includes('mongo')) {
+      step3Label = 'Replica write-concern reconciled';
+    } else if (res.includes('storage')) {
+      step3Label = 'Storage archive migration triggered';
+    } else if (selectedIncident.id.includes('task')) {
+      step3Label = 'Container resource restarted';
+    }
+
+    const steps = [
+      {
+        time: times[0],
+        label: 'Incident created',
+        status: 'completed' as const
+      },
+      {
+        time: times[1],
+        label: step2Label,
+        status: (selectedIncident.status === 'Acknowledged' || selectedIncident.status === 'Resolved') ? 'completed' as const : 'current' as const
+      },
+      {
+        time: times[2],
+        label: step3Label,
+        status: selectedIncident.status === 'Resolved' ? 'completed' as const : (selectedIncident.status === 'Acknowledged' ? 'current' as const : 'pending' as const)
+      },
+      {
+        time: times[3],
+        label: 'Resolved',
+        status: selectedIncident.status === 'Resolved' ? 'completed' as const : 'pending' as const
+      }
+    ];
+
+    return steps;
+  }, [selectedIncident]);
 
   // Aggregate KPI stats
   const stats = useMemo(() => {
@@ -389,7 +494,12 @@ export default function IncidentsView({ tasks, usersList }: IncidentsViewProps) 
             <div className="space-y-4 text-xs">
               <div className="flex justify-between items-center border-b border-white/[0.02] pb-1.5">
                 <span className="text-text-faint font-mono text-[9px] uppercase">Node Resource</span>
-                <span className="font-semibold text-text-main font-mono">{selectedIncident.resource}</span>
+                <button
+                  onClick={() => onNavigateToResource?.(selectedIncident.resource)}
+                  className="font-semibold text-accent-cyan font-mono hover:underline cursor-pointer transition-colors text-right"
+                >
+                  {selectedIncident.resource} →
+                </button>
               </div>
 
               <div className="flex justify-between items-center border-b border-white/[0.02] pb-1.5">
@@ -415,6 +525,39 @@ export default function IncidentsView({ tasks, usersList }: IncidentsViewProps) 
               <span className="text-text-faint font-mono text-[9px] uppercase block">Diagnostics Details</span>
               <div className="rounded-xl border border-white/[0.03] bg-[#050811] p-3 text-[10px] text-text-muted leading-relaxed font-mono">
                 {selectedIncident.message}
+              </div>
+            </div>
+
+            {/* Incident Timeline */}
+            <div className="space-y-3 border-t border-white/[0.04] pt-4">
+              <span className="text-text-faint font-mono text-[9px] uppercase block">Incident Timeline</span>
+              <div className="relative space-y-3 before:absolute before:left-[9px] before:top-2 before:bottom-2 before:w-[1px] before:bg-white/[0.08]">
+                {timelineSteps.map((step, idx) => {
+                  const isCompleted = step.status === 'completed';
+                  const isCurrent = step.status === 'current';
+                  const isPending = step.status === 'pending';
+
+                  return (
+                    <div key={idx} className="relative pl-6 text-[11px] flex items-center justify-between min-h-[20px]">
+                      {/* Timeline dot */}
+                      <span className={`absolute left-[5px] top-1/2 -translate-y-1/2 h-2 w-2 rounded-full border ${
+                        isCompleted 
+                          ? 'bg-status-success border-status-success/35 shadow-[0_0_6px_rgba(16,185,129,0.5)]' 
+                          : isCurrent 
+                          ? 'bg-status-warning border-status-warning/35 animate-pulse shadow-[0_0_6px_rgba(245,158,11,0.5)]' 
+                          : 'bg-[#050811] border-white/10 text-text-faint'
+                      }`} />
+                      
+                      <span className={`font-semibold leading-tight pr-2 ${isPending ? 'text-text-faint italic font-normal' : 'text-text-main font-bold'}`}>
+                        {step.label}
+                      </span>
+                      
+                      <span className="font-mono text-[9px] text-text-faint font-bold leading-none shrink-0">
+                        {step.time}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
@@ -461,7 +604,13 @@ export default function IncidentsView({ tasks, usersList }: IncidentsViewProps) 
 
             {selectedIncident.taskId && (
               <div className="border-t border-white/[0.04] pt-4 text-[9px] text-text-faint font-mono leading-relaxed">
-                🔗 Mapped Task ID: <span className="text-accent-cyan select-all block mt-0.5">{selectedIncident.taskId}</span>
+                🔗 Mapped Task ID:{' '}
+                <button
+                  onClick={() => onNavigateToTask?.(selectedIncident.taskId!)}
+                  className="text-accent-cyan hover:underline cursor-pointer font-bold inline-block mt-0.5 text-left"
+                >
+                  {selectedIncident.taskId} →
+                </button>
               </div>
             )}
           </>

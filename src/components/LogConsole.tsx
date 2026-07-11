@@ -140,7 +140,7 @@ export default function LogConsole({ task }: LogConsoleProps) {
     return ['INFO', 'ERROR', 'WARN', task.service];
   }, [task]);
 
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(true);
 
   if (isCollapsed) {
     return (

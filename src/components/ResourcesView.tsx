@@ -7,6 +7,8 @@ interface ResourcesViewProps {
   resources: ComputeResource[];
   onTest: (id: string) => void;
   testingId: string | null;
+  onNavigateToTask?: (taskId: string) => void;
+  initialSelectedResourceId?: string | null;
 }
 
 interface TaskInfo {
@@ -18,10 +20,26 @@ interface TaskInfo {
   create_date?: string;
 }
 
-export default function ResourcesView({ resources, onTest, testingId }: ResourcesViewProps) {
+export default function ResourcesView({ 
+  resources, 
+  onTest, 
+  testingId,
+  onNavigateToTask,
+  initialSelectedResourceId
+}: ResourcesViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'online' | 'error' | 'ssh' | 'aws'>('all');
   const [selectedResource, setSelectedResource] = useState<ComputeResource | null>(null);
+
+  // Pre-select resource if initialSelectedResourceId changes
+  useEffect(() => {
+    if (initialSelectedResourceId) {
+      const match = resources.find(r => r.id === initialSelectedResourceId || r.name.toLowerCase() === initialSelectedResourceId.toLowerCase());
+      if (match) {
+        setSelectedResource(match);
+      }
+    }
+  }, [initialSelectedResourceId, resources]);
   
   // Resource tasks details state
   const [tasksLoading, setTasksLoading] = useState(false);
@@ -407,10 +425,11 @@ export default function ResourcesView({ resources, onTest, testingId }: Resource
                     {recentTasks.slice(0, 10).map((t) => (
                       <div
                         key={t._id}
-                        className="flex items-center justify-between rounded-lg bg-white/[0.01] border border-white/[0.03] p-2 text-[10px]"
+                        onClick={() => onNavigateToTask?.(t._id)}
+                        className="flex items-center justify-between rounded-lg bg-white/[0.01] border border-white/[0.03] p-2 text-[10px] cursor-pointer hover:bg-white/5 transition-all group"
                       >
                         <div className="min-w-0 flex-1 pr-2">
-                          <p className="truncate font-semibold text-text-muted leading-tight" title={t.service}>
+                          <p className="truncate font-semibold text-text-muted leading-tight group-hover:text-accent-cyan" title={t.service}>
                             {t.service.split('/').pop()}
                           </p>
                           <span className="text-[8px] text-text-faint mt-0.5 block">

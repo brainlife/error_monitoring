@@ -14,7 +14,7 @@ import ServicesView from './components/ServicesView';
 import IncidentsView from './components/IncidentsView';
 import UsersView from './components/UsersView';
 import { apiFetch, getJwtToken, getUserProfile, logout, setJwtToken, fetchWarehouseProjects, fetchAuthUsers, type UserProfile } from './api';
-import { Search, Bell, Activity, Database, Users, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { Search, Bell, Activity, Database, Users, ShieldAlert, CheckCircle2, AlertOctagon, Boxes, Server, ListTodo, Layers } from 'lucide-react';
 
 // API Schema Types
 interface BackendTask {
@@ -52,7 +52,196 @@ export default function App() {
   const [configVersion, setConfigVersion] = useState(0);
   const [projectNamesMap, setProjectNamesMap] = useState<Record<string, string>>({});
   const [userNamesMap, setUserNamesMap] = useState<Record<string, string>>({});
-  const [usersList, setUsersList] = useState<{ _id: string; sub: number; username: string; fullname: string; scopes?: { brainlife?: string[] } }[]>([]);
+  const [usersList, setUsersList] = useState<{ _id: string; sub: number; username: string; fullname: string; email?: string; scopes?: { brainlife?: string[] } }[]>([]);
+  const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
+  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+
+  // Sidebar status flags
+  const hasActiveIncidents = useMemo(() => {
+    return resourcesList.some(r => r.status === 'error') || tasksList.some(t => t.status === 'failed');
+  }, [resourcesList, tasksList]);
+
+  const hasDegradedResources = useMemo(() => {
+    return resourcesList.some(r => r.status === 'degraded');
+  }, [resourcesList]);
+
+  const hasHealthyServices = useMemo(() => {
+    return true;
+  }, []);
+
+  // Cross-linking relationship navigation states
+  const [selectedResourceIdForCrossLink, setSelectedResourceIdForCrossLink] = useState<string | null>(null);
+  const [selectedUserIdForCrossLink, setSelectedUserIdForCrossLink] = useState<string | null>(null);
+  const [selectedIncidentIdForCrossLink, setSelectedIncidentIdForCrossLink] = useState<string | null>(null);
+
+  const handleNavigateToTask = useCallback((taskId: string) => {
+    const taskObj = tasksList.find(t => t.id === taskId);
+    if (taskObj) {
+      setSelectedTask(taskObj);
+    }
+    setView('tasks');
+  }, [tasksList]);
+
+  const handleNavigateToResource = useCallback((resourceName: string) => {
+    setSelectedResourceIdForCrossLink(resourceName);
+    setView('resources');
+  }, []);
+
+  const handleNavigateToUser = useCallback((userId: string) => {
+    setSelectedUserIdForCrossLink(userId);
+    setView('users');
+  }, []);
+
+  const handleNavigateToIncident = useCallback((incidentId: string) => {
+    setSelectedIncidentIdForCrossLink(incidentId);
+    setView('incidents');
+  }, []);
+
+  // Reset cross-linking parameters upon view transit
+  useEffect(() => {
+    setSelectedResourceIdForCrossLink(null);
+    setSelectedUserIdForCrossLink(null);
+    setSelectedIncidentIdForCrossLink(null);
+  }, [view]);
+
+  // Spotlight keyboard listener (⌘K / Ctrl+K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setGlobalSearchOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Spotlight search matching logic
+  const spotlightResults = useMemo(() => {
+    if (!globalSearchQuery.trim()) return [];
+
+    const query = globalSearchQuery.toLowerCase().trim();
+    const results: { category: string; id: string; title: string; subtitle?: string; icon: string; action: () => void }[] = [];
+
+    // 1. Resources
+    resourcesList.forEach(r => {
+      if (r.name.toLowerCase().includes(query) || r.type.toLowerCase().includes(query)) {
+        results.push({
+          category: 'Resource',
+          id: `res-${r.id}`,
+          title: r.name,
+          subtitle: r.type,
+          icon: 'server',
+          action: () => {
+            handleNavigateToResource(r.name);
+            setGlobalSearchOpen(false);
+            setGlobalSearchQuery('');
+          }
+        });
+      }
+    });
+
+    // 2. Tasks
+    tasksList.forEach(t => {
+      const projName = projectNamesMap?.[t.projectId] || t.projectId;
+      if (t.service.toLowerCase().includes(query) || t.id.toLowerCase().includes(query) || projName.toLowerCase().includes(query)) {
+        results.push({
+          category: 'Task',
+          id: `task-${t.id}`,
+          title: t.service.split('/').pop() || t.service,
+          subtitle: `Status: ${t.status} | ID: ${t.id.slice(-8)}`,
+          icon: 'terminal',
+          action: () => {
+            handleNavigateToTask(t.id);
+            setGlobalSearchOpen(false);
+            setGlobalSearchQuery('');
+          }
+        });
+      }
+    });
+
+    // 3. Incidents
+    const baseIncidents = [
+      { id: 'inc-sys-101', title: 'IU Karst SSH Host Unreachable', resource: 'Karst' },
+      { id: 'inc-sys-102', title: 'Archive Storage Node: Disk space alert', resource: 'Carbonate Storage Node' },
+      { id: 'inc-sys-103', title: 'Database Replication Lag Spike', resource: 'mongodb' }
+    ];
+    baseIncidents.forEach(inc => {
+      if (inc.title.toLowerCase().includes(query) || inc.resource.toLowerCase().includes(query)) {
+        results.push({
+          category: 'Incident',
+          id: inc.id,
+          title: inc.title,
+          subtitle: `Resource: ${inc.resource}`,
+          icon: 'alert-octagon',
+          action: () => {
+            handleNavigateToIncident(inc.id);
+            setGlobalSearchOpen(false);
+            setGlobalSearchQuery('');
+          }
+        });
+      }
+    });
+
+    // 4. Users
+    usersList.forEach(u => {
+      if (u.fullname.toLowerCase().includes(query) || u.username.toLowerCase().includes(query) || (u.email && u.email.toLowerCase().includes(query))) {
+        results.push({
+          category: 'User',
+          id: `user-${u._id}`,
+          title: u.fullname,
+          subtitle: `@${u.username}`,
+          icon: 'user',
+          action: () => {
+            handleNavigateToUser(u.sub ? u.sub.toString() : u._id);
+            setGlobalSearchOpen(false);
+            setGlobalSearchQuery('');
+          }
+        });
+      }
+    });
+
+    // 5. Projects
+    const uniqueProjects = Array.from(new Set(tasksList.map(t => t.projectId).filter(Boolean)));
+    uniqueProjects.forEach(pid => {
+      const name = projectNamesMap?.[pid] || `Project ${pid.slice(-6)}`;
+      if (name.toLowerCase().includes(query) || pid.toLowerCase().includes(query)) {
+        results.push({
+          category: 'Project',
+          id: `proj-${pid}`,
+          title: name,
+          subtitle: `ID: ${pid}`,
+          icon: 'layers',
+          action: () => {
+            setView('tasks');
+            setGlobalSearchOpen(false);
+            setGlobalSearchQuery('');
+          }
+        });
+      }
+    });
+
+    // 6. Services
+    const serviceNames = ['app-noop', 'app-supertest', 'app-freesurfer', 'app-fmriprep'];
+    serviceNames.forEach(sName => {
+      if (sName.toLowerCase().includes(query)) {
+        results.push({
+          category: 'Service',
+          id: `srv-${sName}`,
+          title: sName,
+          subtitle: 'Active Pipeline Pipeline',
+          icon: 'boxes',
+          action: () => {
+            setView('services');
+            setGlobalSearchOpen(false);
+            setGlobalSearchQuery('');
+          }
+        });
+      }
+    });
+
+    return results.slice(0, 10);
+  }, [globalSearchQuery, tasksList, resourcesList, usersList, projectNamesMap]);
 
   // Authentication state
   const [user, setUser] = useState<UserProfile | null>(getUserProfile());
@@ -318,11 +507,18 @@ export default function App() {
   if (!isAuthenticated) {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
-
   return (
     <div className="relative z-10 flex h-screen w-full overflow-hidden bg-bg-dark text-text-main">
       {/* 1. Left Fixed Sidebar */}
-      <Sidebar view={view} onNavigate={setView} user={user} onLogout={handleLogout} />
+      <Sidebar 
+        view={view} 
+        onNavigate={setView} 
+        user={user} 
+        onLogout={handleLogout} 
+        hasActiveIncidents={hasActiveIncidents}
+        hasDegradedResources={hasDegradedResources}
+        hasHealthyServices={hasHealthyServices}
+      />
 
       {/* Main Container for Right Side */}
       <div className="flex flex-1 flex-col min-w-0">
@@ -345,17 +541,23 @@ export default function App() {
               {view === 'tasks' && 'Search and inspect history of workflow executions'}
               {view === 'analytics' && 'Compute performance analytics'}
               {view === 'settings' && 'Manage configurations, integrations, and credentials'}
+              {view === 'incidents' && 'Inspect history of outages, latency spikes, and system alerts'}
+              {view === 'users' && 'Audit live workloads, success histories, and active runs by operator'}
             </p>
           </div>
 
           <div className="flex items-center gap-4">
             {/* Search Input */}
-            <div className="relative hidden sm:block">
+            <div 
+              onClick={() => setGlobalSearchOpen(true)}
+              className="relative hidden sm:block cursor-pointer"
+            >
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-faint" />
               <input
                 type="text"
+                readOnly
                 placeholder="Search tasks, services, resources..."
-                className="w-64 rounded-lg border border-border-glass bg-white/[0.02] py-1.5 pl-9 pr-12 font-sans text-xs text-text-main placeholder:text-text-faint focus:border-accent-cyan/40 focus:outline-none focus:ring-1 focus:ring-accent-cyan/20 transition-all"
+                className="w-64 rounded-lg border border-border-glass bg-white/[0.02] py-1.5 pl-9 pr-12 font-sans text-xs text-text-main placeholder:text-text-faint focus:outline-none cursor-pointer"
               />
               <span className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-white/10 px-1 font-mono text-[9px] text-text-faint">
                 ⌘K
@@ -403,6 +605,8 @@ export default function App() {
                   selectedId={selectedTask?.id ?? null}
                   projectNamesMap={projectNamesMap}
                   userNamesMap={userNamesMap}
+                  onNavigateToResource={handleNavigateToResource}
+                  onNavigateToUser={handleNavigateToUser}
                 />
               </>
             )}
@@ -412,6 +616,8 @@ export default function App() {
                 resources={resourcesList}
                 onTest={handleTest}
                 testingId={testingId}
+                onNavigateToTask={handleNavigateToTask}
+                initialSelectedResourceId={selectedResourceIdForCrossLink}
               />
             )}
 
@@ -423,6 +629,8 @@ export default function App() {
                 onRefresh={loadData}
                 projectNamesMap={projectNamesMap}
                 userNamesMap={userNamesMap}
+                onNavigateToResource={handleNavigateToResource}
+                onNavigateToUser={handleNavigateToUser}
               />
             )}
 
@@ -443,7 +651,13 @@ export default function App() {
             )}
 
             {view === 'incidents' && (
-              <IncidentsView tasks={tasksList} usersList={usersList} />
+              <IncidentsView 
+                tasks={tasksList} 
+                usersList={usersList} 
+                onNavigateToTask={handleNavigateToTask}
+                onNavigateToResource={handleNavigateToResource}
+                initialSelectedIncidentId={selectedIncidentIdForCrossLink}
+              />
             )}
 
             {view === 'users' && (
@@ -452,6 +666,8 @@ export default function App() {
                 usersList={usersList}
                 projectNamesMap={projectNamesMap}
                 onSelectTask={setSelectedTask}
+                onNavigateToTask={handleNavigateToTask}
+                initialSelectedUserId={selectedUserIdForCrossLink}
               />
             )}
 
@@ -522,6 +738,101 @@ export default function App() {
         </footer>
 
       </div>
+
+      {/* Spotlight Global Search Modal Overlay */}
+      {globalSearchOpen && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4">
+          {/* Backdrop blur */}
+          <div 
+            onClick={() => setGlobalSearchOpen(false)}
+            className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-300" 
+          />
+          
+          {/* Spotlight Modal Box */}
+          <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-white/[0.08] bg-[#090d16]/95 p-4 shadow-2xl backdrop-blur-xl animate-slide-in">
+            <div className="relative flex items-center">
+              <Search className="absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-text-faint" />
+              <input
+                type="text"
+                autoFocus
+                value={globalSearchQuery}
+                onChange={(e) => setGlobalSearchQuery(e.target.value)}
+                placeholder="Spotlight Search: Karst, App, Incidents, Niklas..."
+                className="w-full rounded-xl border border-white/5 bg-white/[0.01] py-3 pl-11 pr-12 font-sans text-sm text-text-main placeholder:text-text-faint focus:border-accent-cyan/40 focus:outline-none focus:ring-1 focus:ring-accent-cyan/20 transition-all"
+              />
+              <button 
+                onClick={() => setGlobalSearchOpen(false)}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-faint hover:text-text-main border border-white/10 rounded px-1.5 py-0.5"
+              >
+                ESC
+              </button>
+            </div>
+
+            {/* Results container */}
+            <div className="mt-4 max-h-80 overflow-y-auto space-y-3">
+              {globalSearchQuery.trim() === '' ? (
+                <div className="text-center text-xs text-text-faint py-10">
+                  <p>Type to search across resources, tasks, incidents, and users...</p>
+                  <p className="mt-2 text-[10px] opacity-75">Try searching for <span className="text-accent-cyan select-all">"Karst"</span> or <span className="text-accent-purple select-all">"Niklas"</span></p>
+                </div>
+              ) : spotlightResults.length === 0 ? (
+                <div className="text-center text-xs text-text-faint py-10">
+                  No matching results found for "{globalSearchQuery}"
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {spotlightResults.map((res) => {
+                    // icon helper
+                    let IconComp = Server;
+                    if (res.icon === 'terminal') IconComp = ListTodo;
+                    else if (res.icon === 'alert-octagon') IconComp = AlertOctagon;
+                    else if (res.icon === 'user') IconComp = Users;
+                    else if (res.icon === 'layers') IconComp = Layers;
+                    else if (res.icon === 'boxes') IconComp = Boxes;
+
+                    return (
+                      <div
+                        key={res.id}
+                        onClick={res.action}
+                        className="flex items-center justify-between rounded-xl px-3.5 py-3 hover:bg-white/[0.03] border border-transparent hover:border-white/[0.04] cursor-pointer group transition-all duration-150"
+                      >
+                        <div className="flex items-center gap-3.5 min-w-0">
+                          <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
+                            res.category === 'Incident' ? 'bg-status-error/15 text-status-error' :
+                            res.category === 'Resource' ? 'bg-status-warning/15 text-status-warning' :
+                            res.category === 'User' ? 'bg-accent-purple/15 text-accent-purple' :
+                            'bg-accent-cyan/15 text-accent-cyan'
+                          }`}>
+                            <IconComp className="h-4.5 w-4.5" />
+                          </div>
+                          <div className="min-w-0">
+                            <span className="text-xs font-bold text-text-main group-hover:text-accent-cyan transition-colors">{res.title}</span>
+                            {res.subtitle && (
+                              <p className="text-[10px] text-text-faint truncate mt-0.5">{res.subtitle}</p>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-[9px] font-bold uppercase tracking-wider font-mono px-2 py-0.5 rounded bg-white/5 border border-white/5 text-text-muted">
+                          {res.category}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Spotlight Footer */}
+            <div className="mt-4 flex items-center justify-between border-t border-white/[0.04] pt-3 text-[9px] text-text-faint font-mono font-bold uppercase select-none">
+              <span>Spotlight Search v1.0</span>
+              <div className="flex gap-2">
+                <span>↑↓ navigate</span>
+                <span>⏎ select</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

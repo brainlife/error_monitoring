@@ -22,6 +22,9 @@ interface SidebarProps {
   onNavigate: (v: View) => void;
   user: UserProfile | null;
   onLogout: () => void;
+  hasActiveIncidents?: boolean;
+  hasDegradedResources?: boolean;
+  hasHealthyServices?: boolean;
 }
 
 const navItems = [
@@ -35,7 +38,15 @@ const navItems = [
   { id: 'settings' as const, label: 'Settings', icon: SettingsIcon },
 ];
 
-export default function Sidebar({ view, onNavigate, user, onLogout }: SidebarProps) {
+export default function Sidebar({ 
+  view, 
+  onNavigate, 
+  user, 
+  onLogout,
+  hasActiveIncidents = false,
+  hasDegradedResources = false,
+  hasHealthyServices = false
+}: SidebarProps) {
   const [isCollapsed, setIsCollapsed] = useState(() => {
     return localStorage.getItem('amaretti_sidebar_collapsed') === 'true';
   });
@@ -88,6 +99,16 @@ export default function Sidebar({ view, onNavigate, user, onLogout }: SidebarPro
       <nav className="flex flex-1 flex-col gap-1.5">
         {navItems.map(({ id, label, icon: Icon }) => {
           const active = view === id;
+          
+          let indicatorColor = '';
+          if (id === 'incidents' && hasActiveIncidents) {
+            indicatorColor = 'text-status-error';
+          } else if (id === 'resources' && hasDegradedResources) {
+            indicatorColor = 'text-status-warning';
+          } else if (id === 'services' && hasHealthyServices) {
+            indicatorColor = 'text-status-success';
+          }
+
           return (
             <button
               key={id}
@@ -105,8 +126,25 @@ export default function Sidebar({ view, onNavigate, user, onLogout }: SidebarPro
               {active && (
                 <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-accent-cyan shadow-[0_0_8px_#00E5FF]" />
               )}
-              <Icon className={`h-4.5 w-4.5 shrink-0 transition-transform duration-200 group-hover:scale-105 ${active ? 'text-accent-cyan' : 'text-text-muted'}`} strokeWidth={1.75} />
-              {!isCollapsed && <span className="animate-slide-in whitespace-nowrap">{label}</span>}
+              
+              <div className="relative flex items-center shrink-0">
+                <Icon className={`h-4.5 w-4.5 transition-transform duration-200 group-hover:scale-105 ${
+                  active ? 'text-accent-cyan' : (indicatorColor || 'text-text-muted')
+                }`} strokeWidth={1.75} />
+                
+                {/* Notification dot next to the icon */}
+                {!active && indicatorColor && (
+                  <span className={`absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full ${
+                    id === 'incidents' ? 'bg-status-error animate-pulse' : id === 'resources' ? 'bg-status-warning' : 'bg-status-success'
+                  }`} />
+                )}
+              </div>
+
+              {!isCollapsed && (
+                <span className={`animate-slide-in whitespace-nowrap ${
+                  !active && indicatorColor ? `${indicatorColor}/90` : ''
+                }`}>{label}</span>
+              )}
             </button>
           );
         })}

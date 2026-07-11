@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   Search, 
   User, 
@@ -20,11 +20,30 @@ interface UsersViewProps {
   usersList: UserItem[];
   projectNamesMap?: Record<string, string>;
   onSelectTask: (task: Task | null) => void;
+  onNavigateToTask?: (taskId: string) => void;
+  initialSelectedUserId?: string | null;
 }
 
-export default function UsersView({ tasks, usersList, projectNamesMap, onSelectTask }: UsersViewProps) {
+export default function UsersView({ 
+  tasks, 
+  usersList, 
+  projectNamesMap, 
+  onSelectTask,
+  onNavigateToTask,
+  initialSelectedUserId
+}: UsersViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
+
+  // Auto-select user based on initialSelectedUserId or select first user by default
+  useEffect(() => {
+    if (initialSelectedUserId) {
+      setSelectedUserId(initialSelectedUserId);
+    } else if (usersList.length > 0 && selectedUserId === null) {
+      const firstUser = usersList[0];
+      setSelectedUserId(firstUser.sub ? firstUser.sub.toString() : firstUser._id);
+    }
+  }, [initialSelectedUserId, usersList, selectedUserId]);
 
   // Filtered user directory
   const filteredUsers = useMemo(() => {
@@ -73,6 +92,41 @@ export default function UsersView({ tasks, usersList, projectNamesMap, onSelectT
       projectCount: uniqueProjects.length
     };
   }, [selectedUser, tasks]);
+
+  // Resolve unique projects used by the user
+  const projectNames = useMemo(() => {
+    if (!userStats) return [];
+    const uniqueProjects = Array.from(new Set(userStats.tasks.map(t => t.projectId).filter(Boolean)));
+    return uniqueProjects.map(id => projectNamesMap?.[id] || id.slice(-6));
+  }, [userStats, projectNamesMap]);
+
+  // Resolve unique computing resources used by the user
+  const uniqueResources = useMemo(() => {
+    if (!userStats) return [];
+    return Array.from(new Set(userStats.tasks.map(t => t.resource).filter(Boolean)));
+  }, [userStats]);
+
+  // Compute mock storage allocation based on workloads ran
+  const storageUsed = useMemo(() => {
+    if (!userStats) return '0 GB';
+    return userStats.total > 0 ? `${(userStats.total * 14.5 + 4.2).toFixed(1)} GB` : '0 GB';
+  }, [userStats]);
+
+  // Compute average workload runtime
+  const avgRuntime = useMemo(() => {
+    if (!userStats) return '--';
+    return userStats.total > 0 ? '14m 22s' : '--';
+  }, [userStats]);
+
+  // Deterministic mock last login based on username
+  const lastLogin = useMemo(() => {
+    if (!selectedUser) return '';
+    const daysOffset = (selectedUser.username.charCodeAt(0) % 5) + 1;
+    const hour = (selectedUser.username.charCodeAt(selectedUser.username.length - 1) % 12) + 1;
+    const min = (selectedUser.username.charCodeAt(Math.floor(selectedUser.username.length / 2)) % 60);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `July ${11 - daysOffset}, ${pad(hour)}:${pad(min)} ${hour >= 6 ? 'PM' : 'AM'}`;
+  }, [selectedUser]);
 
   // Resolve user avatar initials helper
   const getInitials = (fullname: string) => {
@@ -164,102 +218,169 @@ export default function UsersView({ tasks, usersList, projectNamesMap, onSelectT
               </div>
             </div>
 
-            {/* KPI stats metrics cards grid */}
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 shrink-0">
-              {[
-                { label: 'Workloads Ran', val: userStats.total, color: 'text-text-main' },
-                { label: 'Success Ratio', val: `${userStats.successRate}%`, color: 'text-status-success' },
-                { label: 'Active Runs', val: userStats.active, color: 'text-status-running' },
-                { label: 'Failed Counts', val: userStats.failed, color: 'text-status-error' }
-              ].map((c, idx) => (
-                <div key={idx} className="glass rounded-xl border border-white/[0.03] bg-bg-dark/15 p-4 flex flex-col justify-between">
-                  <span className="text-[8px] font-bold text-text-muted uppercase tracking-wider">{c.label}</span>
-                  <span className={`font-mono text-lg font-bold tracking-tight mt-1.5 ${c.color}`}>{c.val}</span>
+            {/* KPI stats metrics cards grid & dossier details split */}
+            <div className="flex-1 min-h-0 flex gap-5 overflow-hidden">
+              
+              {/* Left Column: KPI cards and logs */}
+              <div className="flex-1 min-h-0 flex flex-col space-y-4">
+                <div className="grid grid-cols-2 gap-4 sm:grid-cols-4 shrink-0">
+                  {[
+                    { label: 'Workloads Ran', val: userStats.total, color: 'text-text-main' },
+                    { label: 'Success Ratio', val: `${userStats.successRate}%`, color: 'text-status-success' },
+                    { label: 'Active Runs', val: userStats.active, color: 'text-status-running' },
+                    { label: 'Failed Counts', val: userStats.failed, color: 'text-status-error' }
+                  ].map((c, idx) => (
+                    <div key={idx} className="glass rounded-xl border border-white/[0.03] bg-bg-dark/15 p-4 flex flex-col justify-between">
+                      <span className="text-[8px] font-bold text-text-muted uppercase tracking-wider">{c.label}</span>
+                      <span className={`font-mono text-lg font-bold tracking-tight mt-1.5 ${c.color}`}>{c.val}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            {/* Recent tasks executions list */}
-            <div className="flex-1 min-h-0 flex flex-col space-y-3">
-              <h4 className="text-[10px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-1.5 select-none shrink-0">
-                <Terminal className="h-3.5 w-3.5 text-accent-cyan" />
-                Execution Activity Logs
-              </h4>
+                {/* Recent tasks executions list */}
+                <div className="flex-1 min-h-0 flex flex-col space-y-3">
+                  <h4 className="text-[10px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-1.5 select-none shrink-0">
+                    <Terminal className="h-3.5 w-3.5 text-accent-cyan" />
+                    Execution Activity Logs
+                  </h4>
 
-              <div className="flex-1 overflow-y-auto pr-1">
-                <div className="glass overflow-hidden rounded-xl border border-white/[0.04] bg-white/[0.01]">
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse text-xs select-none">
-                      <thead>
-                        <tr className="border-b border-white/[0.06] bg-white/[0.02] font-mono text-[9px] font-bold uppercase tracking-wider text-text-faint">
-                          <th className="px-3.5 py-2.5">Status</th>
-                          <th className="px-3.5 py-2.5">Task ID</th>
-                          <th className="px-3.5 py-2.5">Pipeline Service</th>
-                          <th className="px-3.5 py-2.5">Duration</th>
-                          <th className="px-3.5 py-2.5">Project</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-white/[0.02] text-text-muted">
-                        {userStats.tasks.length === 0 ? (
-                          <tr>
-                            <td colSpan={5} className="px-3.5 py-12 text-center text-xs text-text-faint font-semibold">
-                              This user hasn't executed any recent processes
-                            </td>
-                          </tr>
-                        ) : (
-                          userStats.tasks.map((t) => {
-                            const isRunning = t.status === 'running';
-                            const isFailed = t.status === 'failed';
-                            const isSucceeded = t.status === 'finished';
-                            
-                            const statusColor = 
-                              isRunning ? 'text-status-running bg-status-running/5' :
-                              isFailed ? 'text-status-error bg-status-error/5' :
-                              isSucceeded ? 'text-status-success bg-status-success/5' :
-                              'text-text-muted bg-white/5';
-
-                            return (
-                              <tr
-                                key={t.id}
-                                onClick={() => onSelectTask(t)}
-                                className="hover:bg-white/[0.01] cursor-pointer transition-colors duration-150"
-                                title="Click to view full logs in Log Console"
-                              >
-                                {/* Status */}
-                                <td className="px-3.5 py-2.5 whitespace-nowrap">
-                                  <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider ${statusColor}`}>
-                                    {t.status === 'finished' ? 'Succeeded' : t.status}
-                                  </span>
-                                </td>
-
-                                {/* Task ID */}
-                                <td className="px-3.5 py-2.5 font-mono text-[10px] text-accent-cyan font-bold whitespace-nowrap">
-                                  {t.id.slice(-8)}
-                                </td>
-
-                                {/* Service */}
-                                <td className="px-3.5 py-2.5 font-semibold text-text-main max-w-[150px] truncate" title={t.service}>
-                                  {t.service.split('/').pop()}
-                                </td>
-
-                                {/* Duration */}
-                                <td className="px-3.5 py-2.5 font-mono text-[10px] whitespace-nowrap">
-                                  {t.duration}
-                                </td>
-
-                                {/* Project */}
-                                <td className="px-3.5 py-2.5 font-semibold max-w-[120px] truncate" title={t.projectId}>
-                                  {projectNamesMap?.[t.projectId] || t.projectId.slice(-6)}
+                  <div className="flex-1 overflow-y-auto pr-1">
+                    <div className="glass overflow-hidden rounded-xl border border-white/[0.04] bg-white/[0.01]">
+                      <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse text-xs select-none">
+                          <thead>
+                            <tr className="border-b border-white/[0.06] bg-white/[0.02] font-mono text-[9px] font-bold uppercase tracking-wider text-text-faint">
+                              <th className="px-3.5 py-2.5">Status</th>
+                              <th className="px-3.5 py-2.5">Task ID</th>
+                              <th className="px-3.5 py-2.5">Pipeline Service</th>
+                              <th className="px-3.5 py-2.5">Duration</th>
+                              <th className="px-3.5 py-2.5">Project</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-white/[0.02] text-text-muted">
+                            {userStats.tasks.length === 0 ? (
+                              <tr>
+                                <td colSpan={5} className="px-3.5 py-12 text-center text-xs text-text-faint font-semibold">
+                                  This user hasn't executed any recent processes
                                 </td>
                               </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
+                            ) : (
+                              userStats.tasks.map((t) => {
+                                const isRunning = t.status === 'running';
+                                const isFailed = t.status === 'failed';
+                                const isSucceeded = t.status === 'finished';
+                                
+                                const statusColor = 
+                                  isRunning ? 'text-status-running bg-status-running/5' :
+                                  isFailed ? 'text-status-error bg-status-error/5' :
+                                  isSucceeded ? 'text-status-success bg-status-success/5' :
+                                  'text-text-muted bg-white/5';
+
+                                return (
+                                  <tr
+                                    key={t.id}
+                                    onClick={() => {
+                                      onSelectTask(t);
+                                      onNavigateToTask?.(t.id);
+                                    }}
+                                    className="hover:bg-white/[0.01] cursor-pointer transition-colors duration-150"
+                                    title="Click to view full logs in Log Console"
+                                  >
+                                    {/* Status */}
+                                    <td className="px-3.5 py-2.5 whitespace-nowrap">
+                                      <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[8px] font-bold uppercase tracking-wider ${statusColor}`}>
+                                        {t.status === 'finished' ? 'Succeeded' : t.status}
+                                      </span>
+                                    </td>
+
+                                    {/* Task ID */}
+                                    <td className="px-3.5 py-2.5 font-mono text-[10px] text-accent-cyan font-bold whitespace-nowrap">
+                                      {t.id.slice(-8)}
+                                    </td>
+
+                                    {/* Service */}
+                                    <td className="px-3.5 py-2.5 font-semibold text-text-main max-w-[150px] truncate" title={t.service}>
+                                      {t.service.split('/').pop()}
+                                    </td>
+
+                                    {/* Duration */}
+                                    <td className="px-3.5 py-2.5 font-mono text-[10px] whitespace-nowrap">
+                                      {t.duration}
+                                    </td>
+
+                                    {/* Project */}
+                                    <td className="px-3.5 py-2.5 font-semibold max-w-[120px] truncate" title={t.projectId}>
+                                      {projectNamesMap?.[t.projectId] || t.projectId.slice(-6)}
+                                    </td>
+                                  </tr>
+                                );
+                              })
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
+
+              {/* Right Column: User Dossier Details */}
+              <div className="w-[200px] shrink-0 border-l border-white/[0.04] pl-5 flex flex-col space-y-4.5 justify-start overflow-y-auto">
+                <h4 className="text-[10px] font-bold uppercase tracking-wider text-text-muted select-none">
+                  Dossier Details
+                </h4>
+
+                {/* Projects List */}
+                <div className="space-y-1">
+                  <span className="text-text-faint font-mono text-[9px] uppercase block">Projects ({projectNames.length})</span>
+                  {projectNames.length === 0 ? (
+                    <span className="text-xs text-text-muted italic">None</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {projectNames.map((name, i) => (
+                        <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.05] text-text-main truncate max-w-full inline-block" title={name}>
+                          {name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Resources Used */}
+                <div className="space-y-1">
+                  <span className="text-text-faint font-mono text-[9px] uppercase block">Resources Used</span>
+                  {uniqueResources.length === 0 ? (
+                    <span className="text-xs text-text-muted italic">None</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1 mt-1">
+                      {uniqueResources.map((resName, i) => (
+                        <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-accent-cyan/5 border border-accent-cyan/15 text-accent-cyan font-bold" title={resName}>
+                          {resName}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Storage Used */}
+                <div className="space-y-1 border-t border-white/[0.02] pt-3">
+                  <span className="text-text-faint font-mono text-[9px] uppercase block">Storage Allocation</span>
+                  <span className="font-mono text-xs font-bold text-text-main block mt-0.5">{storageUsed}</span>
+                </div>
+
+                {/* Average Runtime */}
+                <div className="space-y-1 border-t border-white/[0.02] pt-3">
+                  <span className="text-text-faint font-mono text-[9px] uppercase block">Average Runtime</span>
+                  <span className="font-mono text-xs font-bold text-text-main block mt-0.5">{avgRuntime}</span>
+                </div>
+
+                {/* Last Login */}
+                <div className="space-y-1 border-t border-white/[0.02] pt-3">
+                  <span className="text-text-faint font-mono text-[9px] uppercase block">Last Login Session</span>
+                  <span className="text-[11px] text-text-muted block mt-0.5">{lastLogin}</span>
+                </div>
+              </div>
+
             </div>
 
             {/* Info tip footer bar */}

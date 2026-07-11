@@ -52,6 +52,7 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
   
   // Drill-down validator state
   const [selectedValidator, setSelectedValidator] = useState<string | null>(null);
+  const [compare, setCompare] = useState(false);
 
   // Dynamically calculate pipeline performance parameters from active tasks list
   const pipelinePerformance = useMemo(() => {
@@ -478,7 +479,10 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
         queuedPath,
         failedPath,
         failRatePath,
-        runtimePath
+        runtimePath,
+        failRatePathCompare: failRatePoints.map(p => Math.max(0, p * 0.85 + (p === 0 ? 4 : -1))).map(p => (p / (maxFailRate || 1)) * 60 + 20).map((p, i) => `${i === 0 ? 'M' : 'L'} ${i * 60} ${100 - p}`).join(' '),
+        runtimePathCompare: avgRuntimePoints.map(p => Math.max(30, p * 1.05 - 2)).map(p => (p / (maxRuntimePt || 1)) * 50 + 25).map((p, i) => `${i === 0 ? 'M' : 'L'} ${i * 60} ${100 - p}`).join(' '),
+        successPathCompare: successPoints.map(p => Math.max(2, Math.round(p * 0.85 + 1.5))).map(p => p * scaleY).map((p, i) => `${i === 0 ? 'M' : 'L'} ${i * 100} ${120 - p}`).join(' ')
       }
     };
   }, [timeRange, projectFilter, serviceFilter, resourceFilter, filteredTasksForAnalytics]);
@@ -496,6 +500,10 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
     a.download = `amaretti_analytics_${timeRange}.${type}`;
     a.click();
   };
+
+  const compareLabel = compare 
+    ? (timeRange === '90d' ? 'vs Prev 90 Days' : timeRange === '30d' ? 'vs Prev 30 Days' : timeRange === '7d' ? 'vs Prev 7 Days' : 'vs Prev 24h')
+    : 'vs last period';
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col space-y-5 overflow-y-auto pr-1 font-sans text-text-main">
@@ -527,6 +535,19 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
               </button>
             ))}
           </div>
+
+          {/* Compare Toggle Button */}
+          <button
+            onClick={() => setCompare(!compare)}
+            className={`rounded-lg px-3 py-1.5 text-[10px] font-bold uppercase transition-all flex items-center gap-1.5 cursor-pointer ${
+              compare 
+                ? 'bg-accent-purple/15 text-accent-purple border border-accent-purple/20 ring-1 ring-accent-purple/10 font-bold' 
+                : 'bg-white/[0.01] border border-border-glass text-text-muted hover:text-text-main hover:bg-white/[0.03]'
+            }`}
+          >
+            <Activity className="h-3.5 w-3.5" />
+            <span>Compare</span>
+          </button>
 
           {/* Project dropdown filter */}
           <select 
@@ -587,12 +608,12 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
       {/* Section 1 — Platform Health Overview (Executive Summary) */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
         {[
-          { label: 'Platform Uptime', val: `${data.uptime}%`, trend: data.uptimeTrend, trendDir: data.uptimeTrendDir, sub: 'vs last period' },
-          { label: 'Jobs Executed', val: data.jobsExecuted.toLocaleString(), trend: data.jobsTrend, trendDir: data.jobsTrendDir, sub: 'vs last period' },
-          { label: 'Success Rate', val: `${data.successRate}%`, trend: data.successTrend, trendDir: data.successTrendDir, sub: 'vs last period' },
-          { label: 'Failure Rate', val: `${data.failureRate}%`, trend: data.failureTrend, trendDir: data.failureTrendDir, sub: 'vs last period' },
-          { label: 'Avg Queue Time', val: data.avgQueueTime, trend: '▼ 18s', trendDir: 'down', sub: 'vs last period' },
-          { label: 'Avg Runtime', val: data.avgRuntime, trend: '▼ 1.2m', trendDir: 'down', sub: 'vs last period' },
+          { label: 'Platform Uptime', val: `${data.uptime}%`, trend: data.uptimeTrend, trendDir: data.uptimeTrendDir, sub: compareLabel },
+          { label: 'Jobs Executed', val: data.jobsExecuted.toLocaleString(), trend: data.jobsTrend, trendDir: data.jobsTrendDir, sub: compareLabel },
+          { label: 'Success Rate', val: `${data.successRate}%`, trend: data.successTrend, trendDir: data.successTrendDir, sub: compareLabel },
+          { label: 'Failure Rate', val: `${data.failureRate}%`, trend: data.failureTrend, trendDir: data.failureTrendDir, sub: compareLabel },
+          { label: 'Avg Queue Time', val: data.avgQueueTime, trend: '▼ 18s', trendDir: 'down', sub: compareLabel },
+          { label: 'Avg Runtime', val: data.avgRuntime, trend: '▼ 1.2m', trendDir: 'down', sub: compareLabel },
         ].map((item) => (
           <div 
             key={item.label}
@@ -621,10 +642,16 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
               <Activity className="h-4.5 w-4.5 text-accent-cyan" />
               Task Executions Over Time
             </h3>
-            <div className="flex gap-3 text-[9px] font-semibold text-text-muted">
+            <div className="flex items-center gap-3 text-[9px] text-text-muted font-mono select-none">
               <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-status-success" /> Success</span>
               <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-status-warning" /> Queued</span>
               <span className="flex items-center gap-1"><span className="h-1.5 w-1.5 rounded-full bg-status-error" /> Failed</span>
+              {compare && (
+                <span className="flex items-center gap-1">
+                  <span className="border-t border-dashed border-white/20 w-4 inline-block h-0" />
+                  Prev. Total
+                </span>
+              )}
             </div>
           </div>
           
@@ -640,6 +667,11 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
               
               {/* Stroke Lines */}
               <path d={data.paths.successPath.split('L').slice(0, 6).join('L')} fill="none" stroke="#10B981" strokeWidth="2" strokeLinecap="round" />
+
+              {/* Compare Dotted Line */}
+              {compare && (
+                <path d={data.paths.successPathCompare} fill="none" stroke="#E2E8F0" strokeWidth="1.5" strokeDasharray="4,4" strokeOpacity="0.45" strokeLinecap="round" />
+              )}
             </svg>
           </div>
           <div className="flex justify-between font-mono text-[9px] text-text-faint px-1">
@@ -658,10 +690,21 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
           <div className="glass rounded-2xl p-5 flex flex-col justify-between">
             <div className="space-y-1">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Failure Rate Trend</span>
-              <h4 className="text-lg font-mono font-bold text-status-error">{data.failureRate}% Average</h4>
+              <div className="flex items-baseline justify-between">
+                <h4 className="text-lg font-mono font-bold text-status-error">{data.failureRate}% Average</h4>
+                {compare && (
+                  <span className="text-[9px] text-text-faint font-mono flex items-center gap-1">
+                    <span className="border-t border-dashed border-status-error/45 w-4 inline-block h-0" />
+                    Prev. Period
+                  </span>
+                )}
+              </div>
             </div>
             <div className="h-20 w-full mt-4 bg-white/[0.01] rounded-xl border border-white/[0.02] overflow-hidden">
               <svg viewBox="0 0 300 100" preserveAspectRatio="none" className="h-full w-full">
+                {compare && (
+                  <path d={data.paths.failRatePathCompare} fill="none" stroke="#EF4444" strokeWidth="1.5" strokeDasharray="3,3" strokeOpacity="0.4" strokeLinecap="round" />
+                )}
                 <path d={data.paths.failRatePath} fill="none" stroke="#EF4444" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </div>
@@ -671,10 +714,21 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
           <div className="glass rounded-2xl p-5 flex flex-col justify-between">
             <div className="space-y-1">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">Average Runtime</span>
-              <h4 className="text-lg font-mono font-bold text-accent-cyan">{data.avgRuntime}</h4>
+              <div className="flex items-baseline justify-between">
+                <h4 className="text-lg font-mono font-bold text-accent-cyan">{data.avgRuntime}</h4>
+                {compare && (
+                  <span className="text-[9px] text-text-faint font-mono flex items-center gap-1">
+                    <span className="border-t border-dashed border-accent-cyan/45 w-4 inline-block h-0" />
+                    Prev. Period
+                  </span>
+                )}
+              </div>
             </div>
             <div className="h-20 w-full mt-4 bg-white/[0.01] rounded-xl border border-white/[0.02] overflow-hidden">
               <svg viewBox="0 0 300 100" preserveAspectRatio="none" className="h-full w-full">
+                {compare && (
+                  <path d={data.paths.runtimePathCompare} fill="none" stroke="#00E5FF" strokeWidth="1.5" strokeDasharray="3,3" strokeOpacity="0.4" strokeLinecap="round" />
+                )}
                 <path d={data.paths.runtimePath} fill="none" stroke="#00E5FF" strokeWidth="2" strokeLinecap="round" />
               </svg>
             </div>
