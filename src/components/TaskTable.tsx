@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { Task } from '../data';
 import { Cloud, Server, Cpu, Terminal, ArrowUpRight } from 'lucide-react';
 
@@ -20,11 +20,17 @@ const statusConfig = {
 };
 
 export default function TaskTable({ tasks, onSelect, selectedId, projectNamesMap, userNamesMap }: TaskTableProps) {
+  const [showAll, setShowAll] = useState(false);
+
   const sorted = useMemo(() => {
     // Sort so running and queued are on top
     const order = { running: 0, queued: 1, failed: 2, finished: 3, cancelled: 4, unknown: 5 };
     return [...tasks].sort((a, b) => order[a.status] - order[b.status]);
   }, [tasks]);
+
+  const displayedTasks = useMemo(() => {
+    return showAll ? sorted : sorted.slice(0, 8);
+  }, [sorted, showAll]);
 
   return (
     <div className="glass overflow-hidden rounded-2xl w-full border border-border-glass">
@@ -59,7 +65,7 @@ export default function TaskTable({ tasks, onSelect, selectedId, projectNamesMap
             </tr>
           </thead>
           <tbody className="divide-y divide-white/[0.02]">
-            {sorted.map((t) => {
+            {displayedTasks.map((t) => {
               const cfg = statusConfig[t.status] || statusConfig.unknown;
 
               // Resolve resource icon
@@ -122,8 +128,17 @@ export default function TaskTable({ tasks, onSelect, selectedId, projectNamesMap
                   </td>
 
                   {/* Message */}
-                  <td className="px-5 py-3.5 text-text-muted truncate max-w-[200px]" title={t.message}>
-                    {t.message}
+                  <td className="px-5 py-3.5 text-text-muted relative group/msg max-w-[200px]">
+                    <div className="truncate">
+                      {t.message || '--'}
+                    </div>
+                    {t.message && (
+                      <div className="absolute bottom-full left-1/2 mb-2.5 hidden group-hover/msg:block -translate-x-1/2 z-50 w-64 rounded-xl border border-border-glass bg-[#09111d] p-3 text-[11px] text-text-main shadow-[0_8px_24px_rgba(0,0,0,0.6)] font-sans whitespace-normal break-words pointer-events-none">
+                        {t.message}
+                        {/* Caret arrow */}
+                        <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[#09111d]" />
+                      </div>
+                    )}
                   </td>
 
                   {/* User */}
@@ -136,6 +151,16 @@ export default function TaskTable({ tasks, onSelect, selectedId, projectNamesMap
           </tbody>
         </table>
       </div>
+      {sorted.length > 8 && (
+        <div className="flex justify-center border-t border-white/[0.04] p-3 bg-white/[0.01]">
+          <button
+            onClick={() => setShowAll(!showAll)}
+            className="rounded-lg border border-border-glass bg-white/[0.01] px-4 py-2 text-xs font-semibold text-accent-cyan hover:bg-white/[0.03] hover:text-accent-cyan-dim transition-all cursor-pointer select-none animate-fade-up"
+          >
+            {showAll ? 'Show Less' : `Read More (${sorted.length - 8} more tasks)`}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

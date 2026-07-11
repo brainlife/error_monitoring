@@ -67,7 +67,7 @@ export async function login(username: string, password: string): Promise<boolean
     try {
       const payloadPart = data.jwt.split('.')[1];
       const payloadDecoded = JSON.parse(atob(payloadPart));
-      
+      console.log('Payload decoded:', payloadDecoded);
       const userProfile: UserProfile = {
         id: payloadDecoded.sub || '1',
         username: payloadDecoded.username || payloadDecoded.sub || username,
@@ -76,6 +76,7 @@ export async function login(username: string, password: string): Promise<boolean
       };
       
       localStorage.setItem('amaretti_user', JSON.stringify(userProfile));
+      
     } catch (decodeErr) {
       console.warn('Failed to decode JWT payload, setting fallback user profile:', decodeErr);
       const fallbackProfile: UserProfile = {
@@ -165,7 +166,7 @@ export async function fetchWarehouseProjects(): Promise<{ _id: string; name: str
   return [];
 }
 
-export async function fetchAuthUsers(): Promise<{ _id: string; sub: number; username: string; fullname: string }[]> {
+export async function fetchAuthUsers(): Promise<{ _id: string; sub: number; username: string; fullname: string; scopes?: { brainlife?: string[] } }[]> {
   const baseUrl = getApiUrl().replace(/\/amaretti\/?$/, '/auth');
   const token = getJwtToken();
   const headers = new Headers();

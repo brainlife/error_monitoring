@@ -1,25 +1,82 @@
 import { Activity, CheckCircle2, XCircle, Clock, Heart, AlertTriangle, ShieldAlert } from 'lucide-react';
 import { useCountUp } from '../hooks/useCountUp';
 
+import type { Task, ComputeResource } from '../data';
+
 interface KpiCardsProps {
   running: number;
   finished: number;
   failed: number;
   total: number;
+  resources: ComputeResource[];
+  tasks: Task[];
+  onNavigate?: (v: 'dashboard' | 'resources' | 'services' | 'tasks' | 'analytics' | 'settings') => void;
 }
 
-export default function KpiCards({ running, finished, failed }: KpiCardsProps) {
-  const queued = 11; // mock queuing factor
+export default function KpiCards({ running, finished, failed, resources, tasks, onNavigate }: KpiCardsProps) {
+  // Count queued tasks dynamically from task list
+  const queued = tasks.filter(t => t.status === 'queued').length;
 
-  // Dynamically compile critical alerts based on active metrics
-  const criticalAlerts = [
-    { id: '1', level: 'danger', text: 'Karst cluster unreachable (Host connection timeout)' },
-    { id: '2', level: 'warning', text: 'Validator failures increased by 20% over last hour' },
-    failed > 20 ? { id: '3', level: 'warning', text: `${failed} recent tasks failed; check runner logs` } : null,
-    running > 15 ? { id: '4', level: 'info', text: 'High active task load on AWS batch cluster' } : null,
-  ].filter(Boolean) as { id: string; level: string; text: string }[];
+  // Dynamically compile critical alerts based on active resources and tasks status
+  const criticalAlerts: { id: string; level: 'danger' | 'warning' | 'info'; text: string }[] = [];
 
-  const healthScore = Math.max(70, Math.min(100, 100 - (failed * 1.2) - (criticalAlerts.length * 5)));
+  // Check for offline or degraded clusters from the live resources list
+  resources.forEach(r => {
+    if (r.status === 'error') {
+      criticalAlerts.push({
+        id: `res-err-${r.id}`,
+        level: 'danger',
+        text: `${r.name} cluster is unreachable (Host connection timeout)`
+      });
+    } else if (r.status === 'degraded') {
+      criticalAlerts.push({
+        id: `res-deg-${r.id}`,
+        level: 'warning',
+        text: `${r.name} cluster connectivity is degraded (${r.detail || 'check nodes'})`
+      });
+    }
+  });
+
+  // Check for validator service failures in recent tasks list
+  const validatorFailures = tasks.filter(t => t.service.includes('validator') && t.status === 'failed').length;
+  if (validatorFailures > 0) {
+    criticalAlerts.push({
+      id: 'val-fail',
+      level: 'warning',
+      text: `Validator failures: ${validatorFailures} recent validator tasks failed`
+    });
+  }
+
+  // Check for overall task pipeline failure rate
+  if (failed > 15) {
+    criticalAlerts.push({
+      id: 'general-fail',
+      level: 'warning',
+      text: `${failed} recent tasks failed; check runner logs`
+    });
+  }
+
+  // Check for excessive aws batch workload
+  const awsBatchRunning = tasks.filter(t => t.resource === 'AWS Batch' && t.status === 'running').length;
+  if (awsBatchRunning > 15) {
+    criticalAlerts.push({
+      id: 'aws-load',
+      level: 'info',
+      text: 'High active task load on AWS batch cluster'
+    });
+  }
+
+  // Calculate health score dynamically
+  const errorResources = resources.filter(r => r.status === 'error').length;
+  const degradedResources = resources.filter(r => r.status === 'degraded').length;
+
+  const healthScore = Math.max(
+    70,
+    Math.min(
+      100,
+      100 - (failed * 1.5) - (errorResources * 8) - (degradedResources * 4) - (validatorFailures * 2)
+    )
+  );
 
   return (
     <div className="space-y-5 w-full">
@@ -56,32 +113,49 @@ export default function KpiCards({ running, finished, failed }: KpiCardsProps) {
         <div className="glass relative overflow-hidden rounded-2xl p-5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)]">
           <div className="flex items-center justify-between border-b border-white/[0.03] pb-2.5">
             <div className="flex items-center gap-2">
-              <ShieldAlert className="h-4.5 w-4.5 text-status-error animate-bounce" />
+              {criticalAlerts.length === 0 ? (
+                <CheckCircle2 className="h-4.5 w-4.5 text-status-success animate-pulse" />
+              ) : (
+                <ShieldAlert className="h-4.5 w-4.5 text-status-error animate-bounce" />
+              )}
               <h3 className="text-xs font-bold uppercase tracking-wider text-text-main">
                 Critical Alerts
               </h3>
             </div>
-            <span className="rounded-full bg-status-error/15 px-2.5 py-0.5 text-[9px] font-bold uppercase text-status-error tracking-wider font-mono">
-              {criticalAlerts.length} Active Issues
+            <span className={`rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider font-mono ${
+              criticalAlerts.length === 0
+                ? 'bg-status-success/15 text-status-success'
+                : 'bg-status-error/15 text-status-error'
+            }`}>
+              {criticalAlerts.length === 0 ? 'Healthy' : `${criticalAlerts.length} Active Issues`}
             </span>
           </div>
 
           <div className="mt-3.5 space-y-2">
-            {criticalAlerts.map((alert) => (
-              <div
-                key={alert.id}
-                className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-xs transition-colors duration-150 ${
-                  alert.level === 'danger'
-                    ? 'border-status-error/15 bg-status-error/5 text-status-error/95 hover:bg-status-error/8'
-                    : alert.level === 'warning'
-                    ? 'border-status-warning/15 bg-status-warning/5 text-status-warning/95 hover:bg-status-warning/8'
-                    : 'border-accent-cyan/15 bg-accent-cyan/5 text-accent-cyan/95 hover:bg-accent-cyan/8'
-                }`}
-              >
-                <AlertTriangle className="h-4 w-4 shrink-0" />
-                <span className="font-medium tracking-wide truncate">{alert.text}</span>
+            {criticalAlerts.length === 0 ? (
+              <div className="flex items-center gap-2.5 rounded-xl border border-status-success/15 bg-status-success/5 px-3.5 py-3 text-xs text-status-success/90">
+                <CheckCircle2 className="h-4.5 w-4.5 shrink-0 text-status-success" />
+                <span className="font-medium tracking-wide">All monitored systems and cluster nodes are fully operational</span>
               </div>
-            ))}
+            ) : (
+              criticalAlerts.slice(0, 2).map((alert) => (
+                <div
+                  key={alert.id}
+                  onClick={() => onNavigate && onNavigate('resources')}
+                  className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-xs transition-colors duration-150 cursor-pointer ${
+                    alert.level === 'danger'
+                      ? 'border-status-error/15 bg-status-error/5 text-status-error/95 hover:bg-status-error/8'
+                      : alert.level === 'warning'
+                      ? 'border-status-warning/15 bg-status-warning/5 text-status-warning/95 hover:bg-status-warning/8'
+                      : 'border-accent-cyan/15 bg-accent-cyan/5 text-accent-cyan/95 hover:bg-accent-cyan/8'
+                  }`}
+                  title="Click to inspect compute resources"
+                >
+                  <AlertTriangle className="h-4 w-4 shrink-0" />
+                  <span className="font-medium tracking-wide truncate">{alert.text}</span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 

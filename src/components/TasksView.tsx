@@ -9,6 +9,7 @@ interface TasksViewProps {
   selectedId: string | null;
   onRefresh: () => void;
   projectNamesMap?: Record<string, string>;
+  userNamesMap?: Record<string, string>;
 }
 
 const statusColors = {
@@ -20,7 +21,7 @@ const statusColors = {
   unknown: 'bg-accent-purple/10 text-accent-purple border-accent-purple/25',
 };
 
-export default function TasksView({ tasks, onSelect, selectedId, onRefresh, projectNamesMap }: TasksViewProps) {
+export default function TasksView({ tasks, onSelect, selectedId, onRefresh, projectNamesMap, userNamesMap }: TasksViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'running' | 'finished' | 'failed' | 'queued' | 'cancelled'>('all');
   
@@ -99,7 +100,7 @@ export default function TasksView({ tasks, onSelect, selectedId, onRefresh, proj
       setActionLoading(false);
     }
   };
-
+console.log(tasks)
   return (
     <div className="flex h-full min-h-0 w-full gap-5 overflow-hidden font-sans">
       {/* Left Tasks Grid/Table Panel */}
@@ -154,7 +155,8 @@ export default function TasksView({ tasks, onSelect, selectedId, onRefresh, proj
         {/* Task Grid Table */}
         <div className="flex-1 overflow-y-auto pr-1">
           <div className="glass overflow-hidden rounded-2xl border border-border-glass bg-bg-dark/20">
-            <table className="w-full text-left border-collapse">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-white/[0.04] bg-white/[0.01] font-mono text-[9px] font-bold uppercase tracking-wider text-text-faint select-none">
                   <th className="px-5 py-3.5">Status</th>
@@ -163,12 +165,14 @@ export default function TasksView({ tasks, onSelect, selectedId, onRefresh, proj
                   <th className="px-5 py-3.5">Project ID</th>
                   <th className="px-5 py-3.5">Start Time</th>
                   <th className="px-5 py-3.5">Duration</th>
+                  <th className="px-5 py-3.5">Message</th>
+                  <th className="px-5 py-3.5">User</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.02]">
                 {filteredTasks.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="px-5 py-12 text-center text-xs text-text-faint font-medium">
+                    <td colSpan={8} className="px-5 py-12 text-center text-xs text-text-faint font-medium">
                       No workflow tasks match your filters
                     </td>
                   </tr>
@@ -228,12 +232,30 @@ export default function TasksView({ tasks, onSelect, selectedId, onRefresh, proj
                         <td className="px-5 py-3.5 font-mono text-[10px]">
                           {t.duration}
                         </td>
+                        {/* Message */}
+                        <td className="px-5 py-3.5 text-text-muted relative group/msg max-w-[200px]">
+                          <div className="truncate">
+                            {t.message || '--'}
+                          </div>
+                          {t.message && (
+                            <div className="absolute bottom-full left-1/2 mb-2.5 hidden group-hover/msg:block -translate-x-1/2 z-50 w-64 rounded-xl border border-border-glass bg-[#09111d] p-3 text-[11px] text-text-main shadow-[0_8px_24px_rgba(0,0,0,0.6)] font-sans whitespace-normal break-words pointer-events-none">
+                              {t.message}
+                              {/* Caret arrow */}
+                              <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[#09111d]" />
+                            </div>
+                          )}
+                        </td>
+                        {/* User */}
+                        <td className="px-5 py-3.5 font-semibold text-xs">
+                          {t.userId ? (userNamesMap?.[t.userId] || t.userId) : '--'}
+                        </td>
                       </tr>
                     );
                   })
                 )}
               </tbody>
-            </table>
+              </table>
+            </div>
           </div>
         </div>
       </div>

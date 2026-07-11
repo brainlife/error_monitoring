@@ -11,6 +11,8 @@ import ResourcesView from './components/ResourcesView';
 import TasksView from './components/TasksView';
 import AnalyticsView from './components/AnalyticsView';
 import ServicesView from './components/ServicesView';
+import IncidentsView from './components/IncidentsView';
+import UsersView from './components/UsersView';
 import { apiFetch, getJwtToken, getUserProfile, logout, setJwtToken, fetchWarehouseProjects, fetchAuthUsers, type UserProfile } from './api';
 import { Search, Bell, Activity, Database, Users, ShieldAlert, CheckCircle2 } from 'lucide-react';
 
@@ -50,6 +52,7 @@ export default function App() {
   const [configVersion, setConfigVersion] = useState(0);
   const [projectNamesMap, setProjectNamesMap] = useState<Record<string, string>>({});
   const [userNamesMap, setUserNamesMap] = useState<Record<string, string>>({});
+  const [usersList, setUsersList] = useState<{ _id: string; sub: number; username: string; fullname: string; scopes?: { brainlife?: string[] } }[]>([]);
 
   // Authentication state
   const [user, setUser] = useState<UserProfile | null>(getUserProfile());
@@ -155,6 +158,7 @@ export default function App() {
           }
         });
         setUserNamesMap(map);
+        setUsersList(list);
       } catch (err) {
         console.error('Failed to load auth users:', err);
       }
@@ -380,7 +384,7 @@ export default function App() {
             {view === 'dashboard' && (
               <>
                 {/* KPI Cards Grid */}
-                <KpiCards {...stats} />
+                <KpiCards {...stats} resources={resourcesList} tasks={tasksList} onNavigate={setView} />
 
                 {/* Execution Timeline (Live Activity Component) */}
                 <ExecutionTimeline tasks={tasksList} />
@@ -418,6 +422,7 @@ export default function App() {
                 selectedId={selectedTask?.id ?? null}
                 onRefresh={loadData}
                 projectNamesMap={projectNamesMap}
+                userNamesMap={userNamesMap}
               />
             )}
 
@@ -437,7 +442,20 @@ export default function App() {
               <Settings onConfigChange={handleConfigChange} />
             )}
 
-            {view !== 'dashboard' && view !== 'settings' && view !== 'resources' && view !== 'tasks' && view !== 'analytics' && view !== 'services' && (
+            {view === 'incidents' && (
+              <IncidentsView tasks={tasksList} usersList={usersList} />
+            )}
+
+            {view === 'users' && (
+              <UsersView
+                tasks={tasksList}
+                usersList={usersList}
+                projectNamesMap={projectNamesMap}
+                onSelectTask={setSelectedTask}
+              />
+            )}
+
+            {view !== 'dashboard' && view !== 'settings' && view !== 'resources' && view !== 'tasks' && view !== 'analytics' && view !== 'services' && view !== 'incidents' && view !== 'users' && (
               <div className="flex h-96 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 p-10 text-center">
                 <ShieldAlert className="h-10 w-10 text-accent-cyan animate-bounce" />
                 <h3 className="mt-4 text-sm font-semibold text-text-main uppercase tracking-wider">

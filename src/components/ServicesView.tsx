@@ -63,41 +63,11 @@ interface ServiceData {
   };
 }
 
-const mockServices: ServiceData[] = [
-  {
-    id: 'srv-1',
-    name: 'validator-neuro-freesurfer',
-    category: 'Validator',
-    status: 'healthy',
-    isRunning: true,
+const SERVICE_METADATA_LOOKUP: Record<string, Partial<ServiceData>> = {
+  'validator-neuro-freesurfer': {
     version: '2.4.2',
     owner: 'Brainlife',
-    runningSince: 'July 4',
-    lastRestart: '2 days ago',
-    healthScore: 98,
-    availability: 99.9,
-    errorRate: 0.8,
-    avgRuntime: '32 min',
-    avgWait: '2 min',
-    runningTasks: 12,
-    queuedTasks: 2,
-    failedTasks: 0,
-    completedToday: 183,
-    workers: 12,
-    resourceDistribution: [
-      { name: 'Karst', workers: 6 },
-      { name: 'BigRed3', workers: 2 },
-      { name: 'Carbonate', workers: 0 },
-      { name: 'AWS Batch', workers: 4 }
-    ],
-    executionTimeline: [
-      { label: 'Started', time: '19:22', status: 'completed' },
-      { label: 'Dataset Downloaded', time: '19:24', status: 'completed' },
-      { label: 'Validation', time: '19:26', status: 'completed' },
-      { label: 'Running FreeSurfer', time: '19:35', status: 'active' },
-      { label: 'Uploading Results', status: 'pending' },
-      { label: 'Completed', status: 'pending' }
-    ],
+    category: 'Validator',
     dependencyGraph: ['API', 'Scheduler', 'validator-neuro-freesurfer', 'FreeSurfer App', 'Archive Service', 'Upload'],
     dependencyHealth: [
       { name: 'Scheduler', status: 'healthy' },
@@ -106,567 +76,121 @@ const mockServices: ServiceData[] = [
       { name: 'Storage', status: 'warning' },
       { name: 'SSH', status: 'critical' }
     ],
-    recentErrors: [
-      { time: '19:34', severity: 'ERROR', task: '54da767c', message: 'SSH timeout trying to connect to Karst' },
-      { time: '19:10', severity: 'WARNING', task: '54da3c20', message: 'Staging retry triggered - attempt 2/5' },
-      { time: '18:43', severity: 'ERROR', task: '54d9d711', message: 'Required dataset anatomical_t1 missing' }
-    ],
-    topErrorCategories: [
-      { category: 'Dataset Download Failed', count: 43 },
-      { category: 'SSH Timeout', count: 21 },
-      { category: 'Permission Denied', count: 12 },
-      { category: 'Resource Busy', count: 7 }
-    ],
-    performanceMetrics: {
-      successRate: [100, 99, 98, 98, 99, 100, 98, 97, 98, 98, 99, 98],
-      runtimeTrend: [30, 31, 35, 34, 32, 33, 31, 32, 34, 33, 32, 32],
-      throughput: [150, 180, 200, 220, 250, 240, 260, 280, 290, 300],
-      queueTrend: [5, 8, 12, 15, 10, 8, 5, 4, 3, 2]
-    },
-    versionHistory: [
-      { version: 'v2.4.2', date: 'July 6', type: 'Current', active: true },
-      { version: 'v2.4.1', date: 'June 29', type: 'Hotfix', active: false },
-      { version: 'v2.4.0', date: 'June 21', type: 'Deployment', active: false }
-    ],
-    connectedResources: ['Carbonate', 'BigRed3', 'AWS Batch'],
-    connectedTasks: [
-      { id: '54da767c', status: 'running' },
-      { id: '54da3c20', status: 'completed' },
-      { id: '54d9d711', status: 'failed' }
-    ],
-    configuration: {
-      workers: 12,
-      concurrency: 4,
-      memoryLimit: '16 GB',
-      cpuLimit: '8 cores',
-      timeout: '2 hours',
-      retries: 3
-    }
+    configuration: { workers: 12, concurrency: 4, memoryLimit: '16 GB', cpuLimit: '8 cores', timeout: '32 min', retries: 3 }
   },
-  {
-    id: 'srv-2',
-    name: 'brainlife/app-freesurfer',
-    category: 'Application',
-    status: 'healthy',
-    isRunning: true,
+  'brainlife/app-freesurfer': {
     version: '2.1.3',
     owner: 'Brainlife',
-    runningSince: 'June 20',
-    lastRestart: '5 days ago',
-    healthScore: 97,
-    availability: 99.5,
-    errorRate: 1.1,
-    avgRuntime: '34 min',
-    avgWait: '4 min',
-    runningTasks: 8,
-    queuedTasks: 1,
-    failedTasks: 0,
-    completedToday: 142,
-    workers: 8,
-    resourceDistribution: [
-      { name: 'Karst', workers: 4 },
-      { name: 'BigRed3', workers: 4 }
-    ],
-    executionTimeline: [
-      { label: 'Job Received', time: '17:00', status: 'completed' },
-      { label: 'Container Pull', time: '17:02', status: 'completed' },
-      { label: 'Execution', time: '17:05', status: 'active' },
-      { label: 'Cleanup & Upload', status: 'pending' }
-    ],
+    category: 'Application',
     dependencyGraph: ['Scheduler', 'brainlife/app-freesurfer', 'Archive Service'],
     dependencyHealth: [
       { name: 'Scheduler', status: 'healthy' },
       { name: 'MongoDB', status: 'healthy' },
       { name: 'Storage', status: 'healthy' }
     ],
-    recentErrors: [
-      { time: '16:40', severity: 'ERROR', task: '54da5fe6', message: 'Memory limit exceeded (OOM)' }
-    ],
-    topErrorCategories: [
-      { category: 'Out of Memory', count: 18 },
-      { category: 'Storage Read Error', count: 4 }
-    ],
-    performanceMetrics: {
-      successRate: [95, 96, 97, 98, 97, 98, 96, 97, 98, 98, 97, 97],
-      runtimeTrend: [38, 37, 36, 35, 34, 33, 34, 35, 33, 34, 34, 34],
-      throughput: [110, 120, 115, 130, 125, 142, 138, 145, 140, 142],
-      queueTrend: [4, 5, 3, 2, 4, 3, 2, 1, 1, 1]
-    },
-    versionHistory: [
-      { version: 'v2.1.3', date: 'June 20', type: 'Current', active: true },
-      { version: 'v2.1.2', date: 'June 10', type: 'Deployment', active: false }
-    ],
-    connectedResources: ['Carbonate', 'BigRed3'],
-    connectedTasks: [
-      { id: '54da5fe6', status: 'running' }
-    ],
-    configuration: {
-      workers: 8,
-      concurrency: 2,
-      memoryLimit: '32 GB',
-      cpuLimit: '16 cores',
-      timeout: '4 hours',
-      retries: 2
-    }
+    configuration: { workers: 8, concurrency: 2, memoryLimit: '32 GB', cpuLimit: '16 cores', timeout: '3 hours', retries: 2 }
   },
-  {
-    id: 'srv-3',
-    name: 'brainlife/app-stage',
-    category: 'Application',
-    status: 'warning',
-    isRunning: true,
+  'brainlife/app-stage': {
     version: '1.4.0',
     owner: 'Brainlife',
-    runningSince: 'July 1',
-    lastRestart: '10 days ago',
-    healthScore: 84,
-    availability: 98.2,
-    errorRate: 3.4,
-    avgRuntime: '12 min',
-    avgWait: '6 min',
-    runningTasks: 18,
-    queuedTasks: 12,
-    failedTasks: 2,
-    completedToday: 320,
-    workers: 4,
-    resourceDistribution: [
-      { name: 'Carbonate', workers: 2 },
-      { name: 'AWS Batch', workers: 2 }
-    ],
-    executionTimeline: [
-      { label: 'Queued', time: '19:00', status: 'completed' },
-      { label: 'Resources Allocated', time: '19:06', status: 'completed' },
-      { label: 'Download Initiated', time: '19:07', status: 'completed' },
-      { label: 'Verification', time: '19:15', status: 'active' },
-      { label: 'Completed', status: 'pending' }
-    ],
+    category: 'Application',
     dependencyGraph: ['API', 'brainlife/app-stage', 'Storage'],
     dependencyHealth: [
       { name: 'Storage', status: 'warning' },
       { name: 'Network Gateway', status: 'healthy' }
     ],
-    recentErrors: [
-      { time: '19:22', severity: 'WARNING', task: '54da3c20', message: 'High latency on storage mount' },
-      { time: '19:01', severity: 'ERROR', task: '54d9f18a', message: 'Connection timeout to staging bucket' }
-    ],
-    topErrorCategories: [
-      { category: 'Staging Bucket Timeout', count: 28 },
-      { category: 'Storage Read Failure', count: 15 }
-    ],
-    performanceMetrics: {
-      successRate: [98, 97, 95, 92, 90, 88, 85, 84, 84, 84, 84, 84],
-      runtimeTrend: [8, 9, 10, 12, 11, 13, 14, 15, 12, 12, 12, 12],
-      throughput: [280, 290, 310, 320, 300, 310, 330, 320, 320, 320],
-      queueTrend: [4, 6, 8, 12, 18, 17, 19, 22, 18, 18, 18, 18]
-    },
-    versionHistory: [
-      { version: 'v1.4.0', date: 'June 28', type: 'Deployment', active: true }
-    ],
-    connectedResources: ['Carbonate', 'AWS Batch'],
-    connectedTasks: [
-      { id: '54da3c20', status: 'running' }
-    ],
-    configuration: {
-      workers: 4,
-      concurrency: 8,
-      memoryLimit: '8 GB',
-      cpuLimit: '4 cores',
-      timeout: '30 min',
-      retries: 5
-    }
+    configuration: { workers: 4, concurrency: 8, memoryLimit: '8 GB', cpuLimit: '4 cores', timeout: '12 min', retries: 5 }
   },
-  {
-    id: 'srv-4',
-    name: 'api-server',
+  'api-server': {
+    version: '4.2.1',
+    owner: 'Infrastructure Team',
     category: 'API',
-    status: 'healthy',
-    isRunning: true,
-    version: '3.8.1',
-    owner: 'Brainlife Team',
-    runningSince: 'June 1',
-    lastRestart: '39 days ago',
-    healthScore: 99.8,
-    availability: 99.99,
-    errorRate: 0.05,
-    avgRuntime: '150 ms',
-    avgWait: '0 ms',
-    runningTasks: 3,
-    queuedTasks: 0,
-    failedTasks: 0,
-    completedToday: 8520,
-    workers: 3,
-    resourceDistribution: [{ name: 'AWS Local Cluster', workers: 3 }],
-    executionTimeline: [
-      { label: 'HTTP Request Received', time: '22:30', status: 'completed' },
-      { label: 'JWT Auth Verified', time: '22:30', status: 'completed' },
-      { label: 'Query Executed', time: '22:30', status: 'completed' },
-      { label: 'HTTP Response 200 OK', time: '22:30', status: 'completed' }
-    ],
-    dependencyGraph: ['Load Balancer', 'api-server', 'mongodb', 'redis'],
+    dependencyGraph: ['Load Balancer', 'api-server', 'MongoDB', 'Redis'],
     dependencyHealth: [
-      { name: 'mongodb', status: 'healthy' },
-      { name: 'redis', status: 'healthy' }
+      { name: 'Load Balancer', status: 'healthy' },
+      { name: 'MongoDB', status: 'healthy' },
+      { name: 'Redis', status: 'healthy' }
     ],
-    recentErrors: [],
-    topErrorCategories: [],
-    performanceMetrics: {
-      successRate: [100, 100, 100, 99.9, 100, 100, 100, 100, 100, 100, 100, 100],
-      runtimeTrend: [140, 150, 160, 150, 145, 148, 152, 150, 149, 150, 150, 150],
-      throughput: [500, 600, 700, 800, 750, 780, 820, 850, 830, 852],
-      queueTrend: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    },
-    versionHistory: [{ version: 'v3.8.1', date: 'May 28', type: 'Deployment', active: true }],
-    connectedResources: ['AWS Batch'],
-    connectedTasks: [],
-    configuration: {
-      workers: 3,
-      concurrency: 1000,
-      memoryLimit: '4 GB',
-      cpuLimit: '2 cores',
-      timeout: '30s',
-      retries: 0
-    }
+    configuration: { workers: 16, concurrency: 200, memoryLimit: '4 GB', cpuLimit: '2 cores', timeout: '150 ms', retries: 0 }
   },
-  {
-    id: 'srv-5',
-    name: 'archive-service',
+  'archive-service': {
+    version: '3.0.1',
+    owner: 'Data Archival Team',
     category: 'Storage',
-    status: 'critical',
-    isRunning: true,
-    version: '2.0.1',
-    owner: 'Brainlife Devs',
-    runningSince: 'July 8',
-    lastRestart: '2 hours ago',
-    healthScore: 42,
-    availability: 88.4,
-    errorRate: 35.2,
-    avgRuntime: '4.5 min',
-    avgWait: '12 min',
-    runningTasks: 2,
-    queuedTasks: 45,
-    failedTasks: 18,
-    completedToday: 42,
-    workers: 1,
-    resourceDistribution: [{ name: 'Carbonate Storage Node', workers: 1 }],
-    executionTimeline: [
-      { label: 'Archive Request', time: '22:12', status: 'completed' },
-      { label: 'Connecting to HPSS', time: '22:12', status: 'active' },
-      { label: 'SSH connection timed out', status: 'pending' }
-    ],
-    dependencyGraph: ['api-server', 'archive-service', 'HPSS Storage'],
+    dependencyGraph: ['Archive service', 'HPSS Cluster', 'Object Storage'],
     dependencyHealth: [
-      { name: 'HPSS Storage', status: 'critical' },
-      { name: 'Network Connection', status: 'warning' }
+      { name: 'HPSS Cluster', status: 'critical' },
+      { name: 'Object Storage', status: 'healthy' }
     ],
-    recentErrors: [
-      { time: '22:15', severity: 'ERROR', task: '54d9d711', message: 'Connection timed out to HPSS server' },
-      { time: '22:01', severity: 'ERROR', task: '54da767c', message: 'SSH transport verification failed' }
-    ],
-    topErrorCategories: [
-      { category: 'HPSS Host Unreachable', count: 62 },
-      { category: 'SSH Connection Refused', count: 44 }
-    ],
-    performanceMetrics: {
-      successRate: [99, 98, 95, 90, 80, 70, 60, 50, 45, 42, 42, 42],
-      runtimeTrend: [120, 180, 240, 270, 270, 270, 270, 270, 270, 270, 270, 270],
-      throughput: [120, 110, 95, 80, 60, 45, 40, 42, 41, 42, 42, 42],
-      queueTrend: [2, 5, 12, 22, 35, 41, 45, 45, 45, 45]
-    },
-    versionHistory: [
-      { version: 'v2.0.1', date: 'July 6', type: 'Hotfix', active: true },
-      { version: 'v2.0.0', date: 'July 2', type: 'Deployment', active: false }
-    ],
-    connectedResources: ['Carbonate'],
-    connectedTasks: [{ id: '54d9d711', status: 'failed' }],
-    configuration: {
-      workers: 1,
-      concurrency: 2,
-      memoryLimit: '16 GB',
-      cpuLimit: '4 cores',
-      timeout: '1 hour',
-      retries: 3
-    }
+    configuration: { workers: 6, concurrency: 5, memoryLimit: '12 GB', cpuLimit: '6 cores', timeout: '1 hour', retries: 4 }
   },
-  {
-    id: 'srv-6',
-    name: 'scheduler',
+  'scheduler': {
+    version: '1.9.5',
+    owner: 'Workflow Team',
     category: 'Scheduler',
-    status: 'healthy',
-    isRunning: true,
-    version: '1.2.0',
-    owner: 'Brainlife Team',
-    runningSince: 'June 1',
-    lastRestart: '39 days ago',
-    healthScore: 99.9,
-    availability: 100,
-    errorRate: 0.0,
-    avgRuntime: '5 ms',
-    avgWait: '0 ms',
-    runningTasks: 1,
-    queuedTasks: 0,
-    failedTasks: 0,
-    completedToday: 125000,
-    workers: 1,
-    resourceDistribution: [{ name: 'AWS Cluster', workers: 1 }],
-    executionTimeline: [{ label: 'Idle / Polling Queue', status: 'completed' }],
-    dependencyGraph: ['api-server', 'scheduler', 'mongodb'],
+    dependencyGraph: ['Scheduler', 'MongoDB', 'Redis', 'Compute Clusters'],
     dependencyHealth: [
-      { name: 'mongodb', status: 'healthy' }
+      { name: 'MongoDB', status: 'healthy' },
+      { name: 'Redis', status: 'healthy' },
+      { name: 'Karst', status: 'healthy' },
+      { name: 'BigRed3', status: 'healthy' }
     ],
-    recentErrors: [],
-    topErrorCategories: [],
-    performanceMetrics: {
-      successRate: [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100],
-      runtimeTrend: [5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5],
-      throughput: [100, 100, 100, 100, 100, 100, 100, 100, 100, 100],
-      queueTrend: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    },
-    versionHistory: [{ version: 'v1.2.0', date: 'June 1', type: 'Deployment', active: true }],
-    connectedResources: ['AWS Batch'],
-    connectedTasks: [],
-    configuration: {
-      workers: 1,
-      concurrency: 1,
-      memoryLimit: '2 GB',
-      cpuLimit: '1 core',
-      timeout: 'Infinite',
-      retries: 10
-    }
+    configuration: { workers: 1, concurrency: 50, memoryLimit: '4 GB', cpuLimit: '4 cores', timeout: '5 min', retries: 10 }
   },
-  {
-    id: 'srv-7',
-    name: 'mongodb',
-    category: 'Storage',
-    status: 'healthy',
-    isRunning: true,
+  'mongodb': {
     version: '6.0.5',
-    owner: 'Infrastructure',
-    runningSince: 'June 1',
-    lastRestart: '39 days ago',
-    healthScore: 99.9,
-    availability: 99.99,
-    errorRate: 0.01,
-    avgRuntime: '2 ms',
-    avgWait: '0 ms',
-    runningTasks: 0,
-    queuedTasks: 0,
-    failedTasks: 0,
-    completedToday: 4520100,
-    workers: 3,
-    resourceDistribution: [{ name: 'MongoDB ReplicaSet', workers: 3 }],
-    executionTimeline: [{ label: 'Active', status: 'completed' }],
-    dependencyGraph: ['mongodb'],
-    dependencyHealth: [],
-    recentErrors: [],
-    topErrorCategories: [],
-    performanceMetrics: {
-      successRate: [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100],
-      runtimeTrend: [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
-      throughput: [45000, 48000, 50000, 47000, 49000, 52000, 51000, 50000, 52010, 52010],
-      queueTrend: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    },
-    versionHistory: [{ version: 'v6.0.5', date: 'June 1', type: 'Deployment', active: true }],
-    connectedResources: [],
-    connectedTasks: [],
-    configuration: {
-      workers: 3,
-      concurrency: 5000,
-      memoryLimit: '64 GB',
-      cpuLimit: '16 cores',
-      timeout: '5s',
-      retries: 3
-    }
-  },
-  {
-    id: 'srv-8',
-    name: 'redis',
+    owner: 'DBA Team',
     category: 'Storage',
-    status: 'healthy',
-    isRunning: true,
-    version: '7.0.10',
-    owner: 'Infrastructure',
-    runningSince: 'June 1',
-    lastRestart: '39 days ago',
-    healthScore: 100,
-    availability: 100,
-    errorRate: 0.0,
-    avgRuntime: '0.5 ms',
-    avgWait: '0 ms',
-    runningTasks: 0,
-    queuedTasks: 0,
-    failedTasks: 0,
-    completedToday: 9812000,
-    workers: 1,
-    resourceDistribution: [{ name: 'Redis Cache Cluster', workers: 1 }],
-    executionTimeline: [{ label: 'Active', status: 'completed' }],
-    dependencyGraph: ['redis'],
-    dependencyHealth: [],
-    recentErrors: [],
-    topErrorCategories: [],
-    performanceMetrics: {
-      successRate: [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100],
-      runtimeTrend: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-      throughput: [95000, 98000, 100000, 97000, 99000, 102000, 101000, 100000, 102000, 102000],
-      queueTrend: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    },
-    versionHistory: [{ version: 'v7.0.10', date: 'June 1', type: 'Deployment', active: true }],
-    connectedResources: [],
-    connectedTasks: [],
-    configuration: {
-      workers: 1,
-      concurrency: 10000,
-      memoryLimit: '16 GB',
-      cpuLimit: '4 cores',
-      timeout: '1s',
-      retries: 0
-    }
-  },
-  {
-    id: 'srv-9',
-    name: 'event-worker',
-    category: 'Worker',
-    status: 'healthy',
-    isRunning: true,
-    version: '1.8.2',
-    owner: 'Brainlife Team',
-    runningSince: 'July 5',
-    lastRestart: '5 days ago',
-    healthScore: 99.4,
-    availability: 99.9,
-    errorRate: 0.2,
-    avgRuntime: '80 ms',
-    avgWait: '1 ms',
-    runningTasks: 1,
-    queuedTasks: 0,
-    failedTasks: 0,
-    completedToday: 51200,
-    workers: 2,
-    resourceDistribution: [{ name: 'AWS Event Cluster', workers: 2 }],
-    executionTimeline: [{ label: 'Processing Event Stream', status: 'completed' }],
-    dependencyGraph: ['redis', 'event-worker', 'mongodb'],
+    dependencyGraph: ['mongodb', 'Local Storage Volume'],
     dependencyHealth: [
-      { name: 'redis', status: 'healthy' },
-      { name: 'mongodb', status: 'healthy' }
+      { name: 'Local Storage Volume', status: 'healthy' }
     ],
-    recentErrors: [],
-    topErrorCategories: [],
-    performanceMetrics: {
-      successRate: [100, 100, 99.8, 99.9, 100, 100, 100, 100, 100, 100, 100, 100],
-      runtimeTrend: [80, 82, 85, 80, 78, 80, 81, 79, 80, 80, 80, 80],
-      throughput: [450, 480, 500, 470, 490, 520, 510, 500, 520, 520],
-      queueTrend: [0, 1, 0, 0, 0, 1, 0, 0, 0, 0]
-    },
-    versionHistory: [{ version: 'v1.8.2', date: 'July 5', type: 'Deployment', active: true }],
-    connectedResources: ['AWS Batch'],
-    connectedTasks: [],
-    configuration: {
-      workers: 2,
-      concurrency: 20,
-      memoryLimit: '4 GB',
-      cpuLimit: '2 cores',
-      timeout: '5 min',
-      retries: 3
-    }
+    configuration: { workers: 1, concurrency: 1000, memoryLimit: '64 GB', cpuLimit: '16 cores', timeout: '2 ms', retries: 0 }
   },
-  {
-    id: 'srv-10',
-    name: 'brainlife/app-streamline-cleaning',
-    category: 'Application',
-    status: 'healthy',
-    isRunning: true,
-    version: '1.2.0',
+  'redis': {
+    version: '7.0.10',
+    owner: 'DBA Team',
+    category: 'Storage',
+    dependencyGraph: ['redis', 'Memory Pool'],
+    dependencyHealth: [
+      { name: 'Memory Pool', status: 'healthy' }
+    ],
+    configuration: { workers: 1, concurrency: 5000, memoryLimit: '16 GB', cpuLimit: '4 cores', timeout: '0.5 ms', retries: 0 }
+  },
+  'event-worker': {
+    version: '2.0.0',
+    owner: 'Infrastructure Team',
+    category: 'Worker',
+    dependencyGraph: ['Redis', 'event-worker', 'Slack Webhook'],
+    dependencyHealth: [
+      { name: 'Redis', status: 'healthy' },
+      { name: 'Slack Webhook', status: 'healthy' }
+    ],
+    configuration: { workers: 10, concurrency: 20, memoryLimit: '2 GB', cpuLimit: '1 core', timeout: '10 sec', retries: 3 }
+  },
+  'brainlife/app-streamline-cleaning': {
+    version: '1.0.2',
     owner: 'Brainlife',
-    runningSince: 'July 2',
-    lastRestart: '8 days ago',
-    healthScore: 98.5,
-    availability: 99.8,
-    errorRate: 0.2,
-    avgRuntime: '10 min',
-    avgWait: '1 min',
-    runningTasks: 2,
-    queuedTasks: 0,
-    failedTasks: 0,
-    completedToday: 95,
-    workers: 4,
-    resourceDistribution: [
-      { name: 'Karst', workers: 2 },
-      { name: 'Carbonate', workers: 2 }
-    ],
-    executionTimeline: [
-      { label: 'Job Received', time: '22:00', status: 'completed' },
-      { label: 'Cleaning Streamlines', time: '22:01', status: 'active' },
-      { label: 'Stage Out', status: 'pending' }
-    ],
-    dependencyGraph: ['Scheduler', 'brainlife/app-streamline-cleaning', 'Archive Service'],
+    category: 'Application',
+    dependencyGraph: ['Scheduler', 'brainlife/app-streamline-cleaning', 'Storage'],
     dependencyHealth: [
       { name: 'Scheduler', status: 'healthy' },
-      { name: 'MongoDB', status: 'healthy' }
+      { name: 'Storage', status: 'healthy' }
     ],
-    recentErrors: [],
-    topErrorCategories: [],
-    performanceMetrics: {
-      successRate: [100, 100, 100, 99.5, 100, 100, 100, 100, 100, 100, 100, 100],
-      runtimeTrend: [10, 10, 11, 10, 9, 10, 10, 10, 10, 10, 10, 10],
-      throughput: [80, 85, 90, 82, 88, 92, 95, 95, 95, 95],
-      queueTrend: [0, 0, 1, 0, 0, 0, 0, 0, 0, 0]
-    },
-    versionHistory: [{ version: 'v1.2.0', date: 'July 2', type: 'Deployment', active: true }],
-    connectedResources: ['Carbonate', 'Karst'],
-    connectedTasks: [{ id: '54da767c', status: 'running' }],
-    configuration: {
-      workers: 4,
-      concurrency: 4,
-      memoryLimit: '16 GB',
-      cpuLimit: '8 cores',
-      timeout: '1 hour',
-      retries: 3
-    }
+    configuration: { workers: 4, concurrency: 1, memoryLimit: '16 GB', cpuLimit: '8 cores', timeout: '1 hour', retries: 1 }
   },
-  {
-    id: 'srv-11',
-    name: 'brainlife/app-sift2-connectome-generation',
-    category: 'Application',
-    status: 'offline',
-    isRunning: false,
-    version: '1.0.5',
+  'brainlife/app-sift2-connectome-generation': {
+    version: '1.1.0',
     owner: 'Brainlife',
-    runningSince: 'Disabled',
-    lastRestart: '10 days ago',
-    healthScore: 0,
-    availability: 0,
-    errorRate: 100,
-    avgRuntime: '12 min',
-    avgWait: '--',
-    runningTasks: 0,
-    queuedTasks: 0,
-    failedTasks: 0,
-    completedToday: 0,
-    workers: 0,
-    resourceDistribution: [],
-    executionTimeline: [{ label: 'Inactive / Disabled', status: 'pending' }],
-    dependencyGraph: ['Scheduler', 'brainlife/app-sift2-connectome-generation'],
-    dependencyHealth: [],
-    recentErrors: [],
-    topErrorCategories: [],
-    performanceMetrics: {
-      successRate: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      runtimeTrend: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      throughput: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-      queueTrend: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
-    },
-    versionHistory: [{ version: 'v1.0.5', date: 'June 5', type: 'Deployment', active: true }],
-    connectedResources: [],
-    connectedTasks: [],
-    configuration: {
-      workers: 0,
-      concurrency: 0,
-      memoryLimit: '32 GB',
-      cpuLimit: '16 cores',
-      timeout: '2 hours',
-      retries: 2
-    }
+    category: 'Application',
+    dependencyGraph: ['Scheduler', 'brainlife/app-sift2-connectome-generation', 'Storage'],
+    dependencyHealth: [
+      { name: 'Scheduler', status: 'healthy' },
+      { name: 'Storage', status: 'healthy' }
+    ],
+    configuration: { workers: 4, concurrency: 1, memoryLimit: '32 GB', cpuLimit: '16 cores', timeout: '2 hours', retries: 2 }
   }
-];
+};
 
 // Helper to render sparklines inside React component
 const Sparkline = ({ data, color = '#00E5FF' }: { data: number[]; color?: string }) => {
@@ -712,12 +236,242 @@ export default function ServicesView({ onNavigate, onSelectTask, tasksList }: Se
   const [typeFilter, setTypeFilter] = useState<'all' | 'Validator' | 'Application' | 'API' | 'Worker' | 'Storage' | 'Scheduler'>('all');
   const [selectedServiceId, setSelectedServiceId] = useState<string>('srv-1');
 
+  const servicesList = useMemo(() => {
+    // 1. Get unique service names from tasksList
+    const serviceNames = Array.from(new Set(tasksList.map(t => t.service))).filter(Boolean);
+    
+    // Add default services if tasksList is empty or doesn't have them
+    const defaultServices = [
+      'validator-neuro-freesurfer',
+      'brainlife/app-freesurfer',
+      'brainlife/app-stage',
+      'api-server',
+      'archive-service',
+      'scheduler',
+      'mongodb',
+      'redis',
+      'event-worker',
+      'brainlife/app-streamline-cleaning',
+      'brainlife/app-sift2-connectome-generation'
+    ];
+    
+    defaultServices.forEach(ds => {
+      if (!serviceNames.includes(ds)) {
+        serviceNames.push(ds);
+      }
+    });
+
+    return serviceNames.map((name, index) => {
+      const serviceTasks = tasksList.filter(t => t.service === name);
+      const runningTasks = serviceTasks.filter(t => t.status === 'running').length;
+      const queuedTasks = serviceTasks.filter(t => t.status === 'queued').length;
+      const failedTasks = serviceTasks.filter(t => t.status === 'failed').length;
+      const completedTasks = serviceTasks.filter(t => t.status === 'finished').length;
+      const totalTasks = serviceTasks.length;
+
+      // Determine live status based on task outcomes
+      let status: 'healthy' | 'warning' | 'critical' | 'offline' = 'offline';
+      let isRunning = false;
+
+      if (totalTasks > 0) {
+        isRunning = runningTasks > 0 || queuedTasks > 0;
+        if (failedTasks > 0) {
+          status = runningTasks > 0 ? 'warning' : 'critical';
+        } else if (runningTasks > 0) {
+          status = 'healthy';
+        } else {
+          status = 'healthy'; // if all succeeded
+        }
+      } else {
+        // Fallback status for default services if no tasks exist
+        const fallbackStatuses: Record<string, 'healthy' | 'warning' | 'critical' | 'offline'> = {
+          'validator-neuro-freesurfer': 'healthy',
+          'brainlife/app-freesurfer': 'healthy',
+          'brainlife/app-stage': 'warning',
+          'api-server': 'healthy',
+          'archive-service': 'critical',
+          'scheduler': 'healthy',
+          'mongodb': 'healthy',
+          'redis': 'healthy',
+          'event-worker': 'healthy',
+          'brainlife/app-streamline-cleaning': 'healthy',
+          'brainlife/app-sift2-connectome-generation': 'offline'
+        };
+        status = fallbackStatuses[name] || 'healthy';
+        isRunning = status === 'healthy' || status === 'warning';
+      }
+
+      // Compute resource distribution dynamically from tasks
+      const resourcesMap: Record<string, number> = {};
+      serviceTasks.forEach(t => {
+        if (t.resource) {
+          resourcesMap[t.resource] = (resourcesMap[t.resource] || 0) + 1;
+        }
+      });
+      
+      let resourceDistribution = Object.entries(resourcesMap).map(([resName, count]) => ({
+        name: resName,
+        workers: count
+      }));
+      
+      // Fallback resource distribution if empty
+      if (resourceDistribution.length === 0) {
+        if (name.includes('freesurfer')) {
+          resourceDistribution = [{ name: 'Karst', workers: 4 }, { name: 'BigRed3', workers: 2 }];
+        } else if (name.includes('stage')) {
+          resourceDistribution = [{ name: 'Carbonate', workers: 2 }, { name: 'AWS Batch', workers: 2 }];
+        } else if (name.includes('archive') || name.includes('storage') || name.includes('mongodb') || name.includes('redis')) {
+          resourceDistribution = [{ name: 'Carbonate Storage Node', workers: 1 }];
+        } else {
+          resourceDistribution = [{ name: 'AWS Batch', workers: 2 }];
+        }
+      }
+
+      // Compute execution timeline dynamically from tasks
+      let executionTimeline: ServiceData['executionTimeline'] = [
+        { label: 'Started', time: '19:22', status: 'completed' },
+        { label: 'Dataset Downloaded', time: '19:24', status: 'completed' },
+        { label: 'Validation', time: '19:26', status: 'completed' },
+        { label: 'Running Process', time: '19:35', status: 'active' },
+        { label: 'Uploading Results', status: 'pending' },
+        { label: 'Completed', status: 'pending' }
+      ];
+      
+      if (serviceTasks.length > 0) {
+        const lastTask = serviceTasks[0];
+        executionTimeline = [
+          { label: 'Job Received', time: lastTask.startedAt !== '--' ? lastTask.startedAt : 'Just now', status: 'completed' as const },
+          { label: 'Resource Allocated', status: 'completed' as const },
+          { 
+            label: lastTask.status === 'running' 
+              ? 'Running Execution' 
+              : lastTask.status === 'failed' 
+              ? 'Failed Execution' 
+              : lastTask.status === 'queued'
+              ? 'Queued'
+              : 'Completed Execution', 
+            status: lastTask.status === 'running' ? 'active' as const : lastTask.status === 'queued' ? 'pending' as const : 'completed' as const 
+          },
+          { label: 'Results Verification', status: lastTask.status === 'finished' ? 'completed' as const : 'pending' as const },
+          { label: 'Finalized', status: lastTask.status === 'finished' ? 'completed' as const : 'pending' as const }
+        ];
+      }
+
+      // Get configuration details
+      const configMetadata = SERVICE_METADATA_LOOKUP[name] || {
+        version: '1.0.0',
+        owner: 'Brainlife',
+        category: name.includes('validator') ? 'Validator' as const : 'Application' as const,
+        dependencyGraph: ['Scheduler', name],
+        dependencyHealth: [{ name: 'Scheduler', status: 'healthy' as const }],
+        configuration: { workers: 4, concurrency: 2, memoryLimit: '8 GB', cpuLimit: '4 cores', timeout: '2 hours', retries: 3 }
+      };
+
+      // Compile recent errors dynamically from tasks
+      const recentErrors = serviceTasks
+        .filter(t => t.status === 'failed')
+        .map(t => ({
+          time: t.startedAt !== '--' ? t.startedAt : 'Recently',
+          severity: 'ERROR' as const,
+          task: t.id,
+          message: t.message || 'Execution error'
+        }));
+      
+      // Fallback error log if none
+      if (recentErrors.length === 0 && status === 'critical') {
+        recentErrors.push({
+          time: 'Recently',
+          severity: 'ERROR' as const,
+          task: 'unknown',
+          message: 'Connection timed out to cluster'
+        });
+      }
+
+      // Compile connected tasks dynamically
+      const connectedTasks = serviceTasks.slice(0, 5).map(t => ({
+        id: t.id,
+        status: t.status === 'finished' ? 'completed' as const : t.status === 'failed' ? 'failed' as const : 'running' as const
+      }));
+
+      // Calculate health score dynamically
+      const errorRate = totalTasks > 0 ? (failedTasks / totalTasks) * 100 : (status === 'critical' ? 35 : status === 'warning' ? 5 : 0);
+      const healthScore = totalTasks > 0 ? Math.round(100 - errorRate) : (status === 'critical' ? 42 : status === 'warning' ? 84 : 98);
+      const availability = totalTasks > 0 ? parseFloat((((totalTasks - failedTasks) / totalTasks) * 100).toFixed(2)) : (status === 'critical' ? 88.4 : 99.9);
+
+      // Average runtime
+      let avgRuntime = configMetadata.configuration?.timeout || '2 hours';
+      if (name.includes('freesurfer')) avgRuntime = '32 min';
+      else if (name.includes('stage')) avgRuntime = '12 min';
+      else if (name.includes('api')) avgRuntime = '150 ms';
+      else if (name.includes('mongodb')) avgRuntime = '2 ms';
+      else if (name.includes('redis')) avgRuntime = '0.5 ms';
+
+      // Compile performance metric graphs
+      const successRateHistory = Array.from({ length: 12 }, (_, i) => {
+        if (i === 11) return healthScore;
+        return 95 + Math.floor(Math.random() * 5);
+      });
+      const runtimeTrendHistory = Array.from({ length: 12 }, () => 20 + Math.floor(Math.random() * 15));
+      const throughputHistory = Array.from({ length: 10 }, () => 100 + Math.floor(Math.random() * 150));
+      const queueTrendHistory = Array.from({ length: 10 }, () => Math.floor(Math.random() * 8));
+
+      return {
+        id: `srv-${index + 1}`,
+        name,
+        category: configMetadata.category || 'Application',
+        status,
+        isRunning,
+        version: configMetadata.version || '1.0.0',
+        owner: configMetadata.owner || 'Brainlife',
+        runningSince: isRunning ? 'July 4' : 'Disabled',
+        lastRestart: isRunning ? '2 days ago' : '10 days ago',
+        healthScore,
+        availability,
+        errorRate: parseFloat(errorRate.toFixed(2)),
+        avgRuntime,
+        avgWait: queuedTasks > 0 ? '2 min' : '0 ms',
+        runningTasks: totalTasks > 0 ? runningTasks : (status === 'healthy' ? 3 : 0),
+        queuedTasks: totalTasks > 0 ? queuedTasks : 0,
+        failedTasks: totalTasks > 0 ? failedTasks : (status === 'critical' ? 2 : 0),
+        completedToday: totalTasks > 0 ? completedTasks : (status === 'healthy' ? 120 : 0),
+        workers: configMetadata.configuration?.workers || 4,
+        resourceDistribution,
+        executionTimeline,
+        dependencyGraph: configMetadata.dependencyGraph || ['Scheduler', name],
+        dependencyHealth: configMetadata.dependencyHealth || [],
+        recentErrors,
+        topErrorCategories: failedTasks > 0 
+          ? [{ category: 'Task Execution Failed', count: failedTasks }] 
+          : (status === 'critical' ? [{ category: 'HPSS Host Unreachable', count: 12 }] : []),
+        performanceMetrics: {
+          successRate: successRateHistory,
+          runtimeTrend: runtimeTrendHistory,
+          throughput: throughputHistory,
+          queueTrend: queueTrendHistory
+        },
+        versionHistory: [
+          { version: `v${configMetadata.version || '1.0.0'}`, date: 'July 6', type: 'Current', active: true }
+        ],
+        connectedResources: Array.from(new Set(serviceTasks.map(t => t.resource))),
+        connectedTasks,
+        configuration: configMetadata.configuration || {
+          workers: 4,
+          concurrency: 2,
+          memoryLimit: '8 GB',
+          cpuLimit: '4 cores',
+          timeout: '2 hours',
+          retries: 3
+        }
+      };
+    });
+  }, [tasksList]);
+
   const selectedService = useMemo(() => {
-    return mockServices.find(s => s.id === selectedServiceId) || mockServices[0];
-  }, [selectedServiceId]);
+    return servicesList.find(s => s.id === selectedServiceId) || servicesList[0];
+  }, [servicesList, selectedServiceId]);
 
   const filteredServices = useMemo(() => {
-    return mockServices.filter(s => {
+    return servicesList.filter(s => {
       // 1. Search Query
       const matchesSearch = s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                             s.category.toLowerCase().includes(searchQuery.toLowerCase());
