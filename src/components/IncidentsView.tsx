@@ -8,6 +8,7 @@ import {
   Eye 
 } from 'lucide-react';
 import type { Task } from '../data';
+import { apiFetch } from '../api';
 
 interface Incident {
   id: string;
@@ -80,6 +81,9 @@ export default function IncidentsView({
 }: IncidentsViewProps) {
   const [filter, setFilter] = useState<'all' | 'active' | 'resolved'>('active');
   const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
+  
+  const [taskLogs, setTaskLogs] = useState<string>('');
+  const [loadingLogs, setLoadingLogs] = useState<boolean>(false);
 
   useEffect(() => {
     if (initialSelectedIncidentId) {
@@ -249,6 +253,43 @@ export default function IncidentsView({
   const selectedIncident = useMemo(() => {
     return incidents.find(inc => inc.id === selectedIncidentId) || null;
   }, [incidents, selectedIncidentId]);
+
+  // Load logs for the selected incident if it corresponds to a task failure
+  useEffect(() => {
+    if (!selectedIncident || !selectedIncident.taskId) {
+      setTaskLogs('');
+      return;
+    }
+
+    const fetchIncidentLogs = async () => {
+      setLoadingLogs(true);
+      try {
+        const response = await apiFetch<{ content: string }>(`/task/${selectedIncident.taskId}/logs`);
+        if (response && response.content) {
+          // Grab warning/error lines if any, otherwise grab the last 15 lines of stdout
+          const lines = response.content.split('\n');
+          const errorLines = lines.filter(l => {
+            const upper = l.toUpperCase();
+            return upper.includes('ERROR') || upper.includes('FAIL') || upper.includes('CRITICAL');
+          });
+          if (errorLines.length > 0) {
+            setTaskLogs(errorLines.slice(-10).join('\n'));
+          } else {
+            setTaskLogs(lines.slice(-15).join('\n'));
+          }
+        } else {
+          setTaskLogs('No logs found for this task execution.');
+        }
+      } catch (err) {
+        console.error('Failed to retrieve task logs for incident diagnostic:', err);
+        setTaskLogs(`[Diagnostic Error] Failed to fetch task logs: ${(err as Error).message}`);
+      } finally {
+        setLoadingLogs(false);
+      }
+    };
+
+    fetchIncidentLogs();
+  }, [selectedIncidentId, selectedIncident?.taskId]);
 
   // Generate timeline steps dynamically for the selected incident
   const timelineSteps = useMemo(() => {
@@ -523,8 +564,12 @@ export default function IncidentsView({
             {/* Error Message logs */}
             <div className="space-y-2">
               <span className="text-text-faint font-mono text-[9px] uppercase block">Diagnostics Details</span>
-              <div className="rounded-xl border border-white/[0.03] bg-[#050811] p-3 text-[10px] text-text-muted leading-relaxed font-mono">
-                {selectedIncident.message}
+              <div className="rounded-xl border border-white/[0.03] bg-[#050811] p-3 text-[10px] text-text-muted leading-relaxed font-mono whitespace-pre-wrap max-h-48 overflow-y-auto select-text selection:bg-accent-cyan/25 selection:text-white">
+                {loadingLogs ? (
+                  <span className="text-text-faint italic animate-pulse">Fetching incident logs from Elasticsearch...</span>
+                ) : (
+                  taskLogs || selectedIncident.message
+                )}
               </div>
             </div>
 

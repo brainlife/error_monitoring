@@ -22,6 +22,7 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
 
   // Check for offline or degraded clusters from the live resources list
   resources.forEach(r => {
+    // console.log(r)
     if (r.status === 'error') {
       criticalAlerts.push({
         id: `res-err-${r.id}`,
@@ -82,11 +83,11 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
     <div className="space-y-5 w-full">
       {/* 1. Global Status (Health & Critical Alerts) */}
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-[280px_1fr]">
-        
+
         {/* System Status Card */}
         <div className="glass relative overflow-hidden rounded-2xl p-5 flex flex-col justify-between shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)]">
           <div className="absolute -right-10 -top-10 h-24 w-24 rounded-full blur-[30px] bg-accent-purple opacity-[0.08]" />
-          
+
           <div>
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-bold uppercase tracking-wider text-text-muted">
@@ -99,16 +100,13 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
 
             <div className="mt-4 flex items-center gap-2">
               <span className="relative flex h-3 w-3 shrink-0">
-                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
-                  healthScore > 90 ? 'bg-status-success' : healthScore > 80 ? 'bg-status-warning' : 'bg-status-error'
-                }`}></span>
-                <span className={`relative inline-flex rounded-full h-3 w-3 ${
-                  healthScore > 90 ? 'bg-status-success' : healthScore > 80 ? 'bg-status-warning' : 'bg-status-error'
-                }`}></span>
+                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${healthScore > 90 ? 'bg-status-success' : healthScore > 80 ? 'bg-status-warning' : 'bg-status-error'
+                  }`}></span>
+                <span className={`relative inline-flex rounded-full h-3 w-3 ${healthScore > 90 ? 'bg-status-success' : healthScore > 80 ? 'bg-status-warning' : 'bg-status-error'
+                  }`}></span>
               </span>
-              <span className={`text-[15px] font-extrabold tracking-wider uppercase font-mono ${
-                healthScore > 90 ? 'text-status-success' : healthScore > 80 ? 'text-status-warning' : 'text-status-error'
-              }`}>
+              <span className={`text-[15px] font-extrabold tracking-wider uppercase font-mono ${healthScore > 90 ? 'text-status-success' : healthScore > 80 ? 'text-status-warning' : 'text-status-error'
+                }`}>
                 {healthScore > 90 ? 'Operational' : healthScore > 80 ? 'Degraded' : 'Critical'}
               </span>
             </div>
@@ -120,9 +118,8 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
                 <AlertTriangle className={`h-4 w-4 shrink-0 ${criticalAlerts.length > 0 ? 'text-status-error' : 'text-text-faint'}`} />
                 <span>Active Incidents</span>
               </div>
-              <span className={`font-mono font-bold text-xs ${
-                criticalAlerts.length > 0 ? 'text-status-error' : 'text-text-muted'
-              }`}>
+              <span className={`font-mono font-bold text-xs ${criticalAlerts.length > 0 ? 'text-status-error' : 'text-text-muted'
+                }`}>
                 {criticalAlerts.length}
               </span>
             </div>
@@ -132,9 +129,8 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
                 <Server className={`h-4 w-4 shrink-0 ${errorResources > 0 ? 'text-status-error' : 'text-text-faint'}`} />
                 <span>Resources Offline</span>
               </div>
-              <span className={`font-mono font-bold text-xs ${
-                errorResources > 0 ? 'text-status-error' : 'text-text-muted'
-              }`}>
+              <span className={`font-mono font-bold text-xs ${errorResources > 0 ? 'text-status-error' : 'text-text-muted'
+                }`}>
                 {errorResources}
               </span>
             </div>
@@ -144,9 +140,8 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
                 <Clock className={`h-4 w-4 shrink-0 ${queued > 0 ? 'text-status-warning' : 'text-text-faint'}`} />
                 <span>Average Queue</span>
               </div>
-              <span className={`font-mono font-bold text-xs ${
-                queued > 0 ? 'text-accent-cyan' : 'text-text-muted'
-              }`}>
+              <span className={`font-mono font-bold text-xs ${queued > 0 ? 'text-accent-cyan' : 'text-text-muted'
+                }`}>
                 {queued > 0 ? `${queued * 3}m` : '0m'}
               </span>
             </div>
@@ -166,11 +161,10 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
                 Critical Alerts
               </h3>
             </div>
-            <span className={`rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider font-mono ${
-              criticalAlerts.length === 0
+            <span className={`rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider font-mono ${criticalAlerts.length === 0
                 ? 'bg-status-success/15 text-status-success'
                 : 'bg-status-error/15 text-status-error'
-            }`}>
+              }`}>
               {criticalAlerts.length === 0 ? 'Healthy' : `${criticalAlerts.length} Active Issues`}
             </span>
           </div>
@@ -186,13 +180,12 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
                 <div
                   key={alert.id}
                   onClick={() => onNavigate && onNavigate('resources')}
-                  className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-xs transition-colors duration-150 cursor-pointer ${
-                    alert.level === 'danger'
+                  className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-xs transition-colors duration-150 cursor-pointer ${alert.level === 'danger'
                       ? 'border-status-error/15 bg-status-error/5 text-status-error/95 hover:bg-status-error/8'
                       : alert.level === 'warning'
-                      ? 'border-status-warning/15 bg-status-warning/5 text-status-warning/95 hover:bg-status-warning/8'
-                      : 'border-accent-cyan/15 bg-accent-cyan/5 text-accent-cyan/95 hover:bg-accent-cyan/8'
-                  }`}
+                        ? 'border-status-warning/15 bg-status-warning/5 text-status-warning/95 hover:bg-status-warning/8'
+                        : 'border-accent-cyan/15 bg-accent-cyan/5 text-accent-cyan/95 hover:bg-accent-cyan/8'
+                    }`}
                   title="Click to inspect compute resources"
                 >
                   <AlertTriangle className="h-4 w-4 shrink-0" />
@@ -207,7 +200,7 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
 
       {/* 2. Metrics Summary (Running, Succeeded, Failed, Queued) */}
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-        
+
         {/* Running KPI */}
         <div className="glass relative overflow-hidden rounded-2xl p-4.5 flex flex-col justify-between shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)]">
           <div className="flex items-center justify-between">

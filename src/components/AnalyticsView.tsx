@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { 
   Download, 
   Activity, 
@@ -7,9 +7,11 @@ import {
   AlertTriangle,
   Sparkles,
   MapPin,
-  LineChart
+  LineChart,
+  Loader2
 } from 'lucide-react';
 import type { Task } from '../data';
+import { apiFetch } from '../api';
 
 // Helper utilities for duration parsing and formatting
 function parseDurationToSeconds(duration: string): number {
@@ -49,6 +51,108 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
   const [projectFilter, setProjectFilter] = useState('all');
   const [serviceFilter, setServiceFilter] = useState('all');
   const [resourceFilter, setResourceFilter] = useState('all');
+
+  const [analyticsTasks, setAnalyticsTasks] = useState<Task[]>([]);
+  const [fetching, setFetching] = useState(false);
+
+  useEffect(() => {
+    const fetchAnalyticsData = async () => {
+      setFetching(true);
+      try {
+        const findParams: Record<string, any> = {};
+        
+        // Calculate date threshold based on timeRange
+        const now = new Date();
+        if (timeRange === '24h') {
+          now.setHours(now.getHours() - 24);
+          findParams.create_date = { $gte: now.toISOString() };
+        } else if (timeRange === '7d') {
+          now.setDate(now.getDate() - 7);
+          findParams.create_date = { $gte: now.toISOString() };
+        } else if (timeRange === '30d') {
+          now.setDate(now.getDate() - 30);
+          findParams.create_date = { $gte: now.toISOString() };
+        } else if (timeRange === '90d') {
+          now.setDate(now.getDate() - 90);
+          findParams.create_date = { $gte: now.toISOString() };
+        }
+
+        // Apply project and service filters if selected
+        if (projectFilter !== 'all') {
+          findParams.instance_id = projectFilter;
+        }
+        if (serviceFilter !== 'all') {
+          findParams.service = serviceFilter;
+        }
+
+        const queryParams = new URLSearchParams({
+          find: JSON.stringify(findParams),
+          limit: '1000', // Fetch up to 1000 historical items for comprehensive stats
+          sort: '-create_date'
+        });
+
+        const res = await apiFetch<{ tasks: any[] }>(`/task?${queryParams.toString()}`);
+        const backendTasks = res.tasks || [];
+        
+        const mapped = backendTasks.map(t => {
+          let status: Task['status'] = 'unknown';
+          if (t.status === 'running') status = 'running';
+          else if (t.status === 'finished') status = 'finished';
+          else if (t.status === 'failed') status = 'failed';
+          else if (t.status === 'queued') status = 'queued';
+          else if (t.status === 'removed' || t.status === 'stopped') status = 'cancelled';
+          
+          let startedAt = '--';
+          if (t.start_date) {
+            startedAt = new Date(t.start_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          } else if (t.create_date) {
+            startedAt = new Date(t.create_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          }
+
+          let duration = '--';
+          if (t.start_date) {
+            const start = new Date(t.start_date).getTime();
+            const end = t.finish_date ? new Date(t.finish_date).getTime() : Date.now();
+            const diff = end - start;
+            if (diff > 0) {
+              const hrs = Math.floor(diff / 3600000).toString().padStart(2, '0');
+              const mins = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
+              const secs = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
+              duration = `${hrs}:${mins}:${secs}`;
+            }
+          }
+
+          // Resource lookup
+          const resourceName = t.resource_id || 'Unknown';
+
+          return {
+            id: t._id,
+            service: t.service,
+            projectId: t.instance_id || 'Unknown',
+            resource: resourceName,
+            status,
+            runtime: resourceName,
+            startedAt,
+            duration,
+            message: t.status_msg || '',
+            startDate: t.start_date || t.create_date,
+            finishDate: t.finish_date,
+            userId: t.user_id ? t.user_id.toString() : 'Unknown'
+          };
+        });
+
+        setAnalyticsTasks(mapped);
+      } catch (err) {
+        console.error('Failed to load analytics metrics:', err);
+      } finally {
+        setFetching(false);
+      }
+    };
+
+    fetchAnalyticsData();
+  }, [timeRange, projectFilter, serviceFilter]);
+
+  const tasksToUse = analyticsTasks.length > 0 ? analyticsTasks : tasks;
   
   // Drill-down validator state
   const [selectedValidator, setSelectedValidator] = useState<string | null>(null);
@@ -58,7 +162,7 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
   const pipelinePerformance = useMemo(() => {
     const serviceGroups: Record<string, { runs: number; succeeded: number; failed: number; totalSeconds: number }> = {};
 
-    tasks.forEach(t => {
+    tasksToUse.forEach(t => {
       if (!t.service) return;
       // Clean up service names into pretty titles
       let prettyName = t.service.split('/').pop() || t.service;
@@ -119,28 +223,28 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
     }
 
     return parsed.sort((a, b) => b.runs - a.runs);
-  }, [tasks]);
+  }, [tasksToUse]);
 
   // Dynamically extract unique items from active tasks prop
   const projectOptions = useMemo(() => {
-    const ids = Array.from(new Set(tasks.map(t => t.projectId).filter(Boolean)));
+    const ids = Array.from(new Set(tasksToUse.map(t => t.projectId).filter(Boolean)));
     return ids.sort();
-  }, [tasks]);
+  }, [tasksToUse]);
 
   const serviceOptions = useMemo(() => {
-    const services = Array.from(new Set(tasks.map(t => t.service.split('/').pop() || t.service).filter(Boolean)));
+    const services = Array.from(new Set(tasksToUse.map(t => t.service.split('/').pop() || t.service).filter(Boolean)));
     return services.sort();
-  }, [tasks]);
+  }, [tasksToUse]);
 
   const resourceOptions = useMemo(() => {
-    const resources = Array.from(new Set(tasks.map(t => t.resource).filter(Boolean)));
+    const resources = Array.from(new Set(tasksToUse.map(t => t.resource).filter(Boolean)));
     return resources.sort();
-  }, [tasks]);
+  }, [tasksToUse]);
 
   const projectSummaries = useMemo(() => {
     const map: Record<string, { name: string; jobs: number; success: number; failed: number; storage: string }> = {};
     
-    tasks.forEach(t => {
+    tasksToUse.forEach(t => {
       if (!t.projectId) return;
       if (!map[t.projectId]) {
         const hash = t.projectId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -169,11 +273,11 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
         storage: entry.storage
       };
     });
-  }, [tasks, projectNamesMap]);
+  }, [tasksToUse, projectNamesMap]);
 
   // Filter tasks for analytics dynamically
   const filteredTasksForAnalytics = useMemo(() => {
-    return tasks.filter(t => {
+    return tasksToUse.filter(t => {
       if (projectFilter !== 'all' && t.projectId !== projectFilter) return false;
       if (serviceFilter !== 'all') {
         const tService = t.service.split('/').pop() || t.service;
@@ -182,7 +286,7 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
       if (resourceFilter !== 'all' && t.resource !== resourceFilter) return false;
       return true;
     });
-  }, [tasks, projectFilter, serviceFilter, resourceFilter]);
+  }, [tasksToUse, projectFilter, serviceFilter, resourceFilter]);
 
   // Generate dynamic AI observations based on task outcome patterns
   const aiObservations = useMemo(() => {
@@ -212,14 +316,14 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
 
   // Generate dynamic resource availabilities based on live task success rates per cluster
   const resourceAvailabilities = useMemo(() => {
-    const resourceNames = Array.from(new Set(tasks.map(t => t.resource).filter(Boolean)));
+    const resourceNames = Array.from(new Set(tasksToUse.map(t => t.resource).filter(Boolean)));
     const defaults = ['Karst', 'Carbonate', 'BigRed3', 'AWS Batch'];
     defaults.forEach(d => {
       if (!resourceNames.includes(d)) resourceNames.push(d);
     });
 
     return resourceNames.map(rName => {
-      const rTasks = tasks.filter(t => t.resource === rName);
+      const rTasks = tasksToUse.filter(t => t.resource === rName);
       const failed = rTasks.filter(t => t.status === 'failed').length;
       const total = rTasks.length;
       
@@ -241,14 +345,14 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
         color: colorClass
       };
     });
-  }, [tasks]);
+  }, [tasksToUse]);
 
   // Construct dynamic failures heatmap matrix based on task timestamps
   const heatmapData = useMemo(() => {
     // 5 days (Mon-Fri) x 10 hour slots (8:00 - 17:00)
     const matrix = Array.from({ length: 5 }, () => Array(10).fill(0));
     
-    tasks.forEach(t => {
+    tasksToUse.forEach(t => {
       if (t.status !== 'failed' || !t.startDate) return;
       const d = new Date(t.startDate);
       if (isNaN(d.getTime())) return;
@@ -263,7 +367,7 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
     });
     
     return matrix;
-  }, [tasks]);
+  }, [tasksToUse]);
 
   // Construct dynamic geographic site status trackers based on resource performance
   const geographicResources = useMemo(() => {
@@ -276,7 +380,7 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
     };
 
     return Object.entries(siteMap).map(([key, site]) => {
-      const siteTasks = tasks.filter(t => 
+      const siteTasks = tasksToUse.filter(t => 
         site.resourceNames.some(rn => t.resource?.toLowerCase().includes(rn.toLowerCase()))
       );
       
@@ -318,7 +422,7 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
         color
       };
     });
-  }, [tasks]);
+  }, [tasksToUse]);
 
   // 2. Generate dynamic metrics and chart paths based on dynamic filtered tasks
   const data = useMemo(() => {
@@ -440,7 +544,7 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
     const failureTrendDir = failureDiff <= 0 ? 'down' : 'up';
 
     // Platform Uptime calculation
-    const activeResources = Array.from(new Set(tasks.map(t => t.resource).filter(Boolean)));
+    const activeResources = Array.from(new Set(tasksToUse.map(t => t.resource).filter(Boolean)));
     const defaults = ['Karst', 'Carbonate', 'BigRed3', 'AWS Batch'];
     defaults.forEach(d => {
       if (!activeResources.includes(d)) activeResources.push(d);
@@ -448,7 +552,7 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
 
     let totalSuccessRatesSum = 0;
     activeResources.forEach(rName => {
-      const rTasks = tasks.filter(t => t.resource === rName);
+      const rTasks = tasksToUse.filter(t => t.resource === rName);
       const failed = rTasks.filter(t => t.status === 'failed').length;
       const total = rTasks.length;
       const successRateVal = total > 0 ? ((total - failed) / total) * 100 : 100;
@@ -485,13 +589,13 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
         successPathCompare: successPoints.map(p => Math.max(2, Math.round(p * 0.85 + 1.5))).map(p => p * scaleY).map((p, i) => `${i === 0 ? 'M' : 'L'} ${i * 100} ${120 - p}`).join(' ')
       }
     };
-  }, [timeRange, projectFilter, serviceFilter, resourceFilter, filteredTasksForAnalytics]);
+  }, [timeRange, projectFilter, serviceFilter, resourceFilter, filteredTasksForAnalytics, tasksToUse]);
 
   // Export handlers
   const handleExport = (type: 'csv' | 'json') => {
     const dataStr = type === 'json' 
-      ? JSON.stringify({ timeRange, projectFilter, tasksCount: tasks.length, timestamp: new Date().toISOString() }, null, 2)
-      : 'TimeRange,Project,ServiceFilter,TasksCount\n' + `${timeRange},${projectFilter},${serviceFilter},${tasks.length}`;
+      ? JSON.stringify({ timeRange, projectFilter, tasksCount: tasksToUse.length, timestamp: new Date().toISOString() }, null, 2)
+      : 'TimeRange,Project,ServiceFilter,TasksCount\n' + `${timeRange},${projectFilter},${serviceFilter},${tasksToUse.length}`;
     
     const blob = new Blob([dataStr], { type: type === 'json' ? 'application/json' : 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -504,6 +608,15 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
   const compareLabel = compare 
     ? (timeRange === '90d' ? 'vs Prev 90 Days' : timeRange === '30d' ? 'vs Prev 30 Days' : timeRange === '7d' ? 'vs Prev 7 Days' : 'vs Prev 24h')
     : 'vs last period';
+
+  if (fetching && analyticsTasks.length === 0) {
+    return (
+      <div className="flex h-96 w-full flex-col items-center justify-center gap-3">
+        <Loader2 className="h-8 w-8 animate-spin text-accent-cyan" />
+        <span className="text-xs font-semibold text-text-muted font-mono tracking-wider">Loading workflow performance analytics...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col space-y-5 overflow-y-auto pr-1 font-sans text-text-main">

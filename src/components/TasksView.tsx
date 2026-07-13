@@ -42,6 +42,30 @@ export default function TasksView({
   const [actionLoading, setActionLoading] = useState(false);
   const [jsonExpanded, setJsonExpanded] = useState(false);
 
+  const renderHighlightedJson = (obj: any) => {
+    const jsonStr = JSON.stringify(obj, null, 2);
+    const errorMsg = obj.status_msg || (selectedTask?.status === 'failed' ? selectedTask.message : null);
+    if (!errorMsg || typeof errorMsg !== 'string') {
+      return <pre className="text-accent-cyan/85 whitespace-pre-wrap break-all">{jsonStr}</pre>;
+    }
+
+    const parts = jsonStr.split(errorMsg);
+    return (
+      <pre className="text-accent-cyan/85 whitespace-pre-wrap break-all">
+        {parts.map((part, i) => (
+          <span key={i}>
+            {part}
+            {i < parts.length - 1 && (
+              <mark className="bg-yellow-500/20 text-yellow-200 border border-yellow-500/30 px-1 py-0.5 rounded font-semibold select-all">
+                {errorMsg}
+              </mark>
+            )}
+          </span>
+        ))}
+      </pre>
+    );
+  };
+
   const selectedTask = useMemo(() => {
     return tasks.find(t => t.id === selectedId) || null;
   }, [tasks, selectedId]);
@@ -404,7 +428,7 @@ console.log(tasks)
                       <span>Fetching document details...</span>
                     </div>
                   ) : rawTask ? (
-                    <pre className="text-accent-cyan/85">{JSON.stringify(rawTask, null, 2)}</pre>
+                    renderHighlightedJson(rawTask)
                   ) : (
                     <span className="text-text-faint">No details found</span>
                   )}

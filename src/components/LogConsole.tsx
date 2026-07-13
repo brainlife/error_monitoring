@@ -65,8 +65,42 @@ export default function LogConsole({ task }: LogConsoleProps) {
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Fetch logs whenever the selected task changes or periodically if it is running
+  // Fetch logs whenever the selected task changes or search query/filters change
   const fetchLogs = async (showLoading = true) => {
+    const trimmedQuery = query.trim();
+    const isServiceFilter = activeFilter && !['INFO', 'ERROR', 'WARN', 'SUCCESS', 'WARNING', 'DEBUG'].includes(activeFilter);
+
+    if (trimmedQuery.length > 0 || isServiceFilter) {
+      if (showLoading) setLoading(true);
+      try {
+        const params = new URLSearchParams();
+        if (trimmedQuery.length > 0) {
+          params.append('q', trimmedQuery);
+        }
+        if (isServiceFilter && activeFilter) {
+          params.append('service', activeFilter);
+        }
+        if (task) {
+          params.append('project_id', task.projectId);
+        }
+
+        const response = await apiFetch<{ hits: any[]; total: number }>(`/task/logs/search?${params.toString()}`);
+        
+        // Map the Elasticsearch hits back to LogLines
+        const lines: LogLine[] = [];
+        response.hits.forEach(hit => {
+          const parsed = parseRawLogs(hit.logs || '', hit.service);
+          lines.push(...parsed);
+        });
+        setVisibleLogs(lines);
+      } catch (error) {
+        console.error('Failed to search logs in Elasticsearch:', error);
+      } finally {
+        if (showLoading) setLoading(false);
+      }
+      return;
+    }
+
     if (!task) {
       setVisibleLogs([]);
       return;
@@ -95,6 +129,16 @@ export default function LogConsole({ task }: LogConsoleProps) {
   useEffect(() => {
     fetchLogs(true);
   }, [task]);
+
+  // Debounced log query search from Elasticsearch
+  useEffect(() => {
+    if (!query && !activeFilter) return;
+    const delayDebounce = setTimeout(() => {
+      fetchLogs(false);
+    }, 450);
+
+    return () => clearTimeout(delayDebounce);
+  }, [query, activeFilter]);
 
   // If task is running, poll for live updates every 4 seconds
   useEffect(() => {

@@ -14,7 +14,7 @@ import ServicesView from './components/ServicesView';
 import IncidentsView from './components/IncidentsView';
 import UsersView from './components/UsersView';
 import { apiFetch, getJwtToken, getUserProfile, logout, setJwtToken, fetchWarehouseProjects, fetchAuthUsers, type UserProfile } from './api';
-import { Search, Bell, Activity, Database, Users, ShieldAlert, CheckCircle2, AlertOctagon, Boxes, Server, ListTodo, Layers } from 'lucide-react';
+import { Search, Bell, Activity, Database, Users, ShieldAlert, CheckCircle2, AlertOctagon, Boxes, Server, ListTodo, Layers, Loader2 } from 'lucide-react';
 
 // API Schema Types
 interface BackendTask {
@@ -55,6 +55,37 @@ export default function App() {
   const [usersList, setUsersList] = useState<{ _id: string; sub: number; username: string; fullname: string; email?: string; scopes?: { brainlife?: string[] } }[]>([]);
   const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
   const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+
+  // Authentication state
+  const [user, setUser] = useState<UserProfile | null>(getUserProfile());
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!getJwtToken() && !!user);
+
+  // Debounced search logs via Elasticsearch
+  const [logSearchResults, setLogSearchResults] = useState<any[]>([]);
+  const [spotlightSearching, setSpotlightSearching] = useState(false);
+
+  useEffect(() => {
+    const q = globalSearchQuery.trim();
+    if (!q || !isAuthenticated) {
+      setLogSearchResults([]);
+      setSpotlightSearching(false);
+      return;
+    }
+
+    setSpotlightSearching(true);
+    const delayDebounce = setTimeout(async () => {
+      try {
+        const res = await apiFetch<{ hits: any[]; total: number }>(`/task/logs/search?q=${encodeURIComponent(q)}&limit=5`);
+        setLogSearchResults(res.hits || []);
+      } catch (err) {
+        console.error('Failed to search logs in spotlight:', err);
+      } finally {
+        setSpotlightSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
+  }, [globalSearchQuery, isAuthenticated]);
 
   // Sidebar status flags
   const hasActiveIncidents = useMemo(() => {
@@ -240,12 +271,24 @@ export default function App() {
       }
     });
 
-    return results.slice(0, 10);
-  }, [globalSearchQuery, tasksList, resourcesList, usersList, projectNamesMap]);
+    // 7. Elasticsearch Log Matches
+    logSearchResults.forEach(hit => {
+      results.push({
+        category: 'Log Match',
+        id: `log-${hit.task_id}-${hit.timestamp}`,
+        title: hit.service.split('/').pop() || hit.service,
+        subtitle: `Match: "${hit.logs.slice(0, 60).replace(/\n/g, ' ')}..."`,
+        icon: 'terminal',
+        action: () => {
+          handleNavigateToTask(hit.task_id);
+          setGlobalSearchOpen(false);
+          setGlobalSearchQuery('');
+        }
+      });
+    });
 
-  // Authentication state
-  const [user, setUser] = useState<UserProfile | null>(getUserProfile());
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!getJwtToken() && !!user);
+    return results.slice(0, 10);
+  }, [globalSearchQuery, tasksList, resourcesList, usersList, projectNamesMap, logSearchResults]);
 
   // Catch redirected JWT query parameters from SSO providers
   useEffect(() => {
@@ -583,7 +626,14 @@ export default function App() {
           
           {/* Scrollable Center Dashboard */}
           <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
-            {view === 'dashboard' && (
+            {loading && tasksList.length === 0 ? (
+              <div className="flex h-full w-full flex-col items-center justify-center gap-3 py-36">
+                <Loader2 className="h-10 w-10 animate-spin text-accent-cyan" />
+                <span className="text-xs font-semibold text-text-muted font-mono tracking-wider">Synchronizing platform with Amaretti API...</span>
+              </div>
+            ) : (
+              <>
+                {view === 'dashboard' && (
               <>
                 {/* KPI Cards Grid */}
                 <KpiCards {...stats} resources={resourcesList} tasks={tasksList} onNavigate={setView} />
@@ -682,7 +732,9 @@ export default function App() {
                 </p>
               </div>
             )}
-          </div>
+          </>
+        )}
+      </div>
 
           {/* Right sticky diagnostic terminal console */}
           <LogConsole task={selectedTask} />
@@ -760,12 +812,17 @@ export default function App() {
                 placeholder="Spotlight Search: Karst, App, Incidents, Niklas..."
                 className="w-full rounded-xl border border-white/5 bg-white/[0.01] py-3 pl-11 pr-12 font-sans text-sm text-text-main placeholder:text-text-faint focus:border-accent-cyan/40 focus:outline-none focus:ring-1 focus:ring-accent-cyan/20 transition-all"
               />
-              <button 
-                onClick={() => setGlobalSearchOpen(false)}
-                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-text-faint hover:text-text-main border border-white/10 rounded px-1.5 py-0.5"
-              >
-                ESC
-              </button>
+              <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                {spotlightSearching && (
+                  <Loader2 className="h-3 w-3 animate-spin text-accent-cyan" />
+                )}
+                <button 
+                  onClick={() => setGlobalSearchOpen(false)}
+                  className="text-[10px] font-bold text-text-faint hover:text-text-main border border-white/10 rounded px-1.5 py-0.5"
+                >
+                  ESC
+                </button>
+              </div>
             </div>
 
             {/* Results container */}
