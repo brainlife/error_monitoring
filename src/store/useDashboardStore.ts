@@ -95,6 +95,9 @@ export interface DashboardState {
   handleLogout: () => void;
   handleTest: (id: string) => void;
   checkSSORedirect: () => void;
+  tasksLimit: number;
+  hasMoreTasks: boolean;
+  loadMoreTasks: () => Promise<void>;
 }
 
 export const useDashboardStore = create<DashboardState>((set, get) => ({
@@ -119,6 +122,13 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   selectedResourceIdForCrossLink: null,
   selectedUserIdForCrossLink: null,
   selectedIncidentIdForCrossLink: null,
+  tasksLimit: 50,
+  hasMoreTasks: true,
+  loadMoreTasks: async () => {
+    const currentLimit = get().tasksLimit;
+    set({ tasksLimit: currentLimit + 50 });
+    await get().loadData();
+  },
 
   setView: (view) => set({ view }),
   setTasksList: (tasksList) => set({ tasksList }),
@@ -375,13 +385,15 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         return acc;
       }, {} as Record<string, string>);
 
-      // 2. Fetch live tasks (limit to 50 latest tasks)
+      // 2. Fetch live tasks (limit to dynamic tasksLimit)
+      const currentLimit = get().tasksLimit || 50;
       const queryParams = new URLSearchParams({
-        limit: '50',
+        limit: currentLimit.toString(),
         sort: '-create_date'
       });
       const taskRes = await apiFetch<{ tasks: BackendTask[] }>(`/task?${queryParams}`);
       const backendTasks = taskRes.tasks || [];
+      set({ hasMoreTasks: backendTasks.length === currentLimit });
       const mappedTasks: Task[] = backendTasks.map(t => {
         let status: Task['status'] = 'unknown';
         if (t.status === 'running') status = 'running';

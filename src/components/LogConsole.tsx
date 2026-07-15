@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Search, Terminal, Cloud, Trash2, ChevronDown, Plus, ExternalLink, Loader2, ChevronLeft, ChevronRight, ShieldAlert } from 'lucide-react';
+import { Search, Terminal, Cloud, Trash2, ChevronDown, Plus, ExternalLink, Loader2, ChevronLeft, ChevronRight, ShieldAlert, Download } from 'lucide-react';
 import { apiFetch, getApiUrl, getJwtToken } from '../api';
 import type { Task } from '../data';
 
@@ -64,6 +64,19 @@ export default function LogConsole({ task }: LogConsoleProps) {
   const [visibleLogs, setVisibleLogs] = useState<LogLine[]>([]);
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [pinToBottom, setPinToBottom] = useState(true);
+
+  const downloadLogs = () => {
+    if (!task) return;
+    const logText = filteredLogs.map(l => `[${l.ts}] ${l.level} ${l.service} - ${l.message}`).join('\n');
+    const blob = new Blob([logText], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `task-${task.id}-logs.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const [activeTab, setActiveTab] = useState<'logs' | 'warehouse'>('logs');
   const [warehouseLoading, setWarehouseLoading] = useState(false);
@@ -266,10 +279,10 @@ export default function LogConsole({ task }: LogConsoleProps) {
 
   // Auto-scroll to bottom on new log additions
   useEffect(() => {
-    if (scrollRef.current) {
+    if (pinToBottom && scrollRef.current) {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
-  }, [visibleLogs]);
+  }, [visibleLogs, pinToBottom]);
 
   const filteredLogs = useMemo(() => {
     const q = query.toLowerCase().trim();
@@ -344,6 +357,15 @@ export default function LogConsole({ task }: LogConsoleProps) {
           </div>
         </div>
         <div className="flex items-center gap-1.5">
+          {task && (
+            <button
+              onClick={downloadLogs}
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border-glass bg-white/[0.01] text-text-muted hover:text-text-main hover:bg-white/[0.03] transition-all duration-150 cursor-pointer"
+              title="Download raw log file"
+            >
+              <Download className="h-4 w-4" />
+            </button>
+          )}
           <button
             onClick={handleClear}
             className="flex h-8 w-8 items-center justify-center rounded-lg border border-border-glass bg-white/[0.01] text-text-muted hover:text-text-main hover:bg-white/[0.03] transition-all duration-150 cursor-pointer"
@@ -455,9 +477,21 @@ export default function LogConsole({ task }: LogConsoleProps) {
                   <span className="h-2.5 w-2.5 rounded-full bg-status-warning/60" />
                   <span className="h-2.5 w-2.5 rounded-full bg-status-success/60" />
                 </div>
-                <span className="font-mono text-[9px] text-text-faint tracking-wider uppercase">
-                  {activeFilter ? `Filter: ${activeFilter}` : 'amaretti-core logs'}
-                </span>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 font-mono text-[9px] text-text-faint hover:text-text-main cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={pinToBottom}
+                      onChange={(e) => setPinToBottom(e.target.checked)}
+                      className="accent-accent-cyan h-3 w-3 rounded border border-white/10 bg-transparent focus:ring-0 focus:ring-offset-0 cursor-pointer"
+                    />
+                    <span>PIN TO BOTTOM</span>
+                  </label>
+                  <span className="text-white/10">|</span>
+                  <span className="font-mono text-[9px] text-text-faint tracking-wider uppercase">
+                    {activeFilter ? `Filter: ${activeFilter}` : 'amaretti-core logs'}
+                  </span>
+                </div>
               </div>
 
               {/* Logs scroll area */}

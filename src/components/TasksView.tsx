@@ -36,7 +36,25 @@ export default function TasksView({
 }: TasksViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'running' | 'finished' | 'failed' | 'queued' | 'cancelled'>('all');
-  const { projectsList, instancesList } = useDashboardStore();
+  const { projectsList, instancesList, loadMoreTasks, hasMoreTasks } = useDashboardStore();
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const handleLoadMore = async () => {
+    setLoadingMore(true);
+    try {
+      await loadMoreTasks();
+    } catch (error) {
+      console.error('Failed to load more tasks:', error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  // Reset page to 1 when filters or query changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, activeFilter]);
   
   // Selected task detail details
   const [rawTask, setRawTask] = useState<Record<string, unknown> | null>(null);
@@ -144,6 +162,25 @@ export default function TasksView({
     return true;
   });
 
+  const totalPages = useMemo(() => {
+    return Math.max(1, Math.ceil(filteredTasks.length / 10));
+  }, [filteredTasks]);
+
+  const paginatedTasks = useMemo(() => {
+    const start = (currentPage - 1) * 10;
+    return filteredTasks.slice(start, start + 10);
+  }, [filteredTasks, currentPage]);
+
+  const pageButtons = useMemo(() => {
+    const buttons: number[] = [];
+    const start = Math.max(1, currentPage - 2);
+    const end = Math.min(totalPages, currentPage + 2);
+    for (let i = start; i <= end; i++) {
+      buttons.push(i);
+    }
+    return buttons;
+  }, [currentPage, totalPages]);
+
   const handleRerun = async (taskId: string) => {
     setActionLoading(true);
     try {
@@ -245,7 +282,7 @@ console.log(tasks)
                     </td>
                   </tr>
                 ) : (
-                  filteredTasks.map((t) => {
+                  paginatedTasks.map((t) => {
                     const isSelected = selectedId === t.id;
                     return (
                       <tr
@@ -393,6 +430,83 @@ console.log(tasks)
                 )}
               </tbody>
               </table>
+            </div>
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-white/[0.04] p-3.5 bg-white/[0.01] select-none text-[10px] text-text-faint font-mono font-medium">
+              <div>
+                Showing {filteredTasks.length === 0 ? 0 : (currentPage - 1) * 10 + 1} - {Math.min(filteredTasks.length, currentPage * 10)} of {filteredTasks.length} loaded tasks
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1 || loadingMore}
+                  className="rounded-lg border border-border-glass bg-white/[0.01] px-3 py-1.5 text-[10px] font-bold text-text-muted hover:text-text-main disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                >
+                  Prev
+                </button>
+
+                {currentPage > 3 && (
+                  <>
+                    <button
+                      onClick={() => setCurrentPage(1)}
+                      disabled={loadingMore}
+                      className="rounded-lg border border-border-glass bg-white/[0.01] px-3 py-1.5 text-[10px] font-bold text-text-muted hover:text-text-main transition-all cursor-pointer"
+                    >
+                      1
+                    </button>
+                    {currentPage > 4 && <span className="px-1 text-text-faint">...</span>}
+                  </>
+                )}
+
+                {pageButtons.map((pageNum) => (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    disabled={loadingMore}
+                    className={`rounded-lg border px-3 py-1.5 text-[10px] font-bold transition-all cursor-pointer ${
+                      currentPage === pageNum
+                        ? 'border-accent-cyan bg-accent-cyan/10 text-accent-cyan'
+                        : 'border-border-glass bg-white/[0.01] text-text-muted hover:text-text-main'
+                    }`}
+                  >
+                    {pageNum}
+                  </button>
+                ))}
+
+                {currentPage < totalPages - 2 && (
+                  <>
+                    {currentPage < totalPages - 3 && <span className="px-1 text-text-faint">...</span>}
+                    <button
+                      onClick={() => setCurrentPage(totalPages)}
+                      disabled={loadingMore}
+                      className="rounded-lg border border-border-glass bg-white/[0.01] px-3 py-1.5 text-[10px] font-bold text-text-muted hover:text-text-main transition-all cursor-pointer"
+                    >
+                      {totalPages}
+                    </button>
+                  </>
+                )}
+
+                <button
+                  onClick={async () => {
+                    if (currentPage === totalPages && hasMoreTasks) {
+                      await handleLoadMore();
+                      setCurrentPage((p) => p + 1);
+                    } else {
+                      setCurrentPage((p) => Math.min(totalPages, p + 1));
+                    }
+                  }}
+                  disabled={(currentPage === totalPages && !hasMoreTasks) || loadingMore}
+                  className="flex items-center gap-1.5 rounded-lg border border-border-glass bg-white/[0.01] px-3 py-1.5 text-[10px] font-bold text-text-muted hover:text-text-main disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                >
+                  {loadingMore ? (
+                    <>
+                      <Loader2 className="h-3 w-3 animate-spin text-accent-cyan" />
+                      <span>Loading...</span>
+                    </>
+                  ) : (
+                    <span>Next</span>
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
