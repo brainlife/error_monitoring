@@ -148,7 +148,7 @@ export async function fetchWarehouseProjects(): Promise<{ _id: string; name: str
     headers.set('Authorization', `Bearer ${token}`);
   }
   const findParam = encodeURIComponent(JSON.stringify({ removed: false }));
-  const url = `${baseUrl}/project?find=${findParam}&limit=500&select=name%20group_id`;
+  const url = `${baseUrl}/project?find=${findParam}&limit=1000&sort=-create_date&select=name%20group_id&admin=true`;
   const response = await fetch(url, { headers });
   if (!response.ok) {
     throw new Error(`Failed to fetch warehouse projects: ${response.status}`);

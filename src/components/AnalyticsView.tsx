@@ -54,6 +54,8 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
 
   const [analyticsTasks, setAnalyticsTasks] = useState<Task[]>([]);
   const [fetching, setFetching] = useState(false);
+  const [showAllPipelines, setShowAllPipelines] = useState(false);
+  const [showAllProjects, setShowAllProjects] = useState(false);
 
   useEffect(() => {
     const fetchAnalyticsData = async () => {
@@ -274,6 +276,14 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
       };
     });
   }, [tasksToUse, projectNamesMap]);
+
+  const displayedPipelines = useMemo(() => {
+    return showAllPipelines ? pipelinePerformance : pipelinePerformance.slice(0, 10);
+  }, [pipelinePerformance, showAllPipelines]);
+
+  const displayedProjects = useMemo(() => {
+    return showAllProjects ? projectSummaries : projectSummaries.slice(0, 10);
+  }, [projectSummaries, showAllProjects]);
 
   // Filter tasks for analytics dynamically
   const filteredTasksForAnalytics = useMemo(() => {
@@ -975,7 +985,7 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.02]">
-                {pipelinePerformance.map((v) => {
+                {displayedPipelines.map((v) => {
                   const isSelected = selectedValidator === v.name;
                   return (
                     <tr 
@@ -993,6 +1003,16 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
               </tbody>
             </table>
           </div>
+          {pipelinePerformance.length > 10 && (
+            <div className="flex justify-center border-t border-white/[0.04] pt-3">
+              <button
+                onClick={() => setShowAllPipelines(!showAllPipelines)}
+                className="rounded-lg border border-border-glass bg-white/[0.01] px-4 py-2 text-[10px] font-semibold text-accent-cyan hover:bg-white/[0.03] hover:text-accent-cyan-dim transition-all cursor-pointer select-none"
+              >
+                {showAllPipelines ? 'Show Less' : `Read More (${pipelinePerformance.length - 10} more)`}
+              </button>
+            </div>
+          )}
 
           {/* Drill down chart display */}
           {selectedValidator && (
@@ -1043,7 +1063,7 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/[0.02] text-text-muted">
-                {projectSummaries.map((p) => (
+                {displayedProjects.map((p) => (
                   <tr key={p.name} className="hover:bg-white/[0.01] transition-colors duration-150">
                     <td className="py-3 font-semibold text-text-main">{p.name}</td>
                     <td className="py-3 font-mono">{p.jobs}</td>
@@ -1054,6 +1074,16 @@ export default function AnalyticsView({ tasks, projectNamesMap }: AnalyticsViewP
               </tbody>
             </table>
           </div>
+          {projectSummaries.length > 10 && (
+            <div className="flex justify-center border-t border-white/[0.04] pt-3">
+              <button
+                onClick={() => setShowAllProjects(!showAllProjects)}
+                className="rounded-lg border border-border-glass bg-white/[0.01] px-4 py-2 text-[10px] font-semibold text-accent-cyan hover:bg-white/[0.03] hover:text-accent-cyan-dim transition-all cursor-pointer select-none"
+              >
+                {showAllProjects ? 'Show Less' : `Read More (${projectSummaries.length - 10} more)`}
+              </button>
+            </div>
+          )}
         </div>
       </div>
 

@@ -41,7 +41,7 @@ export default function TaskTable({
   const displayedTasks = useMemo(() => {
     return showAll ? sorted : sorted.slice(0, 8);
   }, [sorted, showAll]);
-
+console.log("tasks", tasks)
   return (
     <div className="glass overflow-hidden rounded-2xl w-full border border-border-glass">
       {/* Table Header */}
@@ -66,7 +66,7 @@ export default function TaskTable({
               <th className="px-5 py-3 font-medium">Status</th>
               <th className="px-5 py-3 font-medium">Task ID</th>
               <th className="px-5 py-3 font-medium">Service</th>
-              <th className="px-5 py-3 font-medium">Project</th>
+              <th className="px-5 py-3 font-medium">instance_id</th>
               <th className="px-5 py-3 font-medium">Resource</th>
               <th className="px-5 py-3 font-medium">Runtime</th>
               <th className="px-5 py-3 font-medium">Started</th>

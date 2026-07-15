@@ -200,7 +200,7 @@ console.log(tasks)
                   <th className="px-5 py-3.5">Status</th>
                   <th className="px-5 py-3.5">Task ID</th>
                   <th className="px-5 py-3.5">Service</th>
-                  <th className="px-5 py-3.5">Project ID</th>
+                  <th className="px-5 py-3.5">instance_id</th>
                   <th className="px-5 py-3.5">Start Time</th>
                   <th className="px-5 py-3.5">Duration</th>
                   <th className="px-5 py-3.5">Message</th>
@@ -334,7 +334,7 @@ console.log(tasks)
 
               {/* Project */}
               <div className="flex justify-between items-center border-b border-white/[0.02] pb-2">
-                <span className="text-text-faint font-mono text-[10px] uppercase">Project</span>
+                <span className="text-text-faint font-mono text-[10px] uppercase">instance_id</span>
                 <span className="font-semibold text-text-main max-w-[180px] truncate" title={selectedTask.projectId}>
                   {projectNamesMap?.[selectedTask.projectId] || selectedTask.projectId.slice(-6)}
                 </span>

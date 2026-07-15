@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import Sidebar, { type View } from './components/Sidebar';
+import { useEffect, useMemo } from 'react';
+import Sidebar from './components/Sidebar';
 import KpiCards from './components/KpiCards';
 import ResourceGrid from './components/ResourceGrid';
 import LogConsole from './components/LogConsole';
@@ -13,57 +13,55 @@ import AnalyticsView from './components/AnalyticsView';
 import ServicesView from './components/ServicesView';
 import IncidentsView from './components/IncidentsView';
 import UsersView from './components/UsersView';
-import { apiFetch, getJwtToken, getUserProfile, logout, setJwtToken, fetchWarehouseProjects, fetchAuthUsers, type UserProfile } from './api';
+import { apiFetch } from './api';
 import { Search, Bell, Activity, Database, Users, ShieldAlert, CheckCircle2, AlertOctagon, Boxes, Server, ListTodo, Layers, Loader2 } from 'lucide-react';
-
-// API Schema Types
-interface BackendTask {
-  _id: string;
-  service: string;
-  instance_id: string;
-  resource_id: string;
-  status: 'running' | 'finished' | 'failed' | 'queued' | 'cancelled' | 'unknown' | 'removed' | 'stopped';
-  status_msg?: string;
-  start_date?: string;
-  finish_date?: string;
-  create_date?: string;
-  _group_id?: number;
-  user_id?: string;
-}
-
-interface BackendResource {
-  _id: string;
-  name: string;
-  resource_type: string;
-  status: 'ok' | 'failed' | 'unknown' | 'removed';
-  status_msg?: string;
-  active: boolean;
-}
-
-import { type Task, type ComputeResource } from './data';
+import { useDashboardStore } from './store/useDashboardStore';
 
 export default function App() {
-  const [view, setView] = useState<View>('dashboard');
-  const [tasksList, setTasksList] = useState<Task[]>([]);
-  const [resourcesList, setResourcesList] = useState<ComputeResource[]>([]);
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [testingId, setTestingId] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [configVersion, setConfigVersion] = useState(0);
-  const [projectNamesMap, setProjectNamesMap] = useState<Record<string, string>>({});
-  const [userNamesMap, setUserNamesMap] = useState<Record<string, string>>({});
-  const [usersList, setUsersList] = useState<{ _id: string; sub: number; username: string; fullname: string; email?: string; scopes?: { brainlife?: string[] } }[]>([]);
-  const [globalSearchOpen, setGlobalSearchOpen] = useState(false);
-  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
-
-  // Authentication state
-  const [user, setUser] = useState<UserProfile | null>(getUserProfile());
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!!getJwtToken() && !!user);
+  const {
+    view,
+    setView,
+    tasksList,
+    resourcesList,
+    selectedTask,
+    setSelectedTask,
+    testingId,
+    loading,
+    projectNamesMap,
+    userNamesMap,
+    usersList,
+    globalSearchOpen,
+    setGlobalSearchOpen,
+    globalSearchQuery,
+    setGlobalSearchQuery,
+    user,
+    isAuthenticated,
+    logSearchResults,
+    setLogSearchResults,
+    spotlightSearching,
+    setSpotlightSearching,
+    selectedResourceIdForCrossLink,
+    setSelectedResourceIdForCrossLink,
+    selectedUserIdForCrossLink,
+    setSelectedUserIdForCrossLink,
+    selectedIncidentIdForCrossLink,
+    setSelectedIncidentIdForCrossLink,
+    handleNavigateToTask,
+    handleNavigateToResource,
+    handleNavigateToUser,
+    handleNavigateToIncident,
+    loadData,
+    loadProjects,
+    loadUsers,
+    resolveVisibleProjectNames,
+    handleConfigChange,
+    handleLoginSuccess,
+    handleLogout,
+    handleTest,
+    checkSSORedirect
+  } = useDashboardStore();
 
   // Debounced search logs via Elasticsearch
-  const [logSearchResults, setLogSearchResults] = useState<any[]>([]);
-  const [spotlightSearching, setSpotlightSearching] = useState(false);
-
   useEffect(() => {
     const q = globalSearchQuery.trim();
     if (!q || !isAuthenticated) {
@@ -85,7 +83,7 @@ export default function App() {
     }, 300);
 
     return () => clearTimeout(delayDebounce);
-  }, [globalSearchQuery, isAuthenticated]);
+  }, [globalSearchQuery, isAuthenticated, setLogSearchResults, setSpotlightSearching]);
 
   // Sidebar status flags
   const hasActiveIncidents = useMemo(() => {
@@ -100,52 +98,24 @@ export default function App() {
     return true;
   }, []);
 
-  // Cross-linking relationship navigation states
-  const [selectedResourceIdForCrossLink, setSelectedResourceIdForCrossLink] = useState<string | null>(null);
-  const [selectedUserIdForCrossLink, setSelectedUserIdForCrossLink] = useState<string | null>(null);
-  const [selectedIncidentIdForCrossLink, setSelectedIncidentIdForCrossLink] = useState<string | null>(null);
-
-  const handleNavigateToTask = useCallback((taskId: string) => {
-    const taskObj = tasksList.find(t => t.id === taskId);
-    if (taskObj) {
-      setSelectedTask(taskObj);
-    }
-    setView('tasks');
-  }, [tasksList]);
-
-  const handleNavigateToResource = useCallback((resourceName: string) => {
-    setSelectedResourceIdForCrossLink(resourceName);
-    setView('resources');
-  }, []);
-
-  const handleNavigateToUser = useCallback((userId: string) => {
-    setSelectedUserIdForCrossLink(userId);
-    setView('users');
-  }, []);
-
-  const handleNavigateToIncident = useCallback((incidentId: string) => {
-    setSelectedIncidentIdForCrossLink(incidentId);
-    setView('incidents');
-  }, []);
-
   // Reset cross-linking parameters upon view transit
   useEffect(() => {
     setSelectedResourceIdForCrossLink(null);
     setSelectedUserIdForCrossLink(null);
     setSelectedIncidentIdForCrossLink(null);
-  }, [view]);
+  }, [view, setSelectedResourceIdForCrossLink, setSelectedUserIdForCrossLink, setSelectedIncidentIdForCrossLink]);
 
   // Spotlight keyboard listener (⌘K / Ctrl+K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
-        setGlobalSearchOpen(prev => !prev);
+        setGlobalSearchOpen(!globalSearchOpen);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [globalSearchOpen, setGlobalSearchOpen]);
 
   // Spotlight search matching logic
   const spotlightResults = useMemo(() => {
@@ -288,217 +258,47 @@ export default function App() {
     });
 
     return results.slice(0, 10);
-  }, [globalSearchQuery, tasksList, resourcesList, usersList, projectNamesMap, logSearchResults]);
+  }, [
+    globalSearchQuery,
+    tasksList,
+    resourcesList,
+    usersList,
+    projectNamesMap,
+    logSearchResults,
+    handleNavigateToResource,
+    handleNavigateToTask,
+    handleNavigateToIncident,
+    handleNavigateToUser,
+    setView,
+    setGlobalSearchOpen,
+    setGlobalSearchQuery
+  ]);
 
   // Catch redirected JWT query parameters from SSO providers
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const jwtFromUrl = params.get('jwt');
-    
-    if (jwtFromUrl) {
-      setJwtToken(jwtFromUrl);
-      
-      try {
-        const payloadPart = jwtFromUrl.split('.')[1];
-        const payloadDecoded = JSON.parse(atob(payloadPart));
-        
-        const userProfile: UserProfile = {
-          id: payloadDecoded.sub || '1',
-          username: payloadDecoded.username || payloadDecoded.sub || 'user',
-          fullname: payloadDecoded.fullname || payloadDecoded.username || 'User Profile',
-          email: payloadDecoded.email || ''
-        };
-        
-        localStorage.setItem('amaretti_user', JSON.stringify(userProfile));
-        setUser(userProfile);
-        setIsAuthenticated(true);
-      } catch (err) {
-        console.error('Failed to decode SSO JWT payload:', err);
-      }
-      
-      // Clean query parameter from URL
-      const cleanUrl = window.location.origin + window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
-    }
-  }, []);
+    checkSSORedirect();
+  }, [checkSSORedirect]);
 
   // Load warehouse project names and Amaretti instances
   useEffect(() => {
-    if (!isAuthenticated) return;
-    const loadProjects = async () => {
-      const map: Record<string, string> = {};
-      
-      // Load Warehouse projects
-      try {
-        const projectList = await fetchWarehouseProjects();
-        projectList.forEach(p => {
-          if (p._id) {
-            map[p._id] = p.name;
-          }
-        });
-      } catch (err) {
-        console.error('Failed to load warehouse projects:', err);
-      }
-
-      // Load Amaretti instances
-      try {
-        interface AmarettiInstance {
-          _id: string;
-          name?: string;
-        }
-        const res = await apiFetch<any>('/instance');
-        let instances: AmarettiInstance[] = [];
-        if (Array.isArray(res)) {
-          instances = res;
-        } else if (res && Array.isArray(res.instances)) {
-          instances = res.instances;
-        } else if (res && Array.isArray(res.results)) {
-          instances = res.results;
-        } else if (res && typeof res === 'object') {
-          const arrayProp = Object.values(res).find(val => Array.isArray(val));
-          if (arrayProp) {
-            instances = arrayProp as AmarettiInstance[];
-          }
-        }
-        instances.forEach(inst => {
-          if (inst._id && inst.name) {
-            map[inst._id] = inst.name;
-          }
-        });
-      } catch (err) {
-        console.error('Failed to load Amaretti instances:', err);
-      }
-
-      setProjectNamesMap(map);
-    };
     loadProjects();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, loadProjects]);
+
+  // Dynamically resolve project names for visible tasks in the table
+  useEffect(() => {
+    resolveVisibleProjectNames();
+  }, [tasksList, isAuthenticated, resolveVisibleProjectNames]);
+
+  // Log the tasksList when it changes
+  useEffect(() => {
+    console.log("tasksList", tasksList);
+  }, [tasksList]);
+
 
   // Load auth users list
   useEffect(() => {
-    if (!isAuthenticated) return;
-    const loadUsers = async () => {
-      try {
-        const list = await fetchAuthUsers();
-        const map: Record<string, string> = {};
-        list.forEach(u => {
-          if (u.sub) {
-            map[u.sub.toString()] = u.username;
-          }
-          if (u._id) {
-            map[u._id] = u.username;
-          }
-        });
-        setUserNamesMap(map);
-        setUsersList(list);
-      } catch (err) {
-        console.error('Failed to load auth users:', err);
-      }
-    };
     loadUsers();
-  }, [isAuthenticated]);
-
-  // Load resources and build a lookup map of resource IDs to Names
-  const loadData = useCallback(async () => {
-    if (!isAuthenticated) return;
-    
-    try {
-      setLoading(true);
-      
-      // 1. Fetch live compute resources
-      const resourceRes = await apiFetch<{ resources: BackendResource[] }>('/resource');
-      const backendResources = resourceRes.resources || [];
-      const mappedResources = backendResources.map(r => {
-        let status: ComputeResource['status'] = 'error';
-        if (r.active && r.status === 'ok') status = 'online';
-        else if (r.active && r.status === 'unknown') status = 'degraded';
-        
-        return {
-          id: r._id,
-          name: r.name,
-          type: r.resource_type,
-          status,
-          detail: r.status_msg || (r.active ? 'Active' : 'Inactive'),
-          tags: [r.resource_type]
-        };
-      });
-      setResourcesList(mappedResources);
-
-      const resourceMap = backendResources.reduce((acc, r) => {
-        acc[r._id] = r.name;
-        return acc;
-      }, {} as Record<string, string>);
-
-      // 2. Fetch live tasks (limit to 50 latest tasks)
-      const queryParams = new URLSearchParams({
-        limit: '50',
-        sort: '-create_date'
-      });
-      const taskRes = await apiFetch<{ tasks: BackendTask[] }>(`/task?${queryParams}`);
-      const backendTasks = taskRes.tasks || [];
-      const mappedTasks = backendTasks.map(t => {
-        let status: Task['status'] = 'unknown';
-        if (t.status === 'running') status = 'running';
-        else if (t.status === 'finished') status = 'finished';
-        else if (t.status === 'failed') status = 'failed';
-        else if (t.status === 'queued') status = 'queued';
-        else if (t.status === 'removed' || t.status === 'stopped') status = 'cancelled';
-        
-        const resourceName = resourceMap[t.resource_id] || 'Unknown';
-        
-        let startedAt = '--';
-        if (t.start_date) {
-          startedAt = new Date(t.start_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        } else if (t.create_date) {
-          startedAt = new Date(t.create_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-
-        let duration = '--';
-        if (t.start_date) {
-          const start = new Date(t.start_date).getTime();
-          const end = t.finish_date ? new Date(t.finish_date).getTime() : Date.now();
-          const diff = end - start;
-          if (diff > 0) {
-            const hrs = Math.floor(diff / 3600000).toString().padStart(2, '0');
-            const mins = Math.floor((diff % 3600000) / 60000).toString().padStart(2, '0');
-            const secs = Math.floor((diff % 60000) / 1000).toString().padStart(2, '0');
-            duration = `${hrs}:${mins}:${secs}`;
-          }
-        }
-
-        return {
-          id: t._id,
-          service: t.service,
-          projectId: t.instance_id || 'Unknown',
-          resource: resourceName,
-          status,
-          runtime: resourceName,
-          startedAt,
-          duration,
-          message: t.status_msg || '',
-          startDate: t.start_date || t.create_date,
-          finishDate: t.finish_date,
-          userId: t.user_id ? t.user_id.toString() : 'Unknown'
-        };
-      });
-      
-      setTasksList(mappedTasks);
-      
-      // Auto-select the first task if nothing is currently selected
-      if (mappedTasks.length > 0) {
-        setSelectedTask(prev => {
-          if (prev && mappedTasks.some(t => t.id === prev.id)) {
-            return mappedTasks.find(t => t.id === prev.id) || null;
-          }
-          return mappedTasks[0];
-        });
-      }
-    } catch (error) {
-      console.error('Failed to load dashboard metrics from backend API:', error);
-    } finally {
-      setLoading(false);
-    }
-  }, [configVersion, isAuthenticated]);
+  }, [isAuthenticated, loadUsers]);
 
   // Load data immediately and then poll every 10 seconds for real-time monitoring
   useEffect(() => {
@@ -507,27 +307,6 @@ export default function App() {
     const interval = setInterval(loadData, 10000);
     return () => clearInterval(interval);
   }, [loadData, isAuthenticated]);
-
-  const handleConfigChange = () => {
-    setConfigVersion(prev => prev + 1);
-  };
-
-  const handleLoginSuccess = () => {
-    setUser(getUserProfile());
-    setIsAuthenticated(true);
-  };
-
-  const handleLogout = () => {
-    logout();
-    setUser(null);
-    setIsAuthenticated(false);
-    setView('dashboard');
-  };
-
-  const handleTest = (id: string) => {
-    setTestingId(id);
-    setTimeout(() => setTestingId(null), 2000);
-  };
 
   const stats = useMemo(() => {
     let running = 0;
@@ -553,11 +332,11 @@ export default function App() {
   return (
     <div className="relative z-10 flex h-screen w-full overflow-hidden bg-bg-dark text-text-main">
       {/* 1. Left Fixed Sidebar */}
-      <Sidebar 
-        view={view} 
-        onNavigate={setView} 
-        user={user} 
-        onLogout={handleLogout} 
+      <Sidebar
+        view={view}
+        onNavigate={setView}
+        user={user}
+        onLogout={handleLogout}
         hasActiveIncidents={hasActiveIncidents}
         hasDegradedResources={hasDegradedResources}
         hasHealthyServices={hasHealthyServices}
@@ -565,7 +344,7 @@ export default function App() {
 
       {/* Main Container for Right Side */}
       <div className="flex flex-1 flex-col min-w-0">
-        
+
         {/* Top Header */}
         <header className="flex shrink-0 items-center justify-between border-b border-border-glass px-6 py-4.5 bg-bg-dark/40">
           <div>
@@ -591,7 +370,7 @@ export default function App() {
 
           <div className="flex items-center gap-4">
             {/* Search Input */}
-            <div 
+            <div
               onClick={() => setGlobalSearchOpen(true)}
               className="relative hidden sm:block cursor-pointer"
             >
@@ -623,7 +402,7 @@ export default function App() {
 
         {/* 2. Main Content & Right Log Console layout */}
         <div className="flex flex-1 min-h-0 overflow-hidden">
-          
+
           {/* Scrollable Center Dashboard */}
           <div className="flex-1 overflow-y-auto px-6 py-5 space-y-6">
             {loading && tasksList.length === 0 ? (
@@ -634,107 +413,107 @@ export default function App() {
             ) : (
               <>
                 {view === 'dashboard' && (
-              <>
-                {/* KPI Cards Grid */}
-                <KpiCards {...stats} resources={resourcesList} tasks={tasksList} onNavigate={setView} />
+                  <>
+                    {/* KPI Cards Grid */}
+                    <KpiCards {...stats} resources={resourcesList} tasks={tasksList} onNavigate={setView} />
 
-                {/* Execution Timeline (Live Activity Component) */}
-                <ExecutionTimeline tasks={tasksList} />
+                    {/* Execution Timeline (Live Activity Component) */}
+                    <ExecutionTimeline tasks={tasksList} />
 
-                {/* Compute Resources Grid (Infrastructure) */}
-                <ResourceGrid
-                  resources={resourcesList.filter(r => r.status === 'online' || r.status === 'degraded')}
-                  onTest={handleTest}
-                  testingId={testingId}
-                />
+                    {/* Compute Resources Grid (Infrastructure) */}
+                    <ResourceGrid
+                      resources={resourcesList.filter(r => r.status === 'online' || r.status === 'degraded')}
+                      onTest={handleTest}
+                      testingId={testingId}
+                    />
 
-                {/* Recent Tasks Table */}
-                <TaskTable
-                  tasks={tasksList}
-                  onSelect={setSelectedTask}
-                  selectedId={selectedTask?.id ?? null}
-                  projectNamesMap={projectNamesMap}
-                  userNamesMap={userNamesMap}
-                  onNavigateToResource={handleNavigateToResource}
-                  onNavigateToUser={handleNavigateToUser}
-                />
+                    {/* Recent Tasks Table */}
+                    <TaskTable
+                      tasks={tasksList}
+                      onSelect={setSelectedTask}
+                      selectedId={selectedTask?.id ?? null}
+                      projectNamesMap={projectNamesMap}
+                      userNamesMap={userNamesMap}
+                      onNavigateToResource={handleNavigateToResource}
+                      onNavigateToUser={handleNavigateToUser}
+                    />
+                  </>
+                )}
+
+                {view === 'resources' && (
+                  <ResourcesView
+                    resources={resourcesList}
+                    onTest={handleTest}
+                    testingId={testingId}
+                    onNavigateToTask={handleNavigateToTask}
+                    initialSelectedResourceId={selectedResourceIdForCrossLink}
+                  />
+                )}
+
+                {view === 'tasks' && (
+                  <TasksView
+                    tasks={tasksList}
+                    onSelect={setSelectedTask}
+                    selectedId={selectedTask?.id ?? null}
+                    onRefresh={loadData}
+                    projectNamesMap={projectNamesMap}
+                    userNamesMap={userNamesMap}
+                    onNavigateToResource={handleNavigateToResource}
+                    onNavigateToUser={handleNavigateToUser}
+                  />
+                )}
+
+                {view === 'analytics' && (
+                  <AnalyticsView tasks={tasksList} projectNamesMap={projectNamesMap} />
+                )}
+
+                {view === 'services' && (
+                  <ServicesView
+                    onNavigate={setView}
+                    onSelectTask={setSelectedTask}
+                    tasksList={tasksList}
+                  />
+                )}
+
+                {view === 'settings' && (
+                  <Settings onConfigChange={handleConfigChange} />
+                )}
+
+                {view === 'incidents' && (
+                  <IncidentsView
+                    tasks={tasksList}
+                    usersList={usersList}
+                    onNavigateToTask={handleNavigateToTask}
+                    onNavigateToResource={handleNavigateToResource}
+                    initialSelectedIncidentId={selectedIncidentIdForCrossLink}
+                  />
+                )}
+
+                {view === 'users' && (
+                  <UsersView
+                    tasks={tasksList}
+                    usersList={usersList}
+                    projectNamesMap={projectNamesMap}
+                    onSelectTask={setSelectedTask}
+                    onNavigateToTask={handleNavigateToTask}
+                    initialSelectedUserId={selectedUserIdForCrossLink}
+                  />
+                )}
+
+                {view !== 'dashboard' && view !== 'settings' && view !== 'resources' && view !== 'tasks' && view !== 'analytics' && view !== 'services' && view !== 'incidents' && view !== 'users' && (
+                  <div className="flex h-96 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 p-10 text-center">
+                    <ShieldAlert className="h-10 w-10 text-accent-cyan animate-bounce" />
+                    <h3 className="mt-4 text-sm font-semibold text-text-main uppercase tracking-wider">
+                      {view} Module
+                    </h3>
+                    <p className="mt-1 max-w-sm text-xs text-text-muted">
+                      The {view} configuration system is connected. Inspect the active dashboard tab for live task graphs.
+                    </p>
+                  </div>
+                )}
               </>
             )}
-
-            {view === 'resources' && (
-              <ResourcesView
-                resources={resourcesList}
-                onTest={handleTest}
-                testingId={testingId}
-                onNavigateToTask={handleNavigateToTask}
-                initialSelectedResourceId={selectedResourceIdForCrossLink}
-              />
-            )}
-
-            {view === 'tasks' && (
-              <TasksView
-                tasks={tasksList}
-                onSelect={setSelectedTask}
-                selectedId={selectedTask?.id ?? null}
-                onRefresh={loadData}
-                projectNamesMap={projectNamesMap}
-                userNamesMap={userNamesMap}
-                onNavigateToResource={handleNavigateToResource}
-                onNavigateToUser={handleNavigateToUser}
-              />
-            )}
-
-            {view === 'analytics' && (
-              <AnalyticsView tasks={tasksList} projectNamesMap={projectNamesMap} />
-            )}
-
-            {view === 'services' && (
-              <ServicesView
-                onNavigate={setView}
-                onSelectTask={setSelectedTask}
-                tasksList={tasksList}
-              />
-            )}
-
-            {view === 'settings' && (
-              <Settings onConfigChange={handleConfigChange} />
-            )}
-
-            {view === 'incidents' && (
-              <IncidentsView 
-                tasks={tasksList} 
-                usersList={usersList} 
-                onNavigateToTask={handleNavigateToTask}
-                onNavigateToResource={handleNavigateToResource}
-                initialSelectedIncidentId={selectedIncidentIdForCrossLink}
-              />
-            )}
-
-            {view === 'users' && (
-              <UsersView
-                tasks={tasksList}
-                usersList={usersList}
-                projectNamesMap={projectNamesMap}
-                onSelectTask={setSelectedTask}
-                onNavigateToTask={handleNavigateToTask}
-                initialSelectedUserId={selectedUserIdForCrossLink}
-              />
-            )}
-
-            {view !== 'dashboard' && view !== 'settings' && view !== 'resources' && view !== 'tasks' && view !== 'analytics' && view !== 'services' && view !== 'incidents' && view !== 'users' && (
-              <div className="flex h-96 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 p-10 text-center">
-                <ShieldAlert className="h-10 w-10 text-accent-cyan animate-bounce" />
-                <h3 className="mt-4 text-sm font-semibold text-text-main uppercase tracking-wider">
-                  {view} Module
-                </h3>
-                <p className="mt-1 max-w-sm text-xs text-text-muted">
-                  The {view} configuration system is connected. Inspect the active dashboard tab for live task graphs.
-                </p>
-              </div>
-            )}
-          </>
-        )}
-      </div>
+          </div>
 
           {/* Right sticky diagnostic terminal console */}
           <LogConsole task={selectedTask} />
@@ -795,11 +574,11 @@ export default function App() {
       {globalSearchOpen && (
         <div className="fixed inset-0 z-50 flex items-start justify-center pt-24 px-4">
           {/* Backdrop blur */}
-          <div 
+          <div
             onClick={() => setGlobalSearchOpen(false)}
-            className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-300" 
+            className="absolute inset-0 bg-black/60 backdrop-blur-md transition-opacity duration-300"
           />
-          
+
           {/* Spotlight Modal Box */}
           <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-white/[0.08] bg-[#090d16]/95 p-4 shadow-2xl backdrop-blur-xl animate-slide-in">
             <div className="relative flex items-center">
@@ -816,7 +595,7 @@ export default function App() {
                 {spotlightSearching && (
                   <Loader2 className="h-3 w-3 animate-spin text-accent-cyan" />
                 )}
-                <button 
+                <button
                   onClick={() => setGlobalSearchOpen(false)}
                   className="text-[10px] font-bold text-text-faint hover:text-text-main border border-white/10 rounded px-1.5 py-0.5"
                 >
@@ -854,12 +633,11 @@ export default function App() {
                         className="flex items-center justify-between rounded-xl px-3.5 py-3 hover:bg-white/[0.03] border border-transparent hover:border-white/[0.04] cursor-pointer group transition-all duration-150"
                       >
                         <div className="flex items-center gap-3.5 min-w-0">
-                          <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
-                            res.category === 'Incident' ? 'bg-status-error/15 text-status-error' :
-                            res.category === 'Resource' ? 'bg-status-warning/15 text-status-warning' :
-                            res.category === 'User' ? 'bg-accent-purple/15 text-accent-purple' :
-                            'bg-accent-cyan/15 text-accent-cyan'
-                          }`}>
+                          <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${res.category === 'Incident' ? 'bg-status-error/15 text-status-error' :
+                              res.category === 'Resource' ? 'bg-status-warning/15 text-status-warning' :
+                                res.category === 'User' ? 'bg-accent-purple/15 text-accent-purple' :
+                                  'bg-accent-cyan/15 text-accent-cyan'
+                            }`}>
                             <IconComp className="h-4.5 w-4.5" />
                           </div>
                           <div className="min-w-0">
