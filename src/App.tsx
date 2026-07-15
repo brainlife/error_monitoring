@@ -132,15 +132,17 @@ export default function App() {
 
     // 1. Resources
     resourcesList.forEach(r => {
-      if (r.name.toLowerCase().includes(query) || r.type.toLowerCase().includes(query)) {
+      const rName = r.name || '';
+      const rType = r.type || '';
+      if (rName.toLowerCase().includes(query) || rType.toLowerCase().includes(query)) {
         results.push({
           category: 'Resource',
           id: `res-${r.id}`,
-          title: r.name,
-          subtitle: r.type,
+          title: rName,
+          subtitle: rType,
           icon: 'server',
           action: () => {
-            handleNavigateToResource(r.name);
+            handleNavigateToResource(rName);
             setGlobalSearchOpen(false);
             setGlobalSearchQuery('');
           }
@@ -150,16 +152,18 @@ export default function App() {
 
     // 2. Tasks
     tasksList.forEach(t => {
-      const projName = projectNamesMap?.[t.projectId] || t.projectId;
-      if (t.service.toLowerCase().includes(query) || t.id.toLowerCase().includes(query) || projName.toLowerCase().includes(query)) {
+      const tService = t.service || '';
+      const tId = t.id || '';
+      const projName = projectNamesMap?.[t.projectId] || t.projectId || '';
+      if (tService.toLowerCase().includes(query) || tId.toLowerCase().includes(query) || projName.toLowerCase().includes(query)) {
         results.push({
           category: 'Task',
-          id: `task-${t.id}`,
-          title: t.service.split('/').pop() || t.service,
-          subtitle: `Status: ${t.status} | ID: ${t.id.slice(-8)}`,
+          id: `task-${tId}`,
+          title: tService.split('/').pop() || tService,
+          subtitle: `Status: ${t.status} | ID: ${tId.slice(-8)}`,
           icon: 'terminal',
           action: () => {
-            handleNavigateToTask(t.id);
+            handleNavigateToTask(tId);
             setGlobalSearchOpen(false);
             setGlobalSearchQuery('');
           }
@@ -174,12 +178,14 @@ export default function App() {
       { id: 'inc-sys-103', title: 'Database Replication Lag Spike', resource: 'mongodb' }
     ];
     baseIncidents.forEach(inc => {
-      if (inc.title.toLowerCase().includes(query) || inc.resource.toLowerCase().includes(query)) {
+      const incTitle = inc.title || '';
+      const incResource = inc.resource || '';
+      if (incTitle.toLowerCase().includes(query) || incResource.toLowerCase().includes(query)) {
         results.push({
           category: 'Incident',
           id: inc.id,
-          title: inc.title,
-          subtitle: `Resource: ${inc.resource}`,
+          title: incTitle,
+          subtitle: `Resource: ${incResource}`,
           icon: 'alert-octagon',
           action: () => {
             handleNavigateToIncident(inc.id);
@@ -192,12 +198,15 @@ export default function App() {
 
     // 4. Users
     usersList.forEach(u => {
-      if (u.fullname.toLowerCase().includes(query) || u.username.toLowerCase().includes(query) || (u.email && u.email.toLowerCase().includes(query))) {
+      const uFullName = u.fullname || '';
+      const uUserName = u.username || '';
+      const uEmail = u.email || '';
+      if (uFullName.toLowerCase().includes(query) || uUserName.toLowerCase().includes(query) || uEmail.toLowerCase().includes(query)) {
         results.push({
           category: 'User',
           id: `user-${u._id}`,
-          title: u.fullname,
-          subtitle: `@${u.username}`,
+          title: uFullName || uUserName || 'Unknown User',
+          subtitle: `@${uUserName || 'unknown'}`,
           icon: 'user',
           action: () => {
             handleNavigateToUser(u.sub ? u.sub.toString() : u._id);
@@ -211,13 +220,14 @@ export default function App() {
     // 5. Projects
     const uniqueProjects = Array.from(new Set(tasksList.map(t => t.projectId).filter(Boolean)));
     uniqueProjects.forEach(pid => {
-      const name = projectNamesMap?.[pid] || `Project ${pid.slice(-6)}`;
-      if (name.toLowerCase().includes(query) || pid.toLowerCase().includes(query)) {
+      const name = projectNamesMap?.[pid] || (pid ? `Project ${pid.slice(-6)}` : 'Unknown Project');
+      const pidStr = pid || '';
+      if (name.toLowerCase().includes(query) || pidStr.toLowerCase().includes(query)) {
         results.push({
           category: 'Project',
-          id: `proj-${pid}`,
+          id: `proj-${pidStr}`,
           title: name,
-          subtitle: `ID: ${pid}`,
+          subtitle: `ID: ${pidStr}`,
           icon: 'layers',
           action: () => {
             setView('tasks');
