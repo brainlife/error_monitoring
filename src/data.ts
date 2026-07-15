@@ -16,6 +16,7 @@ export interface Task {
   startDate?: string;
   finishDate?: string;
   userId?: string;
+  createDate?: string;
 }
 
 export type ResourceStatus = 'online' | 'error' | 'degraded';

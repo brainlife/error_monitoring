@@ -454,7 +454,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           message: t.status_msg || '',
           startDate: t.start_date || t.create_date,
           finishDate: t.finish_date,
-          userId: t.user_id ? t.user_id.toString() : 'Unknown'
+          userId: t.user_id ? t.user_id.toString() : 'Unknown',
+          createDate: t.create_date
         };
       });
 

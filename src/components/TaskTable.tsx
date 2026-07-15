@@ -72,6 +72,7 @@ console.log("tasks", tasks)
               <th className="px-5 py-3 font-medium">instance_id</th>
               <th className="px-5 py-3 font-medium">Resource</th>
               <th className="px-5 py-3 font-medium">Runtime</th>
+              <th className="px-5 py-3 font-medium">Created</th>
               <th className="px-5 py-3 font-medium">Started</th>
               <th className="px-5 py-3 font-medium">Message</th>
               <th className="px-5 py-3 font-medium">User</th>
@@ -208,6 +209,16 @@ console.log("tasks", tasks)
                   {/* Runtime (duration) */}
                   <td className="px-5 py-3.5 font-mono text-text-faint whitespace-nowrap">
                     {t.duration}
+                  </td>
+
+                  {/* Created At */}
+                  <td className="px-5 py-3.5 text-text-faint font-mono whitespace-nowrap">
+                    {t.createDate ? (() => {
+                      const d = new Date(t.createDate);
+                      const dateStr = d.toLocaleDateString([], { month: '2-digit', day: '2-digit' });
+                      const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                      return `${dateStr} ${timeStr}`;
+                    })() : '--'}
                   </td>
 
                   {/* Started At */}

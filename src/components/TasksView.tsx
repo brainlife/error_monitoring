@@ -268,6 +268,7 @@ console.log(tasks)
                   <th className="px-5 py-3.5">Service</th>
                   <th className="px-5 py-3.5">Project</th>
                   <th className="px-5 py-3.5">instance_id</th>
+                  <th className="px-5 py-3.5">Created</th>
                   <th className="px-5 py-3.5">Start Time</th>
                   <th className="px-5 py-3.5">Duration</th>
                   <th className="px-5 py-3.5">Message</th>
@@ -399,6 +400,15 @@ console.log(tasks)
                             </>
                           );
                         })()}
+                        {/* Created At */}
+                        <td className="px-5 py-3.5 text-xs font-mono text-text-faint">
+                          {t.createDate ? (() => {
+                            const d = new Date(t.createDate);
+                            const dateStr = d.toLocaleDateString([], { month: '2-digit', day: '2-digit' });
+                            const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+                            return `${dateStr} ${timeStr}`;
+                          })() : '--'}
+                        </td>
                         {/* Start Time */}
                         <td className="px-5 py-3.5 text-xs">
                           {t.startedAt}
