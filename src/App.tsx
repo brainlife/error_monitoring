@@ -155,7 +155,8 @@ export default function App() {
       const tService = t.service || '';
       const tId = t.id || '';
       const projName = projectNamesMap?.[t.projectId] || t.projectId || '';
-      if (tService.toLowerCase().includes(query) || tId.toLowerCase().includes(query) || projName.toLowerCase().includes(query)) {
+      const userName = t.userId ? (userNamesMap?.[t.userId] || t.userId) : '';
+      if (tService.toLowerCase().includes(query) || tId.toLowerCase().includes(query) || projName.toLowerCase().includes(query) || userName.toLowerCase().includes(query)) {
         results.push({
           category: 'Task',
           id: `task-${tId}`,

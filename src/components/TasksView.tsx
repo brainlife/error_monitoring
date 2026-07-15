@@ -147,9 +147,11 @@ export default function TasksView({
   // Apply filters and search query
   const filteredTasks = tasks.filter((t) => {
     const projectName = projectNamesMap?.[t.projectId] || t.projectId;
+    const userName = t.userId ? (userNamesMap?.[t.userId] || t.userId) : '';
     const matchesSearch = t.service.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           t.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          projectName.toLowerCase().includes(searchQuery.toLowerCase());
+                          projectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          userName.toLowerCase().includes(searchQuery.toLowerCase());
     
     if (!matchesSearch) return false;
     
