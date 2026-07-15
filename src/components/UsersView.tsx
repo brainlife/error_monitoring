@@ -38,12 +38,38 @@ export default function UsersView({
   // Auto-select user based on initialSelectedUserId or select first user by default
   useEffect(() => {
     if (initialSelectedUserId) {
-      setSelectedUserId(initialSelectedUserId);
+      const searchId = initialSelectedUserId.toLowerCase();
+      const matchedUser = usersList.find(u => 
+        u._id.toLowerCase() === searchId || 
+        (u.sub && u.sub.toString() === searchId) || 
+        (u.username && u.username.toLowerCase() === searchId) ||
+        (u.fullname && u.fullname.toLowerCase() === searchId)
+      );
+      if (matchedUser) {
+        const uId = matchedUser.sub ? matchedUser.sub.toString() : matchedUser._id;
+        setSelectedUserId(uId);
+      } else {
+        setSelectedUserId(initialSelectedUserId);
+      }
+      setSearchQuery(''); // Clear search query to ensure the selected user is visible in the list
     } else if (usersList.length > 0 && selectedUserId === null) {
       const firstUser = usersList[0];
       setSelectedUserId(firstUser.sub ? firstUser.sub.toString() : firstUser._id);
     }
-  }, [initialSelectedUserId, usersList, selectedUserId]);
+  }, [initialSelectedUserId, usersList]);
+
+  // Scroll selected user card into view smoothly when selectedUserId changes
+  useEffect(() => {
+    if (selectedUserId) {
+      const timer = setTimeout(() => {
+        const element = document.getElementById(`user-card-${selectedUserId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedUserId]);
 
   // Filtered user directory
   const filteredUsers = useMemo(() => {
@@ -59,7 +85,13 @@ export default function UsersView({
 
   // Selected user details
   const selectedUser = useMemo(() => {
-    return usersList.find(u => u._id === selectedUserId || (u.sub && u.sub.toString() === selectedUserId)) || null;
+    if (!selectedUserId) return null;
+    const searchId = selectedUserId.toLowerCase();
+    return usersList.find(u => 
+      u._id.toLowerCase() === searchId || 
+      (u.sub && u.sub.toString() === searchId) || 
+      (u.username && u.username.toLowerCase() === searchId)
+    ) || null;
   }, [usersList, selectedUserId]);
 
   // Compute selected user task data
@@ -170,9 +202,13 @@ export default function UsersView({
               return (
                 <div
                   key={uId}
-                  onClick={() => setSelectedUserId(isSelected ? null : uId)}
+                  id={`user-card-${uId}`}
+                  onClick={() => {
+                    console.log("[UsersView] Clicking on user card in directory. Selected ID/Sub ID:", uId, "User Details:", u);
+                    setSelectedUserId(isSelected ? null : uId);
+                  }}
                   className={`glass flex items-center gap-3 rounded-xl p-3 border border-border-glass cursor-pointer select-none transition-all duration-200 hover:bg-white/[0.02] ${
-                    isSelected ? 'bg-accent-cyan/5 border-accent-cyan/20' : 'bg-bg-dark/10'
+                    isSelected ? 'bg-accent-cyan/10 border-accent-cyan/40 shadow-[0_0_15px_rgba(0,229,255,0.1)] ring-1 ring-accent-cyan/20' : 'bg-bg-dark/10'
                   }`}
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-cyan/15 to-accent-purple/15 text-xs font-bold text-accent-cyan ring-1 ring-accent-cyan/25">

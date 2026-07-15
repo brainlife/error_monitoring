@@ -6,6 +6,7 @@ export interface Task {
   id: string;
   service: string;
   projectId: string;
+  realProjectId?: string;
   resource: string;
   status: TaskStatus;
   runtime: Runtime;

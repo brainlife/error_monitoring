@@ -140,15 +140,14 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   return {} as Promise<T>;
 }
 
-export async function fetchWarehouseProjects(): Promise<{ _id: string; name: string; group_id?: number }[]> {
+export async function fetchWarehouseProjects(): Promise<{ _id: string; name: string; desc?: string; group_id?: number }[]> {
   const baseUrl = getApiUrl().replace(/\/amaretti\/?$/, '/warehouse');
   const token = getJwtToken();
   const headers = new Headers();
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
-  const findParam = encodeURIComponent(JSON.stringify({ removed: false }));
-  const url = `${baseUrl}/project?find=${findParam}&limit=1000&sort=-create_date&select=name%20group_id&admin=true`;
+  const url = `${baseUrl}/project?select=name%20desc&limit=500&admin=true`;
   const response = await fetch(url, { headers });
   if (!response.ok) {
     throw new Error(`Failed to fetch warehouse projects: ${response.status}`);

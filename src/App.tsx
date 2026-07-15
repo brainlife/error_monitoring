@@ -98,11 +98,17 @@ export default function App() {
     return true;
   }, []);
 
-  // Reset cross-linking parameters upon view transit
+  // Reset cross-linking parameters when navigating AWAY from their respective views
   useEffect(() => {
-    setSelectedResourceIdForCrossLink(null);
-    setSelectedUserIdForCrossLink(null);
-    setSelectedIncidentIdForCrossLink(null);
+    if (view !== 'resources') {
+      setSelectedResourceIdForCrossLink(null);
+    }
+    if (view !== 'users') {
+      setSelectedUserIdForCrossLink(null);
+    }
+    if (view !== 'incidents') {
+      setSelectedIncidentIdForCrossLink(null);
+    }
   }, [view, setSelectedResourceIdForCrossLink, setSelectedUserIdForCrossLink, setSelectedIncidentIdForCrossLink]);
 
   // Spotlight keyboard listener (⌘K / Ctrl+K)

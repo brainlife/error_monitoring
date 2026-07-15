@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { Search, Play, Loader2, RefreshCw, StopCircle, Terminal, User, FileJson, ChevronDown, ChevronUp } from 'lucide-react';
 import { apiFetch } from '../api';
 import type { Task } from '../data';
+import { useDashboardStore } from '../store/useDashboardStore';
 
 interface TasksViewProps {
   tasks: Task[];
@@ -35,6 +36,7 @@ export default function TasksView({
 }: TasksViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'running' | 'finished' | 'failed' | 'queued' | 'cancelled'>('all');
+  const { projectsList, instancesList } = useDashboardStore();
   
   // Selected task detail details
   const [rawTask, setRawTask] = useState<Record<string, unknown> | null>(null);
@@ -69,6 +71,33 @@ export default function TasksView({
   const selectedTask = useMemo(() => {
     return tasks.find(t => t.id === selectedId) || null;
   }, [tasks, selectedId]);
+
+  const resolvedInspectorProj = useMemo(() => {
+    if (!selectedTask) return null;
+    let resolvedProjId = selectedTask.realProjectId || 'Unknown';
+    let resolvedProjName = resolvedProjId !== 'Unknown' ? projectNamesMap?.[resolvedProjId] : '';
+
+    if (resolvedProjId === 'Unknown') {
+      const sibling = tasks.find(s => s.projectId === selectedTask.projectId && s.realProjectId && s.realProjectId !== 'Unknown');
+      if (sibling && sibling.realProjectId) {
+        resolvedProjId = sibling.realProjectId;
+        resolvedProjName = projectNamesMap?.[resolvedProjId] || '';
+      }
+    }
+
+    if (resolvedProjId === 'Unknown') {
+      const instObj = instancesList.find(i => i._id === selectedTask.projectId);
+      const resolvedProject = instObj && instObj.group_id !== undefined && instObj.group_id !== null
+        ? projectsList.find(p => p.group_id !== undefined && p.group_id !== null && p.group_id.toString() === instObj.group_id.toString())
+        : null;
+      if (resolvedProject) {
+        resolvedProjId = resolvedProject._id;
+        resolvedProjName = resolvedProject.name;
+      }
+    }
+
+    return { resolvedProjId, resolvedProjName };
+  }, [selectedTask, tasks, instancesList, projectsList, projectNamesMap]);
 
   const ownerId = String(rawTask?.user_id || selectedTask?.userId || '');
   const ownerName = ownerId ? (userNamesMap?.[ownerId] || ownerId) : 'Unassigned';
@@ -200,6 +229,7 @@ console.log(tasks)
                   <th className="px-5 py-3.5">Status</th>
                   <th className="px-5 py-3.5">Task ID</th>
                   <th className="px-5 py-3.5">Service</th>
+                  <th className="px-5 py-3.5">Project</th>
                   <th className="px-5 py-3.5">instance_id</th>
                   <th className="px-5 py-3.5">Start Time</th>
                   <th className="px-5 py-3.5">Duration</th>
@@ -210,7 +240,7 @@ console.log(tasks)
               <tbody className="divide-y divide-white/[0.02]">
                 {filteredTasks.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="px-5 py-12 text-center text-xs text-text-faint font-medium">
+                    <td colSpan={9} className="px-5 py-12 text-center text-xs text-text-faint font-medium">
                       No workflow tasks match your filters
                     </td>
                   </tr>
@@ -251,17 +281,87 @@ console.log(tasks)
                           </span>
                         </td>
                         {/* Task ID */}
-                        <td className="px-5 py-3.5 font-mono text-[11px] font-bold group-hover:text-accent-cyan transition-colors">
-                          {t.id.slice(-8)}
-                        </td>
-                        {/* Service */}
-                        <td className="px-5 py-3.5 font-semibold truncate max-w-[200px]" title={t.service}>
-                          {t.service.split('/').pop()}
-                        </td>
-                        {/* Project ID */}
-                        <td className="px-5 py-3.5 font-semibold max-w-[140px] truncate" title={t.projectId}>
-                          {projectNamesMap?.[t.projectId] || t.projectId.slice(-6)}
-                        </td>
+                        {(() => {
+                          let resolvedProjId = t.realProjectId || 'Unknown';
+                          let resolvedProjName = resolvedProjId !== 'Unknown' ? projectNamesMap?.[resolvedProjId] : '';
+
+                          if (resolvedProjId === 'Unknown') {
+                            const sibling = tasks.find(s => s.projectId === t.projectId && s.realProjectId && s.realProjectId !== 'Unknown');
+                            if (sibling && sibling.realProjectId) {
+                              resolvedProjId = sibling.realProjectId;
+                              resolvedProjName = projectNamesMap?.[resolvedProjId] || '';
+                            }
+                          }
+
+                          if (resolvedProjId === 'Unknown') {
+                            const instObj = instancesList.find(i => i._id === t.projectId);
+                            const resolvedProject = instObj && instObj.group_id !== undefined && instObj.group_id !== null
+                              ? projectsList.find(p => p.group_id !== undefined && p.group_id !== null && p.group_id.toString() === instObj.group_id.toString())
+                              : null;
+                            if (resolvedProject) {
+                              resolvedProjId = resolvedProject._id;
+                              resolvedProjName = resolvedProject.name;
+                            }
+                          }
+
+                          return (
+                            <>
+                              <td className="px-5 py-3.5 font-mono text-[11px] font-bold group-hover:text-accent-cyan transition-colors">
+                                {resolvedProjId !== 'Unknown' ? (
+                                  <a
+                                    href={`https://brainlife.io/project/${resolvedProjId}/process/${t.projectId}#task-${t.id}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="hover:underline hover:text-accent-cyan-dim cursor-pointer transition-colors text-accent-cyan"
+                                  >
+                                    {t.id.slice(-8)}
+                                  </a>
+                                ) : (
+                                  <span>{t.id.slice(-8)}</span>
+                                )}
+                              </td>
+                              {/* Service */}
+                              <td className="px-5 py-3.5 font-semibold truncate max-w-[200px]" title={t.service}>
+                                {t.service.split('/').pop()}
+                              </td>
+                              {/* Project */}
+                              <td className="px-5 py-3.5 font-semibold max-w-[140px] truncate" title={resolvedProjId}>
+                                {resolvedProjId !== 'Unknown' ? (
+                                  <a
+                                    href={`https://brainlife.io/project/${resolvedProjId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-accent-cyan hover:underline cursor-pointer transition-colors font-medium"
+                                  >
+                                    {resolvedProjName || resolvedProjId.slice(-6)}
+                                  </a>
+                                ) : (
+                                  <span className="text-text-muted">Unknown Project</span>
+                                )}
+                              </td>
+                              {/* instance_id */}
+                              <td className="px-5 py-3.5 font-semibold max-w-[140px] truncate" title={t.projectId}>
+                                {resolvedProjId !== 'Unknown' ? (
+                                  <a
+                                    href={`https://brainlife.io/project/${resolvedProjId}/process/${t.projectId}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    onClick={(e) => e.stopPropagation()}
+                                    className="text-text-faint hover:text-accent-cyan hover:underline font-mono"
+                                  >
+                                    {projectNamesMap?.[t.projectId] || t.projectId.slice(-6)}
+                                  </a>
+                                ) : (
+                                  <span className="text-text-faint font-mono">
+                                    {projectNamesMap?.[t.projectId] || t.projectId.slice(-6)}
+                                  </span>
+                                )}
+                              </td>
+                            </>
+                          );
+                        })()}
                         {/* Start Time */}
                         <td className="px-5 py-3.5 text-xs">
                           {t.startedAt}
@@ -334,9 +434,41 @@ console.log(tasks)
 
               {/* Project */}
               <div className="flex justify-between items-center border-b border-white/[0.02] pb-2">
+                <span className="text-text-faint font-mono text-[10px] uppercase">Project</span>
+                <span className="font-semibold text-text-main max-w-[180px] truncate" title={resolvedInspectorProj?.resolvedProjId}>
+                  {resolvedInspectorProj && resolvedInspectorProj.resolvedProjId !== 'Unknown' ? (
+                    <a
+                      href={`https://brainlife.io/project/${resolvedInspectorProj.resolvedProjId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-accent-cyan hover:underline cursor-pointer transition-colors"
+                    >
+                      {resolvedInspectorProj.resolvedProjName || resolvedInspectorProj.resolvedProjId.slice(-6)}
+                    </a>
+                  ) : (
+                    <span className="text-text-muted">Unknown Project</span>
+                  )}
+                </span>
+              </div>
+
+              {/* instance_id */}
+              <div className="flex justify-between items-center border-b border-white/[0.02] pb-2">
                 <span className="text-text-faint font-mono text-[10px] uppercase">instance_id</span>
                 <span className="font-semibold text-text-main max-w-[180px] truncate" title={selectedTask.projectId}>
-                  {projectNamesMap?.[selectedTask.projectId] || selectedTask.projectId.slice(-6)}
+                  {resolvedInspectorProj && resolvedInspectorProj.resolvedProjId !== 'Unknown' ? (
+                    <a
+                      href={`https://brainlife.io/project/${resolvedInspectorProj.resolvedProjId}/process/${selectedTask.projectId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-text-faint hover:text-accent-cyan hover:underline font-mono"
+                    >
+                      {projectNamesMap?.[selectedTask.projectId] || selectedTask.projectId.slice(-6)}
+                    </a>
+                  ) : (
+                    <span className="font-mono text-text-faint">
+                      {projectNamesMap?.[selectedTask.projectId] || selectedTask.projectId.slice(-6)}
+                    </span>
+                  )}
                 </span>
               </div>
 
@@ -359,7 +491,12 @@ console.log(tasks)
                     Owner
                   </span>
                   <button
-                    onClick={() => selectedTask.userId && onNavigateToUser?.(selectedTask.userId)}
+                    onClick={() => {
+                      if (selectedTask.userId) {
+                        console.log("[TasksView] Clicking on user. selectedTask.userId (Sub ID):", selectedTask.userId, "Username:", ownerName);
+                        onNavigateToUser?.(selectedTask.userId);
+                      }
+                    }}
                     className="font-semibold text-accent-cyan truncate max-w-[160px] hover:underline cursor-pointer transition-colors text-right"
                     title={ownerName}
                   >

@@ -40,6 +40,20 @@ export default function ResourcesView({
       }
     }
   }, [initialSelectedResourceId, resources]);
+
+  // Scroll selected resource into view when selectedResource changes
+  useEffect(() => {
+    if (selectedResource) {
+      const timer = setTimeout(() => {
+        const element = document.getElementById(`resource-card-${selectedResource.id}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [selectedResource]);
+  
   
   // Resource tasks details state
   const [tasksLoading, setTasksLoading] = useState(false);
@@ -196,13 +210,17 @@ export default function ResourcesView({
                 return (
                   <div
                     key={r.id}
+                    id={`resource-card-${r.id}`}
                     onClick={() => setSelectedResource(r)}
                     className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border p-5 transition-all duration-200 select-none cursor-pointer ${
                       isSelected
-                        ? 'border-accent-cyan/40 bg-accent-cyan/5 shadow-[0_0_20px_rgba(0,229,255,0.05)]'
+                        ? 'border-accent-cyan bg-accent-cyan/[0.04] ring-1 ring-accent-cyan/25 shadow-[0_0_20px_rgba(0,229,255,0.08)]'
                         : 'border-border-glass bg-bg-dark/40 hover:border-white/20 hover:bg-white/[0.01]'
                     }`}
                   >
+                    {isSelected && (
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-accent-cyan shadow-[0_0_10px_#00E5FF]" />
+                    )}
                     {/* Header */}
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
@@ -214,7 +232,9 @@ export default function ResourcesView({
                           )}
                         </div>
                         <div>
-                          <h3 className="text-xs font-bold text-text-main group-hover:text-white transition-colors">
+                          <h3 className={`text-xs font-bold transition-colors ${
+                            isSelected ? 'text-accent-cyan' : 'text-text-main group-hover:text-white'
+                          }`}>
                             {r.name}
                           </h3>
                           <span className="text-[9px] font-semibold text-text-faint uppercase font-mono mt-0.5 block">
