@@ -2,12 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, Terminal, Cloud, Trash2, ChevronDown, Plus, ExternalLink, Loader2, ChevronLeft, ChevronRight, ShieldAlert, Download } from 'lucide-react';
 import { apiFetch, getApiUrl, getJwtToken } from '../api';
 import type { Task } from '../data';
+import { useDashboardStore } from '../store/useDashboardStore';
 
 interface LogLine {
   ts: string;
   level: 'INFO' | 'SUCCESS' | 'WARN' | 'ERROR' | 'DEBUG' | 'WARNING';
   service: string;
   message: string;
+  timestamp?: Date;
+  projectId?: string;
 }
 
 interface LogConsoleProps {
@@ -24,7 +27,7 @@ const levelStyles: Record<LogLine['level'], string> = {
 };
 
 // Heuristic to parse raw text lines into structured LogLine objects
-function parseRawLogs(rawText: string, serviceName: string): LogLine[] {
+function parseRawLogs(rawText: string, serviceName: string, projectId?: string): LogLine[] {
   if (!rawText) return [];
   const rawLines = rawText.split('\n');
   return rawLines
@@ -53,18 +56,67 @@ function parseRawLogs(rawText: string, serviceName: string): LogLine[] {
         ts,
         level,
         service: serviceName,
-        message
+        message,
+        timestamp: time,
+        projectId
       };
     });
 }
 
 export default function LogConsole({ task }: LogConsoleProps) {
+  const { tasksList, projectNamesMap, projectsList } = useDashboardStore();
+
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<string | null>(null);
   const [visibleLogs, setVisibleLogs] = useState<LogLine[]>([]);
   const [loading, setLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const [pinToBottom, setPinToBottom] = useState(true);
+
+  // Dropdown states
+  const [selectedService, setSelectedService] = useState<string>('All Services');
+  const [selectedProject, setSelectedProject] = useState<string>('All Projects');
+  const [selectedTimeframe, setSelectedTimeframe] = useState<string>('Last 24h');
+  const [openDropdown, setOpenDropdown] = useState<'services' | 'projects' | 'timeframe' | null>(null);
+
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdowns on click outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setOpenDropdown(null);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // Compute lists of options dynamically
+  const services = useMemo(() => {
+    const list = Array.from(new Set(tasksList.map(t => t.service).filter(Boolean)));
+    return ['All Services', ...list];
+  }, [tasksList]);
+
+  const projects = useMemo(() => {
+    const ids = new Set<string>();
+    tasksList.forEach(t => {
+      if (t.realProjectId && t.realProjectId !== 'Unknown') ids.add(t.realProjectId);
+      if (t.projectId && t.projectId !== 'Unknown') ids.add(t.projectId);
+    });
+    projectsList.forEach(p => {
+      if (p._id) ids.add(p._id);
+    });
+    
+    const list = Array.from(ids).map(id => ({
+      id,
+      name: projectNamesMap[id] || id
+    }));
+    
+    list.sort((a, b) => a.name.localeCompare(b.name));
+    
+    return [{ id: 'All Projects', name: 'All Projects' }, ...list];
+  }, [tasksList, projectsList, projectNamesMap]);
 
   const downloadLogs = () => {
     if (!task) return;
@@ -196,17 +248,27 @@ export default function LogConsole({ task }: LogConsoleProps) {
     const trimmedQuery = query.trim();
     const isServiceFilter = activeFilter && !['INFO', 'ERROR', 'WARN', 'SUCCESS', 'WARNING', 'DEBUG'].includes(activeFilter);
 
-    if (trimmedQuery.length > 0 || isServiceFilter) {
+    const hasSearchQuery = trimmedQuery.length > 0;
+    const hasDropdownService = selectedService !== 'All Services';
+    const hasDropdownProject = selectedProject !== 'All Projects';
+
+    if (hasSearchQuery || isServiceFilter || hasDropdownService || hasDropdownProject) {
       if (showLoading) setLoading(true);
       try {
         const params = new URLSearchParams();
-        if (trimmedQuery.length > 0) {
+        if (hasSearchQuery) {
           params.append('q', trimmedQuery);
         }
-        if (isServiceFilter && activeFilter) {
+        
+        if (hasDropdownService) {
+          params.append('service', selectedService);
+        } else if (isServiceFilter && activeFilter) {
           params.append('service', activeFilter);
         }
-        if (task) {
+        
+        if (hasDropdownProject) {
+          params.append('project_id', selectedProject);
+        } else if (task) {
           params.append('project_id', task.projectId);
         }
 
@@ -215,7 +277,9 @@ export default function LogConsole({ task }: LogConsoleProps) {
         // Map the Elasticsearch hits back to LogLines
         const lines: LogLine[] = [];
         response.hits.forEach(hit => {
-          const parsed = parseRawLogs(hit.logs || '', hit.service);
+          const matchingTask = tasksList.find(t => t.id === hit.task_id);
+          const projId = matchingTask?.projectId || hit.project_id || hit.instance_id;
+          const parsed = parseRawLogs(hit.logs || '', hit.service, projId);
           lines.push(...parsed);
         });
         setVisibleLogs(lines);
@@ -235,7 +299,7 @@ export default function LogConsole({ task }: LogConsoleProps) {
     if (showLoading) setLoading(true);
     try {
       const response = await apiFetch<{ content: string }>(`/task/${task.id}/logs`);
-      const parsed = parseRawLogs(response.content || '', task.service);
+      const parsed = parseRawLogs(response.content || '', task.service, task.projectId);
       setVisibleLogs(parsed);
     } catch (error) {
       console.error(`Failed to fetch logs for task ${task.id}:`, error);
@@ -258,13 +322,18 @@ export default function LogConsole({ task }: LogConsoleProps) {
 
   // Debounced log query search from Elasticsearch
   useEffect(() => {
-    if (!query && !activeFilter) return;
+    if (!query && !activeFilter && selectedService === 'All Services' && selectedProject === 'All Projects') {
+      if (task) {
+        fetchLogs(false);
+      }
+      return;
+    }
     const delayDebounce = setTimeout(() => {
       fetchLogs(false);
     }, 450);
 
     return () => clearTimeout(delayDebounce);
-  }, [query, activeFilter]);
+  }, [query, activeFilter, selectedService, selectedProject]);
 
   // If task is running, poll for live updates every 4 seconds
   useEffect(() => {
@@ -297,9 +366,31 @@ export default function LogConsole({ task }: LogConsoleProps) {
         l.service === activeFilter ||
         l.level === activeFilter ||
         l.message.includes(activeFilter);
-      return matchesQuery && matchesFilter;
+      const matchesService =
+        selectedService === 'All Services' ||
+        l.service === selectedService ||
+        l.service.includes(selectedService);
+      const matchesProject =
+        selectedProject === 'All Projects' ||
+        !l.projectId ||
+        l.projectId === selectedProject ||
+        (projectNamesMap[l.projectId] && projectNamesMap[l.projectId] === projectNamesMap[selectedProject]);
+
+      let matchesTimeframe = true;
+      if (l.timestamp && selectedTimeframe !== 'All Time') {
+        const diffMs = Date.now() - l.timestamp.getTime();
+        if (selectedTimeframe === 'Last 1h') {
+          matchesTimeframe = diffMs <= 60 * 60 * 1000;
+        } else if (selectedTimeframe === 'Last 24h') {
+          matchesTimeframe = diffMs <= 24 * 60 * 60 * 1000;
+        } else if (selectedTimeframe === 'Last 7d') {
+          matchesTimeframe = diffMs <= 7 * 24 * 60 * 60 * 1000;
+        }
+      }
+
+      return matchesQuery && matchesFilter && matchesService && matchesProject && matchesTimeframe;
     });
-  }, [visibleLogs, query, activeFilter]);
+  }, [visibleLogs, query, activeFilter, selectedService, selectedProject, selectedTimeframe, projectNamesMap]);
 
   const handleClear = () => {
     setVisibleLogs([]);
@@ -428,19 +519,107 @@ export default function LogConsole({ task }: LogConsoleProps) {
             </div>
 
             {/* Dropdowns */}
-            <div className="mt-3 grid grid-cols-3 gap-2 select-none">
-              <button className="flex items-center justify-between rounded-lg border border-border-glass bg-white/[0.01] px-2.5 py-1.5 text-[10px] font-medium text-text-muted hover:border-white/[0.12] hover:text-text-main transition-colors">
-                <span>All Services</span>
-                <ChevronDown className="h-3.5 w-3.5 text-text-faint" />
-              </button>
-              <button className="flex items-center justify-between rounded-lg border border-border-glass bg-white/[0.01] px-2.5 py-1.5 text-[10px] font-medium text-text-muted hover:border-white/[0.12] hover:text-text-main transition-colors">
-                <span>All Projects</span>
-                <ChevronDown className="h-3.5 w-3.5 text-text-faint" />
-              </button>
-              <button className="flex items-center justify-between rounded-lg border border-border-glass bg-white/[0.01] px-2.5 py-1.5 text-[10px] font-medium text-text-muted hover:border-white/[0.12] hover:text-text-main transition-colors">
-                <span>Last 24h</span>
-                <ChevronDown className="h-3.5 w-3.5 text-text-faint" />
-              </button>
+            <div ref={dropdownRef} className="mt-3 grid grid-cols-3 gap-2 select-none">
+              {/* Services Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setOpenDropdown(openDropdown === 'services' ? null : 'services')}
+                  className="w-full flex items-center justify-between rounded-lg border border-border-glass bg-white/[0.01] px-2.5 py-1.5 text-[10px] font-medium text-text-muted hover:border-white/[0.12] hover:text-text-main transition-colors cursor-pointer"
+                >
+                  <span className="truncate" title={selectedService}>
+                    {selectedService.split('/').pop() || selectedService}
+                  </span>
+                  <ChevronDown className={`h-3.5 w-3.5 text-text-faint shrink-0 transition-transform duration-200 ${openDropdown === 'services' ? 'rotate-180' : ''}`} />
+                </button>
+                {openDropdown === 'services' && (
+                  <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border-glass bg-[#050811] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+                    {services.map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => {
+                          setSelectedService(s);
+                          setOpenDropdown(null);
+                        }}
+                        className={`w-full text-left rounded px-2 py-1.5 text-[10px] transition-colors truncate cursor-pointer ${
+                          selectedService === s
+                            ? 'bg-accent-cyan/10 text-accent-cyan font-semibold'
+                            : 'text-text-muted hover:bg-white/5 hover:text-text-main'
+                        }`}
+                        title={s}
+                      >
+                        {s.split('/').pop() || s}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Projects Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setOpenDropdown(openDropdown === 'projects' ? null : 'projects')}
+                  className="w-full flex items-center justify-between rounded-lg border border-border-glass bg-white/[0.01] px-2.5 py-1.5 text-[10px] font-medium text-text-muted hover:border-white/[0.12] hover:text-text-main transition-colors cursor-pointer"
+                >
+                  <span className="truncate">
+                    {selectedProject === 'All Projects'
+                      ? 'All Projects'
+                      : (projectNamesMap[selectedProject] || selectedProject.slice(-6))}
+                  </span>
+                  <ChevronDown className={`h-3.5 w-3.5 text-text-faint shrink-0 transition-transform duration-200 ${openDropdown === 'projects' ? 'rotate-180' : ''}`} />
+                </button>
+                {openDropdown === 'projects' && (
+                  <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border-glass bg-[#050811] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+                    {projects.map((p) => (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          setSelectedProject(p.id);
+                          setOpenDropdown(null);
+                        }}
+                        className={`w-full text-left rounded px-2 py-1.5 text-[10px] transition-colors truncate cursor-pointer ${
+                          selectedProject === p.id
+                            ? 'bg-accent-cyan/10 text-accent-cyan font-semibold'
+                            : 'text-text-muted hover:bg-white/5 hover:text-text-main'
+                        }`}
+                        title={p.name}
+                      >
+                        {p.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Timeframe Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setOpenDropdown(openDropdown === 'timeframe' ? null : 'timeframe')}
+                  className="w-full flex items-center justify-between rounded-lg border border-border-glass bg-white/[0.01] px-2.5 py-1.5 text-[10px] font-medium text-text-muted hover:border-white/[0.12] hover:text-text-main transition-colors cursor-pointer"
+                >
+                  <span className="truncate">{selectedTimeframe}</span>
+                  <ChevronDown className={`h-3.5 w-3.5 text-text-faint shrink-0 transition-transform duration-200 ${openDropdown === 'timeframe' ? 'rotate-180' : ''}`} />
+                </button>
+                {openDropdown === 'timeframe' && (
+                  <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border-glass bg-[#050811] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+                    {['Last 1h', 'Last 24h', 'Last 7d', 'All Time'].map((t) => (
+                      <button
+                        key={t}
+                        onClick={() => {
+                          setSelectedTimeframe(t);
+                          setOpenDropdown(null);
+                        }}
+                        className={`w-full text-left rounded px-2 py-1.5 text-[10px] transition-colors truncate cursor-pointer ${
+                          selectedTimeframe === t
+                            ? 'bg-accent-cyan/10 text-accent-cyan font-semibold'
+                            : 'text-text-muted hover:bg-white/5 hover:text-text-main'
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Quick Filter Chips */}
