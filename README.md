@@ -127,3 +127,9 @@ The dashboard integrates with three distinct Brainlife API layers defined in `sr
 1. **Amaretti API (`/amaretti`):** Used to fetch resources, list tasks, retrieve stderr/stdout execution logs, rerun workflow tasks, and query cluster metrics.
 2. **Warehouse API (`/warehouse`):** Used to fetch and map project names and group IDs.
 3. **Authentication API (`/auth`):** Used to authenticate administrator credentials, manage session JWT storage, decode tokens, and fetch the platform user directory.
+
+
+
+//on the analytics page we want stats like cummulative statistics,average statistics,progress overtime, these should be displayed as graphs or bar charts or tables
+//on the task page we need to display more summary informations through charts,graphs first before table  also we need to be able to search jobs by project name, group name, task id, user name, job name, datatyoe etc
+//

@@ -172,7 +172,8 @@ export async function fetchAuthUsers(): Promise<{ _id: string; sub: number; user
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
-  const url = `${baseUrl}/users?limit=5000`;
+  const url = `${baseUrl}/users?limit=10000`;
+
   const response = await fetch(url, { headers });
   if (!response.ok) {
     throw new Error(`Failed to fetch auth users: ${response.status}`);
@@ -186,3 +187,46 @@ export async function fetchAuthUsers(): Promise<{ _id: string; sub: number; user
   }
   return [];
 }
+
+export interface WarehouseApp {
+
+  _id: string;
+  name: string;
+  github?: string;
+  doi?: string;
+  deprecated?: boolean;
+  removed?: boolean;
+  stats?: {
+    requested?: number;
+    users?: number;
+    success_rate?: number;
+    runtime_mean?: number;
+    groups?: number;
+  };
+}
+
+export async function fetchWarehouseApps(): Promise<WarehouseApp[]> {
+  const baseUrl = getApiUrl().replace(/\/amaretti\/?$/, '/warehouse');
+  const token = getJwtToken();
+  const headers = new Headers();
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  const url = `${baseUrl}/app?limit=1000`;
+  const response = await fetch(url, { headers });
+  if (!response.ok) {
+    throw new Error(`Failed to fetch warehouse apps: ${response.status}`);
+  }
+  const data = await response.json();
+  if (Array.isArray(data)) {
+    return data;
+  }
+  if (data && Array.isArray(data.apps)) {
+    return data.apps;
+  }
+  if (data && Array.isArray(data.results)) {
+    return data.results;
+  }
+  return [];
+}
+

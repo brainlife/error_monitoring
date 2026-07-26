@@ -25,9 +25,13 @@ interface BackendTask {
   finish_date?: string;
   create_date?: string;
   _group_id?: number;
+  group_id?: number | string;
+  name?: string;
+  datatype?: string;
   user_id?: string;
   config?: any;
 }
+
 
 interface BackendResource {
   _id: string;
@@ -441,6 +445,24 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           }
         }
 
+        // Extract datatype and jobName metadata
+        let datatype = t.datatype || '';
+        let jobName = t.name || (t.service ? t.service.split('/').pop() : '');
+        let groupId = t.group_id ? t.group_id.toString() : '';
+
+        if (t.config) {
+          if (!datatype) {
+            if (t.config.datatype) datatype = t.config.datatype;
+            else if (Array.isArray(t.config._inputs) && t.config._inputs.length > 0 && t.config._inputs[0].datatype) {
+              datatype = t.config._inputs[0].datatype;
+            } else if (Array.isArray(t.config._outputs) && t.config._outputs.length > 0 && t.config._outputs[0].datatype) {
+              datatype = t.config._outputs[0].datatype;
+            }
+          }
+          if (!jobName && t.config._name) jobName = t.config._name;
+          if (!groupId && t.config._group_id) groupId = t.config._group_id.toString();
+        }
+
         return {
           id: t._id,
           service: t.service,
@@ -455,9 +477,13 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           startDate: t.start_date || t.create_date,
           finishDate: t.finish_date,
           userId: t.user_id ? t.user_id.toString() : 'Unknown',
-          createDate: t.create_date
+          createDate: t.create_date,
+          datatype,
+          jobName,
+          groupId
         };
       });
+
 
       set({ tasksList: mappedTasks });
 

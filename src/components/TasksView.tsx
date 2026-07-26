@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Search, Play, Loader2, RefreshCw, StopCircle, Terminal, User, FileJson, ChevronDown, ChevronUp } from 'lucide-react';
+import { Search, Play, Loader2, RefreshCw, StopCircle, Terminal, User, FileJson, ChevronDown, ChevronUp, BarChart3, Activity } from 'lucide-react';
+
+
 import { apiFetch } from '../api';
 import type { Task } from '../data';
 import { useDashboardStore } from '../store/useDashboardStore';
@@ -144,25 +146,83 @@ export default function TasksView({
     fetchRawTask();
   }, [selectedId]);
 
-  // Apply filters and search query
-  const filteredTasks = tasks.filter((t) => {
-    const projectName = projectNamesMap?.[t.projectId] || t.projectId;
-    const userName = t.userId ? (userNamesMap?.[t.userId] || t.userId) : '';
-    const matchesSearch = t.service.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                          t.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          projectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          userName.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    if (!matchesSearch) return false;
-    
-    if (activeFilter === 'running') return t.status === 'running';
-    if (activeFilter === 'finished') return t.status === 'finished';
-    if (activeFilter === 'failed') return t.status === 'failed';
-    if (activeFilter === 'queued') return t.status === 'queued';
-    if (activeFilter === 'cancelled') return t.status === 'cancelled';
-    
-    return true;
-  });
+  // Enhanced multi-field search and status filter
+  const filteredTasks = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    return tasks.filter((t) => {
+      if (activeFilter !== 'all' && t.status !== activeFilter) return false;
+      if (!query) return true;
+
+      const projectName = (projectNamesMap?.[t.projectId] || '').toLowerCase();
+      const realProjectName = (t.realProjectId ? (projectNamesMap?.[t.realProjectId] || '') : '').toLowerCase();
+      const userName = (t.userId ? (userNamesMap?.[t.userId] || '') : '').toLowerCase();
+      const serviceName = (t.service || '').toLowerCase();
+      const jobName = (t.jobName || '').toLowerCase();
+      const datatype = (t.datatype || '').toLowerCase();
+      const groupId = (t.groupId || '').toLowerCase();
+      const groupName = (t.groupName || '').toLowerCase();
+      const taskId = (t.id || '').toLowerCase();
+      const resource = (t.resource || '').toLowerCase();
+      const message = (t.message || '').toLowerCase();
+
+      return (
+        taskId.includes(query) ||
+        serviceName.includes(query) ||
+        jobName.includes(query) ||
+        projectName.includes(query) ||
+        realProjectName.includes(query) ||
+        t.projectId.toLowerCase().includes(query) ||
+        (t.realProjectId && t.realProjectId.toLowerCase().includes(query)) ||
+        userName.includes(query) ||
+        (t.userId && t.userId.toLowerCase().includes(query)) ||
+        datatype.includes(query) ||
+        groupId.includes(query) ||
+        groupName.includes(query) ||
+        resource.includes(query) ||
+        message.includes(query)
+      );
+    });
+  }, [tasks, searchQuery, activeFilter, projectNamesMap, userNamesMap]);
+
+  // Summary Analytics Calculations for Tasks
+  const taskStatsSummary = useMemo(() => {
+    const total = tasks.length;
+    const finished = tasks.filter(t => t.status === 'finished').length;
+    const failed = tasks.filter(t => t.status === 'failed').length;
+    const running = tasks.filter(t => t.status === 'running').length;
+    const queued = tasks.filter(t => t.status === 'queued').length;
+    const cancelled = tasks.filter(t => t.status === 'cancelled').length;
+
+    const completedTotal = finished + failed;
+    const successRate = completedTotal > 0 ? (finished / completedTotal) * 100 : 100;
+
+    // Service Breakdown
+    const serviceCounts: Record<string, { service: string; count: number; finished: number; failed: number }> = {};
+    tasks.forEach(t => {
+      const sName = t.service ? (t.service.split('/').pop() || t.service) : 'Unknown';
+      if (!serviceCounts[sName]) {
+        serviceCounts[sName] = { service: sName, count: 0, finished: 0, failed: 0 };
+      }
+      serviceCounts[sName].count += 1;
+      if (t.status === 'finished') serviceCounts[sName].finished += 1;
+      if (t.status === 'failed') serviceCounts[sName].failed += 1;
+    });
+
+    const topServices = Object.values(serviceCounts)
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 5);
+
+    return {
+      total,
+      finished,
+      failed,
+      running,
+      queued,
+      cancelled,
+      successRate: parseFloat(successRate.toFixed(1)),
+      topServices
+    };
+  }, [tasks]);
 
   const totalPages = useMemo(() => {
     return Math.max(1, Math.ceil(filteredTasks.length / 10));
@@ -206,13 +266,159 @@ export default function TasksView({
       setActionLoading(false);
     }
   };
-console.log(tasks)
+
   return (
     <div className="flex h-full min-h-0 w-full gap-5 overflow-hidden font-sans">
       {/* Left Tasks Grid/Table Panel */}
-      <div className="flex flex-1 flex-col min-w-0 space-y-4">
+      <div className="flex flex-1 flex-col min-w-0 space-y-4 overflow-y-auto pr-1">
+
+        {/* Task Summary & Performance Dashboard Section (Charts before Table) */}
+        <div className="space-y-4 shrink-0">
+          {/* Top KPI Metrics Bar */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="glass rounded-xl p-3.5 space-y-1">
+              <span className="text-[9px] font-bold text-text-faint uppercase tracking-wider block">Total Tasks Monitored</span>
+              <div className="flex items-baseline justify-between">
+                <span className="font-mono text-xl font-bold text-white">{taskStatsSummary.total.toLocaleString()}</span>
+                <span className="text-[9px] font-mono text-accent-cyan font-bold">100% Volume</span>
+              </div>
+            </div>
+
+            <div className="glass rounded-xl p-3.5 space-y-1">
+              <span className="text-[9px] font-bold text-text-faint uppercase tracking-wider block">Task Success Rate</span>
+              <div className="flex items-baseline justify-between">
+                <span className="font-mono text-xl font-bold text-status-success">{taskStatsSummary.successRate}%</span>
+                <span className="text-[9px] font-mono text-status-success font-bold">▲ Optimal</span>
+              </div>
+            </div>
+
+            <div className="glass rounded-xl p-3.5 space-y-1">
+              <span className="text-[9px] font-bold text-text-faint uppercase tracking-wider block">Active Compute Tasks</span>
+              <div className="flex items-baseline justify-between">
+                <span className="font-mono text-xl font-bold text-status-running">{taskStatsSummary.running + taskStatsSummary.queued}</span>
+                <span className="text-[9px] font-mono text-text-muted font-normal">{taskStatsSummary.running} Run | {taskStatsSummary.queued} Queue</span>
+              </div>
+            </div>
+
+            <div className="glass rounded-xl p-3.5 space-y-1">
+              <span className="text-[9px] font-bold text-text-faint uppercase tracking-wider block">Task Failures</span>
+              <div className="flex items-baseline justify-between">
+                <span className="font-mono text-xl font-bold text-status-error">{taskStatsSummary.failed}</span>
+                <span className="text-[9px] font-mono text-status-error font-bold">
+                  {taskStatsSummary.total > 0 ? ((taskStatsSummary.failed / taskStatsSummary.total) * 100).toFixed(1) : 0}% Rate
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Visual Charts Grid (Status Distribution Donut + Top App Workloads Bar Graph) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Chart 1: Task Status Distribution */}
+            <div className="glass rounded-xl p-4 flex flex-col justify-between space-y-3">
+              <div className="flex items-center justify-between">
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-text-main flex items-center gap-1.5">
+                  <Activity className="h-3.5 w-3.5 text-accent-cyan" />
+                  Task Execution Status Breakdown
+                </h4>
+                <span className="text-[9px] font-mono text-text-faint">Live Telemetry</span>
+              </div>
+
+              <div className="flex items-center gap-4 py-1">
+                {/* SVG Donut */}
+                <div className="relative h-20 w-20 shrink-0">
+                  <svg viewBox="0 0 36 36" className="h-full w-full -rotate-90">
+                    <circle cx="18" cy="18" r="15.915" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="3.8" />
+                    {(() => {
+                      const total = taskStatsSummary.total || 1;
+                      const finishedPct = (taskStatsSummary.finished / total) * 100;
+                      const failedPct = (taskStatsSummary.failed / total) * 100;
+                      const runningPct = (taskStatsSummary.running / total) * 100;
+                      const queuedPct = (taskStatsSummary.queued / total) * 100;
+
+                      let offset = 0;
+                      const finishedDash = `${finishedPct} ${100 - finishedPct}`;
+                      offset += finishedPct;
+                      const failedDash = `${failedPct} ${100 - failedPct}`;
+                      const failedOffset = 100 - offset;
+                      offset += failedPct;
+                      const runningDash = `${runningPct} ${100 - runningPct}`;
+                      const runningOffset = 100 - offset;
+                      offset += runningPct;
+                      const queuedDash = `${queuedPct} ${100 - queuedPct}`;
+                      const queuedOffset = 100 - offset;
+
+                      return (
+                        <>
+                          <circle cx="18" cy="18" r="15.915" fill="none" stroke="#10B981" strokeWidth="3.8" strokeDasharray={finishedDash} strokeDashoffset="0" />
+                          <circle cx="18" cy="18" r="15.915" fill="none" stroke="#EF4444" strokeWidth="3.8" strokeDasharray={failedDash} strokeDashoffset={failedOffset} />
+                          <circle cx="18" cy="18" r="15.915" fill="none" stroke="#00E5FF" strokeWidth="3.8" strokeDasharray={runningDash} strokeDashoffset={runningOffset} />
+                          <circle cx="18" cy="18" r="15.915" fill="none" stroke="#F59E0B" strokeWidth="3.8" strokeDasharray={queuedDash} strokeDashoffset={queuedOffset} />
+                        </>
+                      );
+                    })()}
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="font-mono text-[11px] font-bold text-white">{taskStatsSummary.successRate}%</span>
+                    <span className="text-[7px] text-text-faint uppercase font-mono">Success</span>
+                  </div>
+                </div>
+
+                {/* Status Legend Grid */}
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 flex-1 font-mono text-[10px]">
+                  <div className="flex items-center justify-between border-b border-white/[0.04] pb-1">
+                    <span className="text-text-muted flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-status-success inline-block"></span>Finished</span>
+                    <span className="text-white font-bold">{taskStatsSummary.finished}</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-white/[0.04] pb-1">
+                    <span className="text-text-muted flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-status-error inline-block"></span>Failed</span>
+                    <span className="text-white font-bold">{taskStatsSummary.failed}</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-white/[0.04] pb-1">
+                    <span className="text-text-muted flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-status-running inline-block"></span>Running</span>
+                    <span className="text-white font-bold">{taskStatsSummary.running}</span>
+                  </div>
+                  <div className="flex items-center justify-between border-b border-white/[0.04] pb-1">
+                    <span className="text-text-muted flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-status-warning inline-block"></span>Queued</span>
+                    <span className="text-white font-bold">{taskStatsSummary.queued}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Chart 2: Top Application Services Workload */}
+            <div className="glass rounded-xl p-4 flex flex-col justify-between space-y-2">
+              <div className="flex items-center justify-between">
+                <h4 className="text-[11px] font-bold uppercase tracking-wider text-text-main flex items-center gap-1.5">
+                  <BarChart3 className="h-3.5 w-3.5 text-accent-purple" />
+                  Top Applications Workloads
+                </h4>
+                <span className="text-[9px] font-mono text-text-faint">Top Executed Apps</span>
+              </div>
+
+              <div className="space-y-2 py-0.5">
+                {taskStatsSummary.topServices.map((s) => {
+                  const maxCount = taskStatsSummary.topServices[0]?.count || 1;
+                  const pct = Math.round((s.count / maxCount) * 100);
+                  const successPct = s.count > 0 ? Math.round((s.finished / s.count) * 100) : 100;
+                  return (
+                    <div key={s.service} className="space-y-1">
+                      <div className="flex justify-between font-mono text-[9.5px]">
+                        <span className="text-text-main font-semibold truncate max-w-[180px]">{s.service.toUpperCase()}</span>
+                        <span className="text-text-muted"><span className="text-white font-bold">{s.count}</span> jobs ({successPct}% success)</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-full bg-gradient-to-r from-accent-cyan to-accent-purple rounded-full transition-all duration-300" style={{ width: `${pct}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* Filter bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0 pt-2">
           <div className="flex flex-wrap gap-1.5">
             {[
               { id: 'all' as const, label: 'All Tasks' },
@@ -243,8 +449,8 @@ console.log(tasks)
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by task ID, service, or project..."
-                className="w-full sm:w-64 rounded-lg border border-border-glass bg-[#050811] py-1.5 pl-9 pr-4 text-xs text-text-main placeholder:text-text-faint focus:border-accent-cyan/40 focus:outline-none"
+                placeholder="Search by Task ID, Project, Group, User, Job Name, Datatype..."
+                className="w-full sm:w-80 rounded-lg border border-border-glass bg-[#050811] py-1.5 pl-9 pr-4 text-xs text-text-main placeholder:text-text-faint focus:border-accent-cyan/40 focus:outline-none"
               />
             </div>
             
@@ -257,6 +463,7 @@ console.log(tasks)
             </button>
           </div>
         </div>
+
 
         {/* Task Grid Table */}
         <div className="flex-1 overflow-y-auto pr-1">

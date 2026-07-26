@@ -17,7 +17,12 @@ export interface Task {
   finishDate?: string;
   userId?: string;
   createDate?: string;
+  groupName?: string;
+  groupId?: string;
+  datatype?: string;
+  jobName?: string;
 }
+
 
 export type ResourceStatus = 'online' | 'error' | 'degraded';
 

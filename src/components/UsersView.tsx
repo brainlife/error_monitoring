@@ -71,9 +71,10 @@ export default function UsersView({
     }
   }, [selectedUserId]);
 
-  // Filtered user directory
+  // Filtered user directory sorted by hybrid strategy (Active compute -> Total workload -> Alphabetical)
   const filteredUsers = useMemo(() => {
-    return usersList.filter(u => {
+    // 1. Filter the users first based on search query
+    const filtered = usersList.filter(u => {
       const matchQuery = searchQuery.toLowerCase();
       return (
         (u.fullname || '').toLowerCase().includes(matchQuery) ||
@@ -81,7 +82,50 @@ export default function UsersView({
         (u.email && u.email.toLowerCase().includes(matchQuery))
       );
     });
-  }, [usersList, searchQuery]);
+
+    // 2. Pre-aggregate active and total tasks per user ID for fast sorting
+    const userTaskStats: Record<string, { active: number; total: number }> = {};
+    tasks.forEach(t => {
+      if (!t.userId) return;
+      if (!userTaskStats[t.userId]) {
+        userTaskStats[t.userId] = { active: 0, total: 0 };
+      }
+      userTaskStats[t.userId].total++;
+      if (t.status === 'running' || t.status === 'queued') {
+        userTaskStats[t.userId].active++;
+      }
+    });
+
+    const getStats = (u: UserItem) => {
+      const stats1 = u._id ? userTaskStats[u._id] : null;
+      const stats2 = (u.sub !== undefined && u.sub !== null) ? userTaskStats[u.sub.toString()] : null;
+      return {
+        active: (stats1?.active || 0) + (stats2?.active || 0),
+        total: (stats1?.total || 0) + (stats2?.total || 0)
+      };
+    };
+
+    // 3. Apply hybrid sorting
+    return [...filtered].sort((a, b) => {
+      const statsA = getStats(a);
+      const statsB = getStats(b);
+
+      // Tier 1: Active tasks (running/queued) desc
+      if (statsB.active !== statsA.active) {
+        return statsB.active - statsA.active;
+      }
+
+      // Tier 2: Total tasks run historically desc
+      if (statsB.total !== statsA.total) {
+        return statsB.total - statsA.total;
+      }
+
+      // Tier 3: Alphabetical by full name
+      const nameA = (a.fullname || '').trim().toLowerCase();
+      const nameB = (b.fullname || '').trim().toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+  }, [usersList, tasks, searchQuery]);
 
   // Selected user details
   const selectedUser = useMemo(() => {

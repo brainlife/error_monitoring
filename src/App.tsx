@@ -58,7 +58,8 @@ export default function App() {
     handleLoginSuccess,
     handleLogout,
     handleTest,
-    checkSSORedirect
+    checkSSORedirect,
+    configVersion
   } = useDashboardStore();
 
   // Debounced search logs via Elasticsearch
@@ -321,9 +322,11 @@ export default function App() {
   useEffect(() => {
     if (!isAuthenticated) return;
     loadData();
-    const interval = setInterval(loadData, 10000);
+    const savedInterval = localStorage.getItem('dashboard_refresh_interval');
+    const pollTime = savedInterval ? parseInt(savedInterval, 10) : 10000;
+    const interval = setInterval(loadData, pollTime);
     return () => clearInterval(interval);
-  }, [loadData, isAuthenticated]);
+  }, [loadData, isAuthenticated, configVersion]);
 
   const stats = useMemo(() => {
     let running = 0;
@@ -481,7 +484,14 @@ export default function App() {
                 )}
 
                 {view === 'analytics' && (
-                  <AnalyticsView tasks={tasksList} projectNamesMap={projectNamesMap} />
+                  <AnalyticsView
+                    tasks={tasksList}
+                    projectNamesMap={projectNamesMap}
+                    userNamesMap={userNamesMap}
+                    usersList={usersList}
+                    resourcesList={resourcesList}
+                    loading={loading}
+                  />
                 )}
 
                 {view === 'services' && (
