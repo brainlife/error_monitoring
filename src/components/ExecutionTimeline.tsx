@@ -20,13 +20,14 @@ interface ServiceTimeline {
 }
 
 const statusColors = {
-  running: 'bg-status-running shadow-[0_0_12px_#00E5FF] animate-pulse',
-  finished: 'bg-status-success shadow-[0_0_8px_rgba(16,185,129,0.3)]',
-  failed: 'bg-status-error shadow-[0_0_8px_rgba(239,68,68,0.3)]',
-  queued: 'bg-status-warning shadow-[0_0_8px_rgba(245,158,11,0.3)]',
-  cancelled: 'bg-text-faint',
-  unknown: 'bg-accent-purple',
+  running: 'bg-status-running border border-accent-cyan/60 shadow-[0_0_6px_rgba(0,229,255,0.4)] animate-pulse-slow',
+  finished: 'bg-status-success border border-status-success/40',
+  failed: 'bg-status-error border border-status-error/40',
+  queued: 'bg-status-warning border border-status-warning/40',
+  cancelled: 'bg-text-faint/50 border border-white/10',
+  unknown: 'bg-accent-purple border border-accent-purple/50',
 };
+
 
 export default function ExecutionTimeline({ tasks }: ExecutionTimelineProps) {
   // Define time range: last 1 hour
