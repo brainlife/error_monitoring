@@ -1,4 +1,12 @@
-export type TaskStatus = 'running' | 'finished' | 'failed' | 'queued' | 'cancelled' | 'unknown';
+export type TaskStatus = 'requested' | 'running' | 'finished' | 'failed' | 'queued' | 'cancelled' | 'unknown';
+
+export interface StuckDiagnostic {
+  isStuck: boolean;
+  pendingMinutes: number;
+  hasOnlineResource: boolean;
+  reason: 'SCHEDULER_STALLED' | 'RESOURCE_OFFLINE' | 'NORMAL';
+  message: string;
+}
 
 export type Runtime = string;
 

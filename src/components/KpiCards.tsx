@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { Activity, CheckCircle2, XCircle, Clock, Heart, AlertTriangle, ShieldAlert, Server } from 'lucide-react';
 import { useCountUp } from '../hooks/useCountUp';
+import { useDashboardStore } from '../store/useDashboardStore';
 
 import type { Task, ComputeResource } from '../data';
 
@@ -14,6 +16,19 @@ interface KpiCardsProps {
 }
 
 export default function KpiCards({ running, finished, failed, resources, tasks, onNavigate }: KpiCardsProps) {
+  const { stuckThresholdMinutes, handleNavigateToTaskWithFilter } = useDashboardStore();
+
+  const stuckCount = useMemo(() => {
+    const now = Date.now();
+    return tasks.filter(t => {
+      if (t.status !== 'requested' && t.status !== 'queued') return false;
+      const createdMs = t.createDate ? new Date(t.createDate).getTime() : (t.startDate ? new Date(t.startDate).getTime() : 0);
+      if (!createdMs) return t.status === 'requested';
+      const mins = Math.floor((now - createdMs) / 60000);
+      return mins >= (stuckThresholdMinutes || 30) || t.status === 'requested';
+    }).length;
+  }, [tasks, stuckThresholdMinutes]);
+
   // Count queued tasks dynamically from task list
   const queued = tasks.filter(t => t.status === 'queued').length;
 
@@ -198,11 +213,17 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
 
       </div>
 
-      {/* 2. Metrics Summary (Running, Succeeded, Failed, Queued) */}
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+      {/* 2. Metrics Summary (Running, Succeeded, Failed, Stuck, Queued) */}
+      <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-5">
 
         {/* Running KPI */}
-        <div className="glass relative overflow-hidden rounded-2xl p-4.5 flex flex-col justify-between shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)]">
+        <div 
+          onClick={() => {
+            if (handleNavigateToTaskWithFilter) handleNavigateToTaskWithFilter(undefined, 'running');
+            else if (onNavigate) onNavigate('tasks');
+          }}
+          className="glass relative overflow-hidden rounded-2xl p-4 flex flex-col justify-between shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] cursor-pointer hover:border-accent-cyan/40 transition-all"
+        >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-semibold tracking-wider text-text-muted uppercase">Running</span>
             <Activity className="h-4 w-4 text-accent-cyan" />
@@ -211,12 +232,18 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
             <span className="font-mono text-2xl font-bold tracking-tight text-text-main">
               <CountUpVal value={running} />
             </span>
-            <span className="text-[9px] font-semibold text-status-success">▲ 3 active</span>
+            <span className="text-[9px] font-semibold text-accent-cyan">Active</span>
           </div>
         </div>
 
         {/* Succeeded KPI */}
-        <div className="glass relative overflow-hidden rounded-2xl p-4.5 flex flex-col justify-between shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)]">
+        <div 
+          onClick={() => {
+            if (handleNavigateToTaskWithFilter) handleNavigateToTaskWithFilter(undefined, 'finished');
+            else if (onNavigate) onNavigate('tasks');
+          }}
+          className="glass relative overflow-hidden rounded-2xl p-4 flex flex-col justify-between shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] cursor-pointer hover:border-status-success/40 transition-all"
+        >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-semibold tracking-wider text-text-muted uppercase">Succeeded</span>
             <CheckCircle2 className="h-4 w-4 text-status-success" />
@@ -225,26 +252,67 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
             <span className="font-mono text-2xl font-bold tracking-tight text-text-main">
               <CountUpVal value={finished} />
             </span>
-            <span className="text-[9px] font-semibold text-status-success">▲ 32 today</span>
+            <span className="text-[9px] font-semibold text-status-success">Completed</span>
           </div>
         </div>
 
         {/* Failed KPI */}
-        <div className="glass relative overflow-hidden rounded-2xl p-4.5 flex flex-col justify-between shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)]">
+        <div 
+          onClick={() => {
+            if (handleNavigateToTaskWithFilter) handleNavigateToTaskWithFilter(undefined, 'failed');
+            else if (onNavigate) onNavigate('tasks');
+          }}
+          className="glass relative overflow-hidden rounded-2xl p-4 flex flex-col justify-between shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] cursor-pointer hover:border-status-error/40 transition-all"
+        >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-semibold tracking-wider text-text-muted uppercase">Failed</span>
             <XCircle className="h-4 w-4 text-status-error" />
           </div>
           <div className="mt-2.5 flex items-baseline justify-between">
-            <span className="font-mono text-2xl font-bold tracking-tight text-text-main">
+            <span className="font-mono text-2xl font-bold tracking-tight text-status-error">
               <CountUpVal value={failed} />
             </span>
-            <span className="text-[9px] font-semibold text-status-error">▼ 2 today</span>
+            <span className="text-[9px] font-semibold text-status-error">Explorer ↗</span>
+          </div>
+        </div>
+
+        {/* Stuck Requested KPI */}
+        <div 
+          onClick={() => {
+            if (handleNavigateToTaskWithFilter) handleNavigateToTaskWithFilter(undefined, 'stuck');
+            else if (onNavigate) onNavigate('tasks');
+          }}
+          className={`glass relative overflow-hidden rounded-2xl p-4 flex flex-col justify-between shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] cursor-pointer transition-all ${
+            stuckCount > 0 
+              ? 'border-amber-500/40 bg-amber-500/5 hover:bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.15)]' 
+              : 'hover:border-amber-500/30'
+          }`}
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-semibold tracking-wider text-amber-300 uppercase flex items-center gap-1">
+              <Clock className="h-3 w-3 text-amber-400" />
+              Stuck
+            </span>
+            <ShieldAlert className={`h-4 w-4 ${stuckCount > 0 ? 'text-amber-400 animate-pulse' : 'text-text-faint'}`} />
+          </div>
+          <div className="mt-2.5 flex items-baseline justify-between">
+            <span className="font-mono text-2xl font-bold tracking-tight text-amber-300">
+              <CountUpVal value={stuckCount} />
+            </span>
+            <span className="text-[9px] font-semibold text-amber-400 font-mono">
+              &gt;{stuckThresholdMinutes || 30}m ↗
+            </span>
           </div>
         </div>
 
         {/* Queued KPI */}
-        <div className="glass relative overflow-hidden rounded-2xl p-4.5 flex flex-col justify-between shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)]">
+        <div 
+          onClick={() => {
+            if (handleNavigateToTaskWithFilter) handleNavigateToTaskWithFilter(undefined, 'queued');
+            else if (onNavigate) onNavigate('tasks');
+          }}
+          className="glass relative overflow-hidden rounded-2xl p-4 flex flex-col justify-between shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] cursor-pointer hover:border-status-warning/40 transition-all"
+        >
           <div className="flex items-center justify-between">
             <span className="text-[10px] font-semibold tracking-wider text-text-muted uppercase">Queued</span>
             <Clock className="h-4 w-4 text-status-warning" />
@@ -253,7 +321,7 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
             <span className="font-mono text-2xl font-bold tracking-tight text-text-main">
               <CountUpVal value={queued} />
             </span>
-            <span className="text-[9px] font-semibold text-status-warning">▲ 5 queued</span>
+            <span className="text-[9px] font-semibold text-status-warning">Pending</span>
           </div>
         </div>
 

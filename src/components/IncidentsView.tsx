@@ -175,7 +175,33 @@ export default function IncidentsView({
       };
     });
 
-    const incomingList = [...taskIncidents, ...baseIncidents];
+    // 3. Scan live task list for stuck requested tasks (>30m)
+    const now = Date.now();
+    const stuckTasks = tasks.filter(t => {
+      if (t.status !== 'requested' && t.status !== 'queued') return false;
+      const createdMs = t.createDate ? new Date(t.createDate).getTime() : 0;
+      if (!createdMs) return t.status === 'requested';
+      return Math.floor((now - createdMs) / 60000) >= 30;
+    });
+
+    const stuckIncidents: Incident[] = stuckTasks.map(t => {
+      const createdMs = t.createDate ? new Date(t.createDate).getTime() : 0;
+      const pendingMins = createdMs ? Math.floor((now - createdMs) / 60000) : 30;
+      return {
+        id: `inc-stuck-${t.id.slice(-6)}`,
+        title: `Stuck Task (${t.status.toUpperCase()}): ${t.service.split('/').pop()}`,
+        severity: pendingMins >= 60 ? 'CRITICAL' : 'WARNING',
+        status: 'Triggered',
+        resource: t.resource || 'Scheduler Queue',
+        triggeredAt: 'Recently',
+        duration: `${pendingMins}m`,
+        assignee: null,
+        message: `Task ID ${t.id} has been stuck in ${t.status} status for ${pendingMins} minutes without starting.`,
+        taskId: t.id
+      };
+    });
+
+    const incomingList = [...stuckIncidents, ...taskIncidents, ...baseIncidents];
 
     setIncidents(prev => {
       // Map existing status and assignee by incident ID to preserve local state

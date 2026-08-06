@@ -19,7 +19,7 @@ interface BackendTask {
   service: string;
   instance_id: string;
   resource_id: string;
-  status: 'running' | 'finished' | 'failed' | 'queued' | 'cancelled' | 'unknown' | 'removed' | 'stopped';
+  status: 'requested' | 'running' | 'finished' | 'failed' | 'queued' | 'cancelled' | 'unknown' | 'removed' | 'stopped';
   status_msg?: string;
   start_date?: string;
   finish_date?: string;
@@ -64,6 +64,8 @@ export interface DashboardState {
   selectedResourceIdForCrossLink: string | null;
   selectedUserIdForCrossLink: string | null;
   selectedIncidentIdForCrossLink: string | null;
+  stuckThresholdMinutes: number;
+  taskFilterState: 'all' | 'running' | 'finished' | 'failed' | 'queued' | 'cancelled' | 'stuck';
 
   setView: (view: View) => void;
   setTasksList: (tasks: Task[]) => void;
@@ -84,8 +86,11 @@ export interface DashboardState {
   setSelectedResourceIdForCrossLink: (id: string | null) => void;
   setSelectedUserIdForCrossLink: (id: string | null) => void;
   setSelectedIncidentIdForCrossLink: (id: string | null) => void;
+  setStuckThresholdMinutes: (mins: number) => void;
+  setTaskFilterState: (filter: 'all' | 'running' | 'finished' | 'failed' | 'queued' | 'cancelled' | 'stuck') => void;
 
   handleNavigateToTask: (taskId: string) => void;
+  handleNavigateToTaskWithFilter: (taskId?: string, filter?: 'all' | 'running' | 'finished' | 'failed' | 'queued' | 'cancelled' | 'stuck') => void;
   handleNavigateToResource: (resourceName: string) => void;
   handleNavigateToUser: (userId: string) => void;
   handleNavigateToIncident: (incidentId: string) => void;
@@ -126,6 +131,10 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   selectedResourceIdForCrossLink: null,
   selectedUserIdForCrossLink: null,
   selectedIncidentIdForCrossLink: null,
+  stuckThresholdMinutes: 30,
+  taskFilterState: 'all',
+  setStuckThresholdMinutes: (mins) => set({ stuckThresholdMinutes: mins }),
+  setTaskFilterState: (taskFilterState) => set({ taskFilterState }),
   tasksLimit: 50,
   hasMoreTasks: true,
   loadMoreTasks: async () => {
@@ -159,6 +168,15 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     const taskObj = tasksList.find(t => t.id === taskId);
     set({
       selectedTask: taskObj || null,
+      view: 'tasks'
+    });
+  },
+  handleNavigateToTaskWithFilter: (taskId, filter = 'stuck') => {
+    const { tasksList } = get();
+    const taskObj = taskId ? tasksList.find(t => t.id === taskId) : null;
+    set({
+      selectedTask: taskObj || get().selectedTask,
+      taskFilterState: filter,
       view: 'tasks'
     });
   },
@@ -400,7 +418,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       set({ hasMoreTasks: backendTasks.length === currentLimit });
       const mappedTasks: Task[] = backendTasks.map(t => {
         let status: Task['status'] = 'unknown';
-        if (t.status === 'running') status = 'running';
+        if (t.status === 'requested') status = 'requested';
+        else if (t.status === 'running') status = 'running';
         else if (t.status === 'finished') status = 'finished';
         else if (t.status === 'failed') status = 'failed';
         else if (t.status === 'queued') status = 'queued';

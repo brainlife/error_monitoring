@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Search, Play, Loader2, RefreshCw, StopCircle, Terminal, User, FileJson, ChevronDown, ChevronUp, BarChart3, Activity } from 'lucide-react';
+import { Search, Play, Loader2, RefreshCw, StopCircle, Terminal, User, FileJson, ChevronDown, ChevronUp, BarChart3, Activity, Clock, AlertTriangle, CheckCircle2, ShieldAlert } from 'lucide-react';
 
 
 import { apiFetch } from '../api';
@@ -18,6 +18,7 @@ interface TasksViewProps {
 }
 
 const statusColors = {
+  requested: 'bg-amber-500/10 text-amber-400 border-amber-500/25 shadow-[0_0_8px_rgba(245,158,11,0.15)] animate-pulse',
   running: 'bg-status-running/10 text-status-running border-status-running/25 shadow-[0_0_8px_rgba(0,229,255,0.15)] animate-pulse-slow',
   finished: 'bg-status-success/10 text-status-success border-status-success/25',
   failed: 'bg-status-error/10 text-status-error border-status-error/25 shadow-[0_0_6px_rgba(239,68,68,0.1)]',
@@ -25,6 +26,45 @@ const statusColors = {
   cancelled: 'bg-white/[0.04] text-text-muted border-white/10',
   unknown: 'bg-accent-purple/10 text-accent-purple border-accent-purple/25',
 };
+
+export type StuckSeverity = 'WARNING' | 'ALERT' | 'CRITICAL';
+
+export function getStuckSeverityInfo(pendingMinutes: number) {
+  if (pendingMinutes >= 60) {
+    return {
+      severity: 'CRITICAL' as StuckSeverity,
+      label: 'Critical: Severely Stalled',
+      badgeLabel: '🔥 Critical (≥60m)',
+      shortBadge: '🔥 ≥60m',
+      colorClass: 'bg-red-500/20 text-red-300 border-red-500/40 shadow-[0_0_12px_rgba(239,68,68,0.25)] animate-pulse-slow',
+      bannerBg: 'border-red-500/40 bg-red-500/10 shadow-[0_0_20px_rgba(239,68,68,0.2)] text-red-300',
+      badgeBg: 'bg-red-500/20 text-red-300 border-red-500/40 font-mono',
+      icon: '🔥'
+    };
+  } else if (pendingMinutes >= 30) {
+    return {
+      severity: 'ALERT' as StuckSeverity,
+      label: 'Alert: Stuck in Requested',
+      badgeLabel: '🚨 Alert (30–59m)',
+      shortBadge: '🚨 30–59m',
+      colorClass: 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.2)]',
+      bannerBg: 'border-amber-500/30 bg-amber-500/10 shadow-[0_0_15px_rgba(245,158,11,0.15)] text-amber-300',
+      badgeBg: 'bg-amber-400/20 text-amber-200 border-amber-500/30 font-mono',
+      icon: '🚨'
+    };
+  } else {
+    return {
+      severity: 'WARNING' as StuckSeverity,
+      label: 'Warning: Pending Delay',
+      badgeLabel: '⚠️ Warning (15–29m)',
+      shortBadge: '⚠️ 15–29m',
+      colorClass: 'bg-yellow-500/15 text-yellow-300 border-yellow-500/30 shadow-[0_0_10px_rgba(234,179,8,0.15)]',
+      bannerBg: 'border-yellow-500/30 bg-yellow-500/10 shadow-[0_0_15px_rgba(234,179,8,0.15)] text-yellow-300',
+      badgeBg: 'bg-yellow-400/20 text-yellow-200 border-yellow-500/30 font-mono',
+      icon: '⚠️'
+    };
+  }
+}
 
 export default function TasksView({ 
   tasks, 
@@ -37,10 +77,27 @@ export default function TasksView({
   onNavigateToUser
 }: TasksViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'all' | 'running' | 'finished' | 'failed' | 'queued' | 'cancelled'>('all');
-  const { projectsList, instancesList, loadMoreTasks, hasMoreTasks } = useDashboardStore();
+  const { 
+    projectsList, 
+    instancesList, 
+    loadMoreTasks, 
+    hasMoreTasks,
+    resourcesList,
+    stuckThresholdMinutes,
+    setStuckThresholdMinutes,
+    taskFilterState,
+    setTaskFilterState
+  } = useDashboardStore();
+
+  const [activeFilter, setActiveFilter] = useState<'all' | 'running' | 'finished' | 'failed' | 'queued' | 'cancelled' | 'stuck'>(taskFilterState || 'all');
   const [loadingMore, setLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    if (taskFilterState) {
+      setActiveFilter(taskFilterState);
+    }
+  }, [taskFilterState]);
 
   const handleLoadMore = async () => {
     setLoadingMore(true);
@@ -147,10 +204,57 @@ export default function TasksView({
   }, [selectedId]);
 
   // Enhanced multi-field search and status filter
+  const stuckTasksList = useMemo(() => {
+    const now = Date.now();
+    return tasks.filter(t => {
+      if (t.status !== 'requested' && t.status !== 'queued') return false;
+      const createdMs = t.createDate ? new Date(t.createDate).getTime() : (t.startDate ? new Date(t.startDate).getTime() : 0);
+      if (!createdMs) return t.status === 'requested';
+      const mins = Math.floor((now - createdMs) / 60000);
+      return mins >= stuckThresholdMinutes || t.status === 'requested';
+    });
+  }, [tasks, stuckThresholdMinutes]);
+
+  const selectedTaskDiagnostic = useMemo(() => {
+    if (!selectedTask) return null;
+    const isPendingState = selectedTask.status === 'requested' || selectedTask.status === 'queued';
+    if (!isPendingState && selectedTask.status !== 'unknown') return null;
+
+    const now = Date.now();
+    const createdMs = selectedTask.createDate ? new Date(selectedTask.createDate).getTime() : 0;
+    const pendingMinutes = createdMs ? Math.floor((now - createdMs) / 60000) : 0;
+
+    const isStuck = pendingMinutes >= stuckThresholdMinutes || selectedTask.status === 'requested';
+    const onlineResources = (resourcesList || []).filter(r => r.status === 'online');
+    const hasOnlineResource = onlineResources.length > 0;
+
+    let reason: 'SCHEDULER_STALLED' | 'RESOURCE_OFFLINE' | 'NORMAL' = 'NORMAL';
+    if (isStuck) {
+      reason = hasOnlineResource ? 'SCHEDULER_STALLED' : 'RESOURCE_OFFLINE';
+    }
+
+    const severityInfo = getStuckSeverityInfo(pendingMinutes);
+
+    return {
+      isStuck,
+      pendingMinutes,
+      hasOnlineResource,
+      reason,
+      severityInfo,
+      onlineResourcesCount: onlineResources.length
+    };
+  }, [selectedTask, resourcesList, stuckThresholdMinutes]);
+
   const filteredTasks = useMemo(() => {
     const query = searchQuery.trim().toLowerCase();
     return tasks.filter((t) => {
-      if (activeFilter !== 'all' && t.status !== activeFilter) return false;
+      if (activeFilter === 'stuck') {
+        const isStuckItem = stuckTasksList.some(st => st.id === t.id);
+        if (!isStuckItem) return false;
+      } else if (activeFilter !== 'all' && t.status !== activeFilter) {
+        return false;
+      }
+
       if (!query) return true;
 
       const projectName = (projectNamesMap?.[t.projectId] || '').toLowerCase();
@@ -182,7 +286,7 @@ export default function TasksView({
         message.includes(query)
       );
     });
-  }, [tasks, searchQuery, activeFilter, projectNamesMap, userNamesMap]);
+  }, [tasks, searchQuery, activeFilter, projectNamesMap, userNamesMap, stuckTasksList]);
 
   // Summary Analytics Calculations for Tasks
   const taskStatsSummary = useMemo(() => {
@@ -267,14 +371,33 @@ export default function TasksView({
     }
   };
 
+  const [showAnalyticsSummary, setShowAnalyticsSummary] = useState(true);
+
   return (
     <div className="flex h-full min-h-0 w-full gap-5 overflow-hidden font-sans">
       {/* Left Tasks Grid/Table Panel */}
       <div className="flex flex-1 flex-col min-w-0 space-y-4 overflow-y-auto pr-1">
 
-        {/* Task Summary & Performance Dashboard Section (Charts before Table) */}
-        <div className="space-y-4 shrink-0">
-          {/* Top KPI Metrics Bar */}
+        {/* Top Header Controls (Analytics Toggle) */}
+        <div className="flex items-center justify-between pb-1 shrink-0">
+          <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-text-faint flex items-center gap-1.5">
+            <Activity className="h-3.5 w-3.5 text-accent-cyan" />
+            Workflow Execution Overview
+          </span>
+          <button
+            onClick={() => setShowAnalyticsSummary(!showAnalyticsSummary)}
+            className="flex items-center gap-1.5 rounded-lg border border-border-glass bg-white/[0.02] px-2.5 py-1 text-[10.5px] font-semibold text-text-muted hover:text-text-main hover:bg-white/[0.05] transition-all cursor-pointer select-none font-mono"
+          >
+            <BarChart3 className="h-3.5 w-3.5 text-accent-purple" />
+            <span>{showAnalyticsSummary ? 'Hide Analytics Summary' : 'Show Analytics Summary'}</span>
+            {showAnalyticsSummary ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+          </button>
+        </div>
+
+        {/* Task Summary & Performance Dashboard Section (Collapsible) */}
+        {showAnalyticsSummary && (
+          <div className="space-y-4 shrink-0 animate-fade-in">
+            {/* Top KPI Metrics Bar */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="glass rounded-xl p-3.5 space-y-1">
               <span className="text-[9px] font-bold text-text-faint uppercase tracking-wider block">Total Tasks Monitored</span>
@@ -416,30 +539,60 @@ export default function TasksView({
             </div>
           </div>
         </div>
+      )}
 
         {/* Filter bar */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 shrink-0 pt-2">
-          <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-2.5 shrink-0 pt-1">
+          <div className="flex flex-wrap items-center gap-1">
             {[
               { id: 'all' as const, label: 'All Tasks' },
               { id: 'running' as const, label: 'Running' },
               { id: 'finished' as const, label: 'Finished' },
-              { id: 'failed' as const, label: 'Failed' },
+              { id: 'failed' as const, label: `Failed (${taskStatsSummary.failed}) 💥` },
+              { id: 'stuck' as const, label: `Stuck (${stuckTasksList.length}) ⏳` },
               { id: 'queued' as const, label: 'Queued' },
               { id: 'cancelled' as const, label: 'Cancelled' },
             ].map(({ id, label }) => (
               <button
                 key={id}
-                onClick={() => setActiveFilter(id)}
-                className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 select-none cursor-pointer ${
+                onClick={() => {
+                  setActiveFilter(id);
+                  setTaskFilterState(id);
+                }}
+                className={`rounded-lg px-2.5 py-1 text-[11px] font-semibold transition-all duration-150 select-none cursor-pointer whitespace-nowrap ${
                   activeFilter === id
-                    ? 'bg-accent-cyan/15 text-accent-cyan ring-1 ring-accent-cyan/20'
+                    ? id === 'stuck' 
+                      ? 'bg-amber-500/20 text-amber-300 ring-1 ring-amber-500/40 shadow-[0_0_12px_rgba(245,158,11,0.2)]'
+                      : id === 'failed'
+                      ? 'bg-status-error/20 text-status-error ring-1 ring-status-error/40'
+                      : 'bg-accent-cyan/15 text-accent-cyan ring-1 ring-accent-cyan/20'
                     : 'bg-white/[0.01] border border-border-glass text-text-muted hover:text-text-main hover:bg-white/[0.03]'
                 }`}
               >
                 {label}
               </button>
             ))}
+
+            {/* Stuck Threshold Selector Pill when Stuck filter active */}
+            {activeFilter === 'stuck' && (
+              <div className="ml-2 flex items-center gap-1 rounded-lg border border-amber-500/30 bg-amber-500/10 px-2 py-1 text-[10px] font-mono text-amber-300">
+                <Clock className="h-3 w-3 text-amber-400" />
+                <span className="font-sans font-bold">Stuck Threshold:</span>
+                {[15, 30, 60].map(mins => (
+                  <button
+                    key={mins}
+                    onClick={() => setStuckThresholdMinutes(mins)}
+                    className={`rounded px-1.5 py-0.5 text-[9.5px] font-bold cursor-pointer transition-all ${
+                      stuckThresholdMinutes === mins 
+                        ? 'bg-amber-400 text-bg-dark shadow' 
+                        : 'hover:bg-amber-400/20 text-amber-200'
+                    }`}
+                  >
+                    &gt;{mins}m
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-3">
@@ -466,7 +619,7 @@ export default function TasksView({
 
 
         {/* Task Grid Table */}
-        <div className="flex-1 overflow-y-auto pr-1">
+        <div className="flex-1 shrink-0">
           <div className="glass overflow-hidden rounded-2xl border border-border-glass bg-bg-dark/20">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -506,26 +659,46 @@ export default function TasksView({
                       >
                         {/* Status */}
                         <td className="px-5 py-3.5">
-                          <span
-                            className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
-                              statusColors[t.status] || statusColors.unknown
-                            }`}
-                          >
+                          <div className="flex items-center gap-1.5">
                             <span
-                              className={`h-1.5 w-1.5 rounded-full ${
-                                t.status === 'running'
-                                  ? 'bg-status-running shadow-[0_0_6px_#00E5FF] animate-pulse'
-                                  : t.status === 'finished'
-                                  ? 'bg-status-success shadow-[0_0_6px_#10B981]'
-                                  : t.status === 'failed'
-                                  ? 'bg-status-error shadow-[0_0_6px_#EF4444]'
-                                  : t.status === 'queued'
-                                  ? 'bg-status-warning shadow-[0_0_6px_#F59E0B]'
-                                  : 'bg-text-faint'
+                              className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                                statusColors[t.status] || statusColors.unknown
                               }`}
-                            />
-                            {t.status}
-                          </span>
+                            >
+                              <span
+                                className={`h-1.5 w-1.5 rounded-full ${
+                                  t.status === 'running'
+                                    ? 'bg-status-running shadow-[0_0_6px_#00E5FF] animate-pulse'
+                                    : t.status === 'finished'
+                                    ? 'bg-status-success shadow-[0_0_6px_#10B981]'
+                                    : t.status === 'failed'
+                                    ? 'bg-status-error shadow-[0_0_6px_#EF4444]'
+                                    : t.status === 'queued' || t.status === 'requested'
+                                    ? 'bg-amber-400 shadow-[0_0_6px_#F59E0B]'
+                                    : 'bg-text-faint'
+                                }`}
+                              />
+                              {t.status}
+                            </span>
+                            {/* Severity Pill if pending/stuck */}
+                            {(() => {
+                              if (t.status !== 'requested' && t.status !== 'queued') return null;
+                              const now = Date.now();
+                              const createdMs = t.createDate ? new Date(t.createDate).getTime() : 0;
+                              if (!createdMs) return null;
+                              const mins = Math.floor((now - createdMs) / 60000);
+                              if (mins < 15) return null;
+                              const sev = getStuckSeverityInfo(mins);
+                              return (
+                                <span 
+                                  className={`rounded-md border px-1.5 py-0.5 text-[8.5px] font-bold font-mono whitespace-nowrap ${sev.badgeBg}`}
+                                  title={`${sev.label} (${mins}m pending)`}
+                                >
+                                  {sev.shortBadge}
+                                </span>
+                              );
+                            })()}
+                          </div>
                         </td>
                         {/* Task ID */}
                         {(() => {
@@ -839,13 +1012,52 @@ export default function TasksView({
               )}
             </div>
 
+            {/* Resource & Scheduler Stuck Diagnostic Banner */}
+            {selectedTaskDiagnostic && selectedTaskDiagnostic.isStuck && (
+              <div className={`space-y-2 rounded-xl border p-3.5 ${selectedTaskDiagnostic.severityInfo.bannerBg}`}>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider font-mono">
+                    <ShieldAlert className="h-4 w-4 text-amber-400 animate-pulse" />
+                    Stuck Diagnostic
+                  </span>
+                  <span className={`rounded border px-2 py-0.5 font-mono text-[9px] font-bold ${selectedTaskDiagnostic.severityInfo.badgeBg}`}>
+                    {selectedTaskDiagnostic.severityInfo.badgeLabel}
+                  </span>
+                </div>
+
+                <div className="text-[11px] font-sans leading-relaxed font-medium">
+                  {selectedTaskDiagnostic.reason === 'SCHEDULER_STALLED' ? (
+                    <div>
+                      <p className="font-bold flex items-center gap-1">
+                        <CheckCircle2 className="h-3.5 w-3.5 text-status-success" />
+                        Compute Nodes Online ({selectedTaskDiagnostic.onlineResourcesCount} active)
+                      </p>
+                      <p className="mt-1 text-[10.5px] opacity-90">
+                        Active online resources exist in system, but task has not been dispatched by the Amaretti scheduler ({selectedTaskDiagnostic.pendingMinutes}m elapsed).
+                      </p>
+                    </div>
+                  ) : (
+                    <div>
+                      <p className="font-bold text-status-error flex items-center gap-1">
+                        <AlertTriangle className="h-3.5 w-3.5 text-status-error" />
+                        Infrastructure Resource Shortage
+                      </p>
+                      <p className="mt-1 text-[10.5px] opacity-90">
+                        All matching compute resources are offline, degraded, or at maximum execution capacity.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Error Message Section */}
             {selectedTask.message && (
               <div className="space-y-2">
                 <span className="text-[10px] font-semibold uppercase tracking-wider text-text-muted">
                   Log status message
                 </span>
-                <div className="rounded-xl border border-status-error/10 bg-status-error/5 p-3.5 font-mono text-[10px] text-status-error leading-relaxed max-h-32 overflow-y-auto">
+                <div className="rounded-xl border border-status-error/10 bg-status-error/5 p-3.5 font-mono text-[10px] text-status-error leading-relaxed max-h-32 overflow-y-auto select-text">
                   {selectedTask.message}
                 </div>
               </div>
