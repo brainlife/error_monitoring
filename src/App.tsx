@@ -5,6 +5,7 @@ import ResourceGrid from './components/ResourceGrid';
 import LogConsole from './components/LogConsole';
 import TaskTable from './components/TaskTable';
 import ExecutionTimeline from './components/ExecutionTimeline';
+import AnomalyDetector from './components/AnomalyDetector';
 import Settings from './components/Settings';
 import Login from './components/Login';
 import ResourcesView from './components/ResourcesView';
@@ -13,6 +14,7 @@ import AnalyticsView from './components/AnalyticsView';
 import ServicesView from './components/ServicesView';
 import IncidentsView from './components/IncidentsView';
 import UsersView from './components/UsersView';
+import ClusterHealthView from './components/ClusterHealthView';
 import { apiFetch } from './api';
 import { Search, Bell, Activity, Database, Users, ShieldAlert, CheckCircle2, AlertOctagon, Boxes, Server, ListTodo, Layers, Loader2 } from 'lucide-react';
 import { useDashboardStore } from './store/useDashboardStore';
@@ -46,6 +48,9 @@ export default function App() {
     setSelectedUserIdForCrossLink,
     selectedIncidentIdForCrossLink,
     setSelectedIncidentIdForCrossLink,
+    stuckThresholdMinutes,
+    autoRefreshPaused,
+    setAutoRefreshPaused,
     handleNavigateToTask,
     handleNavigateToResource,
     handleNavigateToUser,
@@ -320,13 +325,13 @@ export default function App() {
 
   // Load data immediately and then poll every 10 seconds for real-time monitoring
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated || autoRefreshPaused) return;
     loadData();
     const savedInterval = localStorage.getItem('dashboard_refresh_interval');
     const pollTime = savedInterval ? parseInt(savedInterval, 10) : 10000;
     const interval = setInterval(loadData, pollTime);
     return () => clearInterval(interval);
-  }, [loadData, isAuthenticated, configVersion]);
+  }, [loadData, isAuthenticated, configVersion, autoRefreshPaused]);
 
   const stats = useMemo(() => {
     let running = 0;
@@ -412,6 +417,20 @@ export default function App() {
               <span className="text-xs font-semibold text-text-muted">{loading ? 'Synchronizing...' : 'All systems operational'}</span>
             </div>
 
+            {/* Live Auto-Refresh Pause/Resume Control */}
+            <button
+              onClick={() => setAutoRefreshPaused(!autoRefreshPaused)}
+              className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 font-mono text-xs font-semibold transition-all cursor-pointer select-none ${
+                autoRefreshPaused
+                  ? 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
+                  : 'border-status-success/30 bg-status-success/10 text-status-success hover:bg-status-success/20'
+              }`}
+              title={autoRefreshPaused ? 'Click to resume real-time auto-refresh' : 'Click to pause auto-refresh while debugging'}
+            >
+              <span className={`h-2 w-2 rounded-full ${autoRefreshPaused ? 'bg-amber-400' : 'bg-status-success animate-pulse'}`} />
+              <span>{autoRefreshPaused ? 'Auto-Refresh Paused' : 'Live Auto-Refresh (10s)'}</span>
+            </button>
+
             {/* Notification Bell */}
             <button className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border-glass bg-white/[0.01] text-text-muted hover:text-text-main hover:bg-white/[0.03] transition-colors">
               <Bell className="h-4.5 w-4.5" strokeWidth={1.75} />
@@ -437,8 +456,13 @@ export default function App() {
                     {/* KPI Cards Grid */}
                     <KpiCards {...stats} resources={resourcesList} tasks={tasksList} onNavigate={setView} />
 
-                    {/* Execution Timeline (Live Activity Component) */}
-                    <ExecutionTimeline tasks={tasksList} />
+                    {/* Anomaly & Failure Spike Detector (Nick's Request) */}
+                    <AnomalyDetector 
+                      tasks={tasksList} 
+                      resources={resourcesList} 
+                      onNavigate={setView} 
+                      onNavigateToTask={handleNavigateToTask} 
+                    />
 
                     {/* Compute Resources Grid (Infrastructure) */}
                     <ResourceGrid
@@ -468,6 +492,10 @@ export default function App() {
                     onNavigateToTask={handleNavigateToTask}
                     initialSelectedResourceId={selectedResourceIdForCrossLink}
                   />
+                )}
+
+                {view === 'cluster-health' && (
+                  <ClusterHealthView onNavigate={setView} />
                 )}
 
                 {view === 'tasks' && (

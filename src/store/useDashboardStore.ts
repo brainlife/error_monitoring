@@ -66,6 +66,7 @@ export interface DashboardState {
   selectedIncidentIdForCrossLink: string | null;
   stuckThresholdMinutes: number;
   taskFilterState: 'all' | 'running' | 'finished' | 'failed' | 'queued' | 'cancelled' | 'stuck';
+  autoRefreshPaused: boolean;
 
   setView: (view: View) => void;
   setTasksList: (tasks: Task[]) => void;
@@ -88,6 +89,7 @@ export interface DashboardState {
   setSelectedIncidentIdForCrossLink: (id: string | null) => void;
   setStuckThresholdMinutes: (mins: number) => void;
   setTaskFilterState: (filter: 'all' | 'running' | 'finished' | 'failed' | 'queued' | 'cancelled' | 'stuck') => void;
+  setAutoRefreshPaused: (paused: boolean) => void;
 
   handleNavigateToTask: (taskId: string) => void;
   handleNavigateToTaskWithFilter: (taskId?: string, filter?: 'all' | 'running' | 'finished' | 'failed' | 'queued' | 'cancelled' | 'stuck') => void;
@@ -133,8 +135,10 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   selectedIncidentIdForCrossLink: null,
   stuckThresholdMinutes: 30,
   taskFilterState: 'all',
+  autoRefreshPaused: false,
   setStuckThresholdMinutes: (mins) => set({ stuckThresholdMinutes: mins }),
   setTaskFilterState: (taskFilterState) => set({ taskFilterState }),
+  setAutoRefreshPaused: (autoRefreshPaused) => set({ autoRefreshPaused }),
   tasksLimit: 50,
   hasMoreTasks: true,
   loadMoreTasks: async () => {

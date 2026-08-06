@@ -11,11 +11,13 @@ import {
   Moon,
   LogOut,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Cpu,
+  HardDrive
 } from 'lucide-react';
 import type { UserProfile } from '../api';
 
-export type View = 'dashboard' | 'resources' | 'services' | 'tasks' | 'incidents' | 'users' | 'analytics' | 'settings';
+export type View = 'dashboard' | 'resources' | 'cluster-health' | 'services' | 'tasks' | 'incidents' | 'users' | 'analytics' | 'settings';
 
 interface SidebarProps {
   view: View;
@@ -30,6 +32,7 @@ interface SidebarProps {
 const navItems = [
   { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
   { id: 'resources' as const, label: 'Resources', icon: Server },
+  { id: 'cluster-health' as const, label: 'Cluster & VM Health', icon: Cpu },
   { id: 'services' as const, label: 'Services', icon: Boxes },
   { id: 'tasks' as const, label: 'Tasks', icon: ListTodo },
   { id: 'incidents' as const, label: 'Incidents', icon: AlertOctagon },
