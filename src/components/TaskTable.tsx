@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { Task } from '../data';
+import type { Task, TaskStatus } from '../data';
 import { Cloud, Server, Cpu, Terminal, ArrowUpRight } from 'lucide-react';
 import { useDashboardStore } from '../store/useDashboardStore';
 
@@ -13,7 +13,8 @@ interface TaskTableProps {
   onNavigateToUser?: (userId: string) => void;
 }
 
-const statusConfig = {
+const statusConfig: Record<TaskStatus, { label: string; dot: string; text: string }> = {
+  requested: { label: 'Requested', dot: 'bg-status-warning shadow-[0_0_6px_#F59E0B] animate-pulse', text: 'text-status-warning' },
   running: { label: 'Running', dot: 'bg-status-running shadow-[0_0_8px_#00E5FF] animate-pulse', text: 'text-status-running' },
   finished: { label: 'Succeeded', dot: 'bg-status-success shadow-[0_0_6px_#10B981]', text: 'text-status-success' },
   failed: { label: 'Failed', dot: 'bg-status-error shadow-[0_0_6px_#EF4444]', text: 'text-status-error' },
@@ -36,8 +37,16 @@ export default function TaskTable({
 
   const sorted = useMemo(() => {
     // Sort so running and queued are on top
-    const order = { running: 0, queued: 1, failed: 2, finished: 3, cancelled: 4, unknown: 5 };
-    return [...tasks].sort((a, b) => order[a.status] - order[b.status]);
+    const order: Record<TaskStatus, number> = {
+      running: 0,
+      queued: 1,
+      requested: 1,
+      failed: 2,
+      finished: 3,
+      cancelled: 4,
+      unknown: 5,
+    };
+    return [...tasks].sort((a, b) => (order[a.status] ?? 99) - (order[b.status] ?? 99));
   }, [tasks]);
 
   const displayedTasks = useMemo(() => {

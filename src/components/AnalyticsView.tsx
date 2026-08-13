@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import type { Task } from '../data';
 import { apiFetch, fetchWarehouseApps, type WarehouseApp } from '../api';
+import MobileCrashlyticsView from './MobileCrashlyticsView';
 
 
 
@@ -63,7 +64,7 @@ interface AnalyticsViewProps {
 
 export default function AnalyticsView({ tasks, projectNamesMap, userNamesMap, usersList, resourcesList = [], loading }: AnalyticsViewProps) {
   // Tab state
-  const [activeTab, setActiveTab] = useState<'platform' | 'community' | 'infrastructure' | 'forecasting'>('platform');
+  const [activeTab, setActiveTab] = useState<'platform' | 'community' | 'infrastructure' | 'forecasting' | 'mobile-crashlytics'>('platform');
 
   // 1. Interactive filter states
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | '30d' | '90d'>('7d');
@@ -1358,6 +1359,11 @@ export default function AnalyticsView({ tasks, projectNamesMap, userNamesMap, us
           title: 'Forecasting & Projections',
           subtitle: 'Predictive capacity, queue wait patterns and growth recommendations.'
         };
+      case 'mobile-crashlytics':
+        return {
+          title: 'Mobile Crashlytics & App Telemetry',
+          subtitle: 'Real-time crash reports, fatal exceptions, ANRs, and device-level diagnostic traces.'
+        };
     }
   }, [activeTab]);
 
@@ -1868,12 +1874,13 @@ export default function AnalyticsView({ tasks, projectNamesMap, userNamesMap, us
 
         {/* Pill-Style Tabs */}
         <div className="flex flex-wrap gap-1.5 rounded-xl border border-white/5 bg-white/[0.02] p-1 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]">
-          {(['platform', 'community', 'infrastructure', 'forecasting'] as const).map((tab) => {
+          {(['platform', 'community', 'infrastructure', 'forecasting', 'mobile-crashlytics'] as const).map((tab) => {
             const isActive = activeTab === tab;
             let tabLabel = 'Platform';
             if (tab === 'community') tabLabel = 'Community';
             else if (tab === 'infrastructure') tabLabel = 'Infrastructure';
             else if (tab === 'forecasting') tabLabel = 'Forecasting';
+            else if (tab === 'mobile-crashlytics') tabLabel = 'Mobile Crashlytic';
 
             return (
               <button
@@ -3433,6 +3440,13 @@ export default function AnalyticsView({ tasks, projectNamesMap, userNamesMap, us
             </div>
           </div>
         </div>
+      )}
+      {activeTab === 'mobile-crashlytics' && (
+        <MobileCrashlyticsView
+          timeRange={timeRange}
+          compare={compare}
+          compareLabel={compareLabel}
+        />
       )}
       
     </div>
