@@ -33,11 +33,11 @@ export function getUserProfile(): UserProfile | null {
 
 export async function login(username: string, password: string): Promise<boolean> {
   const apiUrl = getApiUrl().replace(/\/$/, '');
-  
+
   // Construct Auth API URL from Amaretti API URL
   const authBaseUrl = apiUrl.replace(/\/amaretti$/, '/auth');
   const authUrl = `${authBaseUrl}/local/auth`;
-  
+
   const response = await fetch(authUrl, {
     method: 'POST',
     headers: {
@@ -62,21 +62,21 @@ export async function login(username: string, password: string): Promise<boolean
   const data = await response.json();
   if (data && data.jwt) {
     setJwtToken(data.jwt);
-    
+
     // Decode JWT payload (standard JWT is header.payload.signature)
     try {
       const payloadPart = data.jwt.split('.')[1];
       const payloadDecoded = JSON.parse(atob(payloadPart));
-      console.log('Payload decoded:', payloadDecoded);
+      // console.log('Payload decoded:', payloadDecoded);
       const userProfile: UserProfile = {
         id: payloadDecoded.sub || '1',
         username: payloadDecoded.username || payloadDecoded.sub || username,
         fullname: payloadDecoded.fullname || payloadDecoded.username || username,
         email: payloadDecoded.email || ''
       };
-      
+
       localStorage.setItem('amaretti_user', JSON.stringify(userProfile));
-      
+
     } catch (decodeErr) {
       console.warn('Failed to decode JWT payload, setting fallback user profile:', decodeErr);
       const fallbackProfile: UserProfile = {
@@ -87,10 +87,10 @@ export async function login(username: string, password: string): Promise<boolean
       };
       localStorage.setItem('amaretti_user', JSON.stringify(fallbackProfile));
     }
-    
+
     return true;
   }
-  
+
   return false;
 }
 
@@ -103,7 +103,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   const baseUrl = getApiUrl().replace(/\/$/, ''); // Remove trailing slash if any
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   const url = `${baseUrl}${normalizedPath}`;
-  
+
   const token = getJwtToken();
 
   const headers = new Headers(options.headers || {});
@@ -136,7 +136,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   if (contentType && contentType.includes('application/json')) {
     return response.json() as Promise<T>;
   }
-  
+
   return {} as Promise<T>;
 }
 
@@ -229,4 +229,93 @@ export async function fetchWarehouseApps(): Promise<WarehouseApp[]> {
   }
   return [];
 }
+
+export interface ResourceMountHealth {
+  mount: string;
+  accessible: boolean;
+  latency_ms: number;
+  free_space_pct: number;
+  warning?: string | null;
+  error?: string | null;
+}
+
+export interface ResourceSlurmNodeState {
+  alloc?: number;
+  idle?: number;
+  'idle~'?: number;
+  'idle*'?: number;
+  down?: number;
+  'down*'?: number;
+  'down~'?: number;
+  drain?: number;
+  'drain*'?: number;
+  maint?: number;
+  [key: string]: number | undefined;
+}
+
+export interface ResourceDownNode {
+  node: string;
+  reason?: string;
+}
+
+export interface ResourceSlurmHealth {
+  nodes: {
+    total_nodes: number;
+    by_state: ResourceSlurmNodeState;
+    down_nodes: (string | ResourceDownNode)[];
+  } | null;
+  jobs: {
+    total_jobs: number;
+    by_status: Record<string, number>;
+    recent_jobs?: any[];
+    failed_jobs?: any[];
+  } | null;
+}
+
+export interface MonitoredResourceHealth {
+  resource_id: string;
+  resource_name: string;
+  last_check: string;
+  overall_status: 'ok' | 'warning' | 'error' | 'unknown';
+  mounts: ResourceMountHealth[];
+  slurm: ResourceSlurmHealth;
+  error_history?: any[];
+}
+
+export interface ResourceHealthAllResponse {
+  timestamp: string;
+  resources: MonitoredResourceHealth[];
+}
+
+export async function fetchResourceHealthAll(): Promise<ResourceHealthAllResponse> {
+  console.group('🌐 [Amaretti API] GET /resource/health/all');
+  console.log('Requesting: /resource/health/all');
+  try {
+    const data = await apiFetch<ResourceHealthAllResponse>('/resource/health/all');
+    console.log('Response Payload:', data);
+    console.log('Monitored Resources Count:', data?.resources?.length ?? 0);
+    console.table(data?.resources?.map(r => ({
+      ID: r.resource_id,
+      Name: r.resource_name,
+      Status: r.overall_status,
+      Mounts: r.mounts?.length ?? 0,
+      TotalNodes: r.slurm?.nodes?.total_nodes ?? 'N/A',
+      LastCheck: r.last_check
+    })));
+    console.groupEnd();
+    return data;
+  } catch (err) {
+    console.error('Fetch /resource/health/all Failed:', err);
+    console.groupEnd();
+    throw err;
+  }
+}
+
+export async function refreshResourceHealth(resourceId: string): Promise<any> {
+  return apiFetch<any>(`/resource/${resourceId}/health/refresh`, {
+    method: 'POST',
+    body: JSON.stringify({})
+  });
+}
+
 

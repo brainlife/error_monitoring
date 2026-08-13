@@ -999,7 +999,7 @@ export default function TasksView({
                   <button
                     onClick={() => {
                       if (selectedTask.userId) {
-                        console.log("[TasksView] Clicking on user. selectedTask.userId (Sub ID):", selectedTask.userId, "Username:", ownerName);
+                        // console.log("[TasksView] Clicking on user. selectedTask.userId (Sub ID):", selectedTask.userId, "Username:", ownerName);
                         onNavigateToUser?.(selectedTask.userId);
                       }
                     }}

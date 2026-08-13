@@ -158,12 +158,12 @@ export default function LogConsole({ task }: LogConsoleProps) {
 
   const fetchWarehouseData = async () => {
     if (!task) return;
-    console.log("[Warehouse Debug] Starting fetch for task ID:", task.id);
+    // console.log("[Warehouse Debug] Starting fetch for task ID:", task.id);
     setWarehouseLoading(true);
     try {
       const baseUrl = getApiUrl().replace(/\/amaretti\/?$/, '/warehouse');
       const token = getJwtToken();
-      console.log("[Warehouse Debug] Token present:", !!token, token ? `${token.substring(0, 15)}...${token.slice(-15)}` : "none");
+      // console.log("[Warehouse Debug] Token present:", !!token, token ? `${token.substring(0, 15)}...${token.slice(-15)}` : "none");
       const headers = new Headers();
       if (token) {
         headers.set('Authorization', `Bearer ${token}`);
@@ -178,41 +178,41 @@ export default function LogConsole({ task }: LogConsoleProps) {
         ]
       });
       const outUrl = `${baseUrl}/dataset?find=${encodeURIComponent(outFind)}&populate=project%20datatype&limit=100`;
-      console.log("[Warehouse Debug] Fetching outputs URL:", outUrl);
+      // console.log("[Warehouse Debug] Fetching outputs URL:", outUrl);
       const outResponse = await fetch(outUrl, { headers });
       if (outResponse.ok) {
         const outRes = await outResponse.json();
-        console.log("[Warehouse Debug] Raw Outputs Response:", outRes);
+        // console.log("[Warehouse Debug] Raw Outputs Response:", outRes);
         const outList = outRes.datasets || outRes.results || outRes || [];
-        console.log("[Warehouse Debug] Output datasets parsed:", outList);
+        // console.log("[Warehouse Debug] Output datasets parsed:", outList);
         setOutputDatasets(Array.isArray(outList) ? outList : []);
         setOutputCount(outRes.count || 0);
       } else {
-        console.warn("[Warehouse Debug] Output fetch failed with status:", outResponse.status);
+        // console.warn("[Warehouse Debug] Output fetch failed with status:", outResponse.status);
       }
 
       // 2. Fetch Inputs (scan task.config values for 24-character ObjectIDs)
-      console.log("[Warehouse Debug] Fetching Amaretti task config details...");
+      // console.log("[Warehouse Debug] Fetching Amaretti task config details...");
       const taskDetails = await apiFetch<any>(`/task/${task.id}`);
       const taskObj = taskDetails.task || taskDetails;
-      console.log("[Warehouse Debug] Task details returned:", taskObj);
+      // console.log("[Warehouse Debug] Task details returned:", taskObj);
       if (taskObj && taskObj.config) {
         const inputIds = extractMongoIds(taskObj.config);
-        console.log("[Warehouse Debug] Extracted Input ObjectIDs:", inputIds);
+        // console.log("[Warehouse Debug] Extracted Input ObjectIDs:", inputIds);
         if (inputIds.length > 0) {
           const inFind = JSON.stringify({ _id: { $in: inputIds } });
           const inUrl = `${baseUrl}/dataset?find=${encodeURIComponent(inFind)}&populate=project%20datatype&limit=100`;
-          console.log("[Warehouse Debug] Fetching inputs URL:", inUrl);
+          // console.log("[Warehouse Debug] Fetching inputs URL:", inUrl);
           const inResponse = await fetch(inUrl, { headers });
           if (inResponse.ok) {
             const inRes = await inResponse.json();
-            console.log("[Warehouse Debug] Raw Inputs Response:", inRes);
+            // console.log("[Warehouse Debug] Raw Inputs Response:", inRes);
             const inList = inRes.datasets || inRes.results || inRes || [];
-            console.log("[Warehouse Debug] Input datasets parsed:", inList);
+            // console.log("[Warehouse Debug] Input datasets parsed:", inList);
             setInputDatasets(Array.isArray(inList) ? inList : []);
             setInputCount(inRes.count || 0);
           } else {
-            console.warn("[Warehouse Debug] Input fetch failed with status:", inResponse.status);
+            // console.warn("[Warehouse Debug] Input fetch failed with status:", inResponse.status);
           }
         } else {
           setInputDatasets([]);

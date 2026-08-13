@@ -212,7 +212,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
     try {
       const projectList = await fetchWarehouseProjects();
-      console.log("[Warehouse Debug] Projects loaded count (pre-loader):", projectList.length);
+      // console.log("[Warehouse Debug] Projects loaded count (pre-loader):", projectList.length);
       projects = projectList;
       projectList.forEach(p => {
         if (p._id) {
@@ -242,7 +242,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           instances = arrayProp as AmarettiInstance[];
         }
       }
-      console.log("[Warehouse Debug] Instances loaded count (pre-loader):", instances.length);
+      // console.log("[Warehouse Debug] Instances loaded count (pre-loader):", instances.length);
       instances.forEach(inst => {
         if (inst._id && inst.name) {
           map[inst._id] = inst.name;
@@ -279,7 +279,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
     if (uniqueProjectIds.length === 0 && uniqueInstanceIds.length === 0) return;
 
-    console.log("[Warehouse Debug] Dynamically resolving missing projects/instances:", { uniqueProjectIds, uniqueInstanceIds });
+    // console.log("[Warehouse Debug] Dynamically resolving missing projects/instances:", { uniqueProjectIds, uniqueInstanceIds });
     const newMappings: Record<string, string> = {};
     let newProjects: any[] = [];
     let newInstances: any[] = [];
@@ -300,7 +300,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           const data = await response.json();
           const list = data.projects || data.results || data || [];
           if (Array.isArray(list)) {
-            console.log("[Warehouse Debug] Resolved missing projects count:", list.length);
+            // console.log("[Warehouse Debug] Resolved missing projects count:", list.length);
             newProjects = list;
             list.forEach((p: any) => {
               if (p._id && p.name) {
@@ -321,7 +321,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         const res = await apiFetch<any>(`/instance?find=${encodeURIComponent(instQuery)}&limit=100`);
         const list = res.instances || res.results || res || [];
         if (Array.isArray(list)) {
-          console.log("[Warehouse Debug] Resolved missing instances count:", list.length);
+          // console.log("[Warehouse Debug] Resolved missing instances count:", list.length);
           newInstances = list;
           list.forEach((inst: any) => {
             if (inst._id && inst.name) {
@@ -335,7 +335,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     }
 
     if (Object.keys(newMappings).length > 0 || newProjects.length > 0 || newInstances.length > 0) {
-      console.log("[Warehouse Debug] Applying new dynamic mappings, projects and instances:", Object.keys(newMappings).length, newProjects.length, newInstances.length);
+      // console.log("[Warehouse Debug] Applying new dynamic mappings, projects and instances:", Object.keys(newMappings).length, newProjects.length, newInstances.length);
       set({
         projectNamesMap: {
           ...projectNamesMap,

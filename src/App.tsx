@@ -314,7 +314,7 @@ export default function App() {
 
   // Log the tasksList when it changes
   useEffect(() => {
-    console.log("tasksList", tasksList);
+    // console.log("tasksList", tasksList);
   }, [tasksList]);
 
 
@@ -555,7 +555,7 @@ export default function App() {
                   />
                 )}
 
-                {view !== 'dashboard' && view !== 'settings' && view !== 'resources' && view !== 'tasks' && view !== 'analytics' && view !== 'services' && view !== 'incidents' && view !== 'users' && (
+                {view !== 'dashboard' && view !== 'settings' && view !== 'resources' && view !== 'tasks' && view !== 'analytics' && view !== 'services' && view !== 'incidents' && view !== 'users' && view !== 'cluster-health' && (
                   <div className="flex h-96 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 p-10 text-center">
                     <ShieldAlert className="h-10 w-10 text-accent-cyan animate-bounce" />
                     <h3 className="mt-4 text-sm font-semibold text-text-main uppercase tracking-wider">
