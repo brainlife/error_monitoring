@@ -230,6 +230,31 @@ export async function fetchWarehouseApps(): Promise<WarehouseApp[]> {
   return [];
 }
 
+export interface SlurmJob {
+  job_id?: string | number;
+  id?: string | number;
+  name?: string;
+  job_name?: string;
+  user?: string;
+  username?: string;
+  user_id?: string;
+  partition?: string;
+  nodes?: string | number;
+  nodelist?: string;
+  status?: string;
+  state?: string;
+  time?: string;
+  runtime?: string;
+  duration?: string;
+  submit_time?: string;
+  start_time?: string;
+  cpus?: number | string;
+  memory?: string;
+  reason?: string;
+  cluster?: string;
+  [key: string]: any;
+}
+
 export interface ResourceMountHealth {
   mount: string;
   accessible: boolean;
@@ -267,8 +292,8 @@ export interface ResourceSlurmHealth {
   jobs: {
     total_jobs: number;
     by_status: Record<string, number>;
-    recent_jobs?: any[];
-    failed_jobs?: any[];
+    recent_jobs?: SlurmJob[];
+    failed_jobs?: SlurmJob[];
   } | null;
 }
 
@@ -294,14 +319,57 @@ export async function fetchResourceHealthAll(): Promise<ResourceHealthAllRespons
     const data = await apiFetch<ResourceHealthAllResponse>('/resource/health/all');
     console.log('Response Payload:', data);
     console.log('Monitored Resources Count:', data?.resources?.length ?? 0);
-    console.table(data?.resources?.map(r => ({
-      ID: r.resource_id,
-      Name: r.resource_name,
-      Status: r.overall_status,
-      Mounts: r.mounts?.length ?? 0,
-      TotalNodes: r.slurm?.nodes?.total_nodes ?? 'N/A',
-      LastCheck: r.last_check
-    })));
+    
+    // Log Resource Overview Table
+    if (data?.resources?.length) {
+      console.table(data.resources.map(r => ({
+        ID: r.resource_id,
+        Name: r.resource_name,
+        Status: r.overall_status,
+        Mounts: r.mounts?.length ?? 0,
+        TotalNodes: r.slurm?.nodes?.total_nodes ?? 'N/A',
+        TotalJobs: r.slurm?.jobs?.total_jobs ?? 'N/A',
+        LastCheck: r.last_check
+      })));
+
+      // Log Storage Mounts Table across ALL resources
+      console.groupCollapsed('📁 Storage Mounts Breakdown across All Monitored Hosts');
+      const allMountsFlat = data.resources.flatMap(r => 
+        (r.mounts || []).map(m => ({
+          Host: r.resource_name,
+          Mount: m.mount,
+          Accessible: m.accessible ? '✅ Yes' : '❌ No',
+          Latency: `${m.latency_ms} ms`,
+          FreeSpace: `${m.free_space_pct}%`,
+          Warning: m.warning || 'None',
+          Error: m.error || 'None'
+        }))
+      );
+      console.table(allMountsFlat);
+      console.groupEnd();
+
+      // Log SLURM Jobs Breakdown
+      console.groupCollapsed('⚡ SLURM Node Jobs (squeue) Breakdown across Clusters');
+      const allJobsFlat = data.resources.flatMap(r => 
+        (r.slurm?.jobs?.recent_jobs || []).map(j => ({
+          Cluster: r.resource_name,
+          JobID: j.job_id || j.id || 'N/A',
+          Name: j.name || j.job_name || 'N/A',
+          User: j.user || j.username || 'N/A',
+          Status: j.status || j.state || 'N/A',
+          Partition: j.partition || 'main',
+          Nodes: j.nodes || j.nodelist || 'N/A',
+          Runtime: j.time || j.runtime || j.duration || 'N/A'
+        }))
+      );
+      if (allJobsFlat.length > 0) {
+        console.table(allJobsFlat);
+      } else {
+        console.log('No recent SLURM node jobs currently queued or running.');
+      }
+      console.groupEnd();
+    }
+    
     console.groupEnd();
     return data;
   } catch (err) {
@@ -317,5 +385,6 @@ export async function refreshResourceHealth(resourceId: string): Promise<any> {
     body: JSON.stringify({})
   });
 }
+
 
 
