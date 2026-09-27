@@ -8,12 +8,11 @@ import {
   Users,
   BarChart3,
   Settings as SettingsIcon,
-  Moon,
   LogOut,
-  ChevronLeft,
+  Menu,
   ChevronRight,
   Cpu,
-  HardDrive
+  Plus
 } from 'lucide-react';
 import type { UserProfile } from '../api';
 
@@ -29,7 +28,7 @@ interface SidebarProps {
   hasHealthyServices?: boolean;
 }
 
-const navItems = [
+const meNavItems = [
   { id: 'dashboard' as const, label: 'Dashboard', icon: LayoutDashboard },
   { id: 'resources' as const, label: 'Resources', icon: Server },
   { id: 'cluster-health' as const, label: 'Cluster & VM Health', icon: Cpu },
@@ -38,6 +37,9 @@ const navItems = [
   { id: 'incidents' as const, label: 'Incidents', icon: AlertOctagon },
   { id: 'users' as const, label: 'Users', icon: Users },
   { id: 'analytics' as const, label: 'Analytics', icon: BarChart3 },
+];
+
+const adminNavItems = [
   { id: 'settings' as const, label: 'Settings', icon: SettingsIcon },
 ];
 
@@ -55,12 +57,17 @@ export default function Sidebar({
   });
 
   const initials = useMemo(() => {
-    if (!user || !user.fullname) return '??';
+    if (!user || !user.fullname) return 'PF';
     const parts = user.fullname.trim().split(/\s+/);
     if (parts.length >= 2) {
       return (parts[0][0] + parts[1][0]).toUpperCase();
     }
     return user.fullname.slice(0, 2).toUpperCase();
+  }, [user]);
+
+  const displayName = useMemo(() => {
+    if (user && user.fullname) return user.fullname;
+    return 'Patrick Filima';
   }, [user]);
 
   const handleToggle = () => {
@@ -70,124 +77,180 @@ export default function Sidebar({
   };
 
   return (
-    <aside className={`relative z-20 flex h-full shrink-0 flex-col border-r border-border-glass bg-bg-dark/85 py-6 transition-all duration-300 ${
-      isCollapsed ? 'w-18 px-2' : 'w-52 px-4'
+    <aside className={`relative z-20 flex h-full shrink-0 flex-col bg-[#2D3748] text-white py-4 transition-all duration-300 select-none ${
+      isCollapsed ? 'w-16 px-2' : 'w-60 px-3.5'
     }`}>
-      {/* Floating Collapse Toggle Button */}
-      <button
-        onClick={handleToggle}
-        className="absolute -right-3 top-6 flex h-6 w-6 items-center justify-center rounded-full border border-border-glass bg-[#050811] text-text-muted hover:text-text-main shadow-[0_4px_12px_rgba(0,0,0,0.5)] ring-1 ring-white/5 active:scale-95 transition-all z-30 cursor-pointer"
-        title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-      >
-        {isCollapsed ? (
-          <ChevronRight className="h-3.5 w-3.5" />
-        ) : (
-          <ChevronLeft className="h-3.5 w-3.5" />
-        )}
-      </button>
-
-      {/* Brand Logo & Title */}
-      <div className={`mb-8 flex flex-col items-center transition-all ${isCollapsed ? 'px-1' : ''}`}>
-        <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-accent-cyan/20 to-accent-purple/10 ring-1 ring-accent-cyan/30 shadow-[0_0_20px_rgba(0,229,255,0.15)] transition-all">
-          <img src="/Assets/icon1.png" alt="Amaretti Logo" className="h-7 w-7 object-contain transition-all" />
-        </div>
-        {!isCollapsed && (
-          <span className="mt-2.5 font-sans text-xs font-bold tracking-[0.25em] text-text-main whitespace-nowrap animate-slide-in">
-            Brainlife
-          </span>
-        )}
-      </div>
-
-      {/* Navigation Menu */}
-      <nav className="flex flex-1 flex-col gap-1.5">
-        {navItems.map(({ id, label, icon: Icon }) => {
-          const active = view === id;
-          
-          let indicatorColor = '';
-          if (id === 'incidents' && hasActiveIncidents) {
-            indicatorColor = 'text-status-error';
-          } else if (id === 'resources' && hasDegradedResources) {
-            indicatorColor = 'text-status-warning';
-          } else if (id === 'services' && hasHealthyServices) {
-            indicatorColor = 'text-status-success';
-          }
-
-          return (
-            <button
-              key={id}
-              onClick={() => onNavigate(id)}
-              title={isCollapsed ? label : undefined}
-              className={`group relative flex items-center rounded-xl py-3 text-sm font-medium transition-all duration-200 ${
-                isCollapsed ? 'justify-center px-0 w-11 mx-auto' : 'gap-3.5 px-3.5 w-full'
-              } ${
-                active
-                  ? 'bg-accent-cyan/10 text-accent-cyan shadow-[inset_0_1px_1px_rgba(255,255,255,0.05)] ring-1 ring-accent-cyan/20'
-                  : 'text-text-muted hover:bg-white/[0.03] hover:text-text-main'
-              }`}
-            >
-              {/* Left active border indicator */}
-              {active && (
-                <span className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-accent-cyan shadow-[0_0_8px_#00E5FF]" />
-              )}
-              
-              <div className="relative flex items-center shrink-0">
-                <Icon className={`h-4.5 w-4.5 transition-transform duration-200 group-hover:scale-105 ${
-                  active ? 'text-accent-cyan' : (indicatorColor || 'text-text-muted')
-                }`} strokeWidth={1.75} />
-                
-                {/* Notification dot next to the icon */}
-                {!active && indicatorColor && (
-                  <span className={`absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full ${
-                    id === 'incidents' ? 'bg-status-error animate-pulse' : id === 'resources' ? 'bg-status-warning' : 'bg-status-success'
-                  }`} />
-                )}
-              </div>
-
-              {!isCollapsed && (
-                <span className={`animate-slide-in whitespace-nowrap ${
-                  !active && indicatorColor ? `${indicatorColor}/90` : ''
-                }`}>{label}</span>
-              )}
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* Sidebar Footer User Info & Theme */}
-      <div className="mt-auto flex flex-col gap-4 border-t border-border-glass pt-5">
-        {/* User Card */}
-        <div className={`flex items-center transition-all ${isCollapsed ? 'justify-center px-0' : 'gap-3 px-1.5'}`} title={user ? user.fullname : 'User'}>
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-cyan/20 to-accent-purple/20 text-xs font-bold text-accent-cyan ring-1 ring-accent-cyan/30 select-none">
-            {initials}
-          </div>
+      {/* Brand Header */}
+      <div className={`flex items-center mb-3 pb-2 border-b border-[#3A4352] ${isCollapsed ? 'justify-center' : 'justify-between px-1'}`}>
+        <div 
+          onClick={() => onNavigate('dashboard')} 
+          className="flex items-center gap-2.5 cursor-pointer"
+          title="Brainlife Orchestration"
+        >
+          <img 
+            src="/Assets/logo.svg" 
+            alt="Brainlife" 
+            className="h-6 w-6 object-contain shrink-0" 
+          />
           {!isCollapsed && (
-            <div className="min-w-0 flex-1 animate-slide-in">
-              <div className="truncate text-xs font-semibold text-text-main leading-tight">
-                {user ? user.fullname : 'Loading...'}
-              </div>
-              <div className="text-[10px] text-text-faint truncate mt-0.5">
-                @{user ? user.fullname : 'user'}
-              </div>
-            </div>
+            <span className="font-sans text-[1.15rem] font-medium tracking-[0.2em] text-white whitespace-nowrap">
+              BRAINLIFE
+            </span>
           )}
         </div>
 
-        {/* Action icons */}
-        <div className={`flex border-t border-white/[0.03] pt-3 px-1 transition-all ${isCollapsed ? 'flex-col items-center gap-2.5' : 'items-center justify-between'}`}>
-          <button
-            title="Theme Switcher"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted hover:bg-white/5 hover:text-text-main transition-colors shrink-0 animate-fade-up"
-          >
-            <Moon className="h-4 w-4" strokeWidth={1.75} />
-          </button>
-          <button
-            onClick={onLogout}
-            title="Logout"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-text-muted hover:bg-white/5 hover:text-status-error active:scale-[0.96] transition-all cursor-pointer shrink-0 animate-fade-up"
-          >
-            <LogOut className="h-4 w-4" strokeWidth={1.75} />
-          </button>
+        <button
+          onClick={handleToggle}
+          className="p-1 rounded text-gray-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
+          title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="h-4 w-4" />
+          ) : (
+            <Menu className="h-4 w-4" />
+          )}
+        </button>
+      </div>
+
+      {/* Navigation Scroll Area */}
+      <div className="flex-1 overflow-y-auto space-y-4 pr-0.5">
+        {/* Section: ME */}
+        <div>
+          {!isCollapsed && (
+            <div className="px-2 pb-1.5 pt-0.5 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+              ME
+            </div>
+          )}
+          <nav className="flex flex-col gap-0.5">
+            {meNavItems.map(({ id, label, icon: Icon }) => {
+              const active = view === id;
+              
+              let indicatorColor = '';
+              if (id === 'incidents' && hasActiveIncidents) {
+                indicatorColor = 'bg-status-error';
+              } else if (id === 'resources' && hasDegradedResources) {
+                indicatorColor = 'bg-status-warning';
+              } else if (id === 'services' && hasHealthyServices) {
+                indicatorColor = 'bg-status-success';
+              }
+
+              return (
+                <button
+                  key={id}
+                  onClick={() => onNavigate(id)}
+                  title={isCollapsed ? label : undefined}
+                  className={`group relative flex items-center rounded-md text-xs font-normal transition-all duration-150 cursor-pointer ${
+                    isCollapsed ? 'justify-center py-2.5 px-0 w-11 mx-auto' : 'gap-3 px-3 py-2 w-full text-left'
+                  } ${
+                    active
+                      ? 'bg-white/15 text-white font-semibold'
+                      : 'text-gray-200 hover:bg-white/8 hover:text-white'
+                  }`}
+                >
+                  <div className="relative flex items-center shrink-0">
+                    <Icon className={`h-4 w-4 shrink-0 transition-transform ${
+                      active ? 'text-white' : 'text-gray-300 group-hover:text-white'
+                    }`} strokeWidth={1.8} />
+                    
+                    {indicatorColor && (
+                      <span className={`absolute -right-1 -top-1 h-1.5 w-1.5 rounded-full ${indicatorColor}`} />
+                    )}
+                  </div>
+
+                  {!isCollapsed && (
+                    <span className="truncate flex-1">{label}</span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
         </div>
+
+        {/* Section: ADMIN */}
+        <div>
+          {!isCollapsed && (
+            <div className="px-2 pb-1.5 pt-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+              SYSTEM
+            </div>
+          )}
+          <nav className="flex flex-col gap-0.5">
+            {adminNavItems.map(({ id, label, icon: Icon }) => {
+              const active = view === id;
+              return (
+                <button
+                  key={id}
+                  onClick={() => onNavigate(id)}
+                  title={isCollapsed ? label : undefined}
+                  className={`group relative flex items-center rounded-md text-xs font-normal transition-all duration-150 cursor-pointer ${
+                    isCollapsed ? 'justify-center py-2.5 px-0 w-11 mx-auto' : 'gap-3 px-3 py-2 w-full text-left'
+                  } ${
+                    active
+                      ? 'bg-white/15 text-white font-semibold'
+                      : 'text-gray-200 hover:bg-white/8 hover:text-white'
+                  }`}
+                >
+                  <Icon className={`h-4 w-4 shrink-0 ${active ? 'text-white' : 'text-gray-300 group-hover:text-white'}`} strokeWidth={1.8} />
+                  {!isCollapsed && <span className="truncate flex-1">{label}</span>}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
+
+      {/* Sidebar Footer User Info & Theme */}
+      <div className="mt-auto flex flex-col gap-2.5 border-t border-[#3A4352] pt-3">
+        {/* Quick action button */}
+        <button
+          onClick={() => onNavigate('tasks')}
+          className={`flex items-center text-xs font-medium text-gray-200 hover:text-white hover:bg-white/8 rounded-md transition-colors cursor-pointer ${
+            isCollapsed ? 'justify-center p-2' : 'gap-2 px-2.5 py-1.5 w-full'
+          }`}
+          title="New Task / Workflow"
+        >
+          <Plus className="h-4 w-4 shrink-0 text-gray-300" />
+          {!isCollapsed && <span>New task re-run</span>}
+        </button>
+
+        {/* User Card */}
+        <div className={`flex items-center transition-all ${isCollapsed ? 'justify-center px-0' : 'gap-2.5 px-1 py-1'}`} title={displayName}>
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#4A5568] text-xs font-semibold text-white select-none border border-white/20">
+            {initials}
+          </div>
+          {!isCollapsed && (
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-xs font-medium text-white leading-tight">
+                {displayName}
+              </div>
+            </div>
+          )}
+          {!isCollapsed && (
+            <button
+              onClick={onLogout}
+              title="Logout"
+              className="p-1 rounded text-gray-400 hover:text-red-400 hover:bg-white/10 transition-colors cursor-pointer"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+
+        {/* Powered by row */}
+        {!isCollapsed && (
+          <div className="pt-1 px-1 border-t border-[#3A4352]/60">
+            <div className="text-[11px] text-gray-400 mb-1.5 font-sans">
+              Powered by
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-5 w-5 rounded-full bg-white p-0.5 flex items-center justify-center shadow-sm">
+                <img src="/Assets/logo.svg" alt="Brainlife" className="h-3.5 w-3.5 object-contain" />
+              </div>
+              <div className="h-5 w-5 rounded-full bg-white p-0.5 flex items-center justify-center shadow-sm">
+                <img src="/Assets/aws.png" alt="AWS" className="h-3.5 w-3.5 object-contain" />
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </aside>
   );

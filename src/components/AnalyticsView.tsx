@@ -1864,7 +1864,7 @@ export default function AnalyticsView({ tasks, projectNamesMap, userNamesMap, us
     <div className="flex h-full min-h-0 w-full flex-col space-y-5 overflow-y-auto pr-1 font-sans text-text-main relative">
       
       {/* Sticky Tab Navigation Header */}
-      <div className="sticky top-0 z-30 bg-[#050811]/90 backdrop-blur-md pb-4 pt-1 border-b border-white/[0.04] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shrink-0">
+      <div className="sticky top-0 z-30 bg-[#161C26]/95 backdrop-blur-md pb-4 pt-1 border-b border-border-glass flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shrink-0">
         <div className="space-y-1">
           <h2 className="text-base font-bold uppercase tracking-wider text-text-main">
             {headerContent.title}
@@ -1873,7 +1873,7 @@ export default function AnalyticsView({ tasks, projectNamesMap, userNamesMap, us
         </div>
 
         {/* Pill-Style Tabs */}
-        <div className="flex flex-wrap gap-1.5 rounded-xl border border-white/5 bg-white/[0.02] p-1 shadow-[inset_0_1px_1px_rgba(255,255,255,0.02)]">
+        <div className="flex flex-wrap gap-1.5 rounded-xl border border-border-glass bg-[#1E2532] p-1 shadow-sm">
           {(['platform', 'community', 'infrastructure', 'forecasting', 'mobile-crashlytics'] as const).map((tab) => {
             const isActive = activeTab === tab;
             let tabLabel = 'Platform';
@@ -1889,7 +1889,7 @@ export default function AnalyticsView({ tasks, projectNamesMap, userNamesMap, us
                 className={`rounded-lg px-4 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all select-none cursor-pointer duration-150 ${
                   isActive
                     ? 'bg-accent-cyan/15 text-accent-cyan ring-1 ring-accent-cyan/20 font-bold shadow-sm'
-                    : 'text-text-muted hover:text-text-main hover:bg-white/[0.03]'
+                    : 'text-text-muted hover:text-text-main hover:bg-[#161C26]'
                 }`}
               >
                 {tabLabel}
@@ -1900,10 +1900,10 @@ export default function AnalyticsView({ tasks, projectNamesMap, userNamesMap, us
       </div>
 
       {/* Filters Toolbar */}
-      <div className="glass rounded-2xl p-4 shrink-0 flex flex-wrap items-center justify-between gap-3 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)] bg-bg-dark/20">
+      <div className="glass rounded-2xl p-4 shrink-0 flex flex-wrap items-center justify-between gap-3 shadow-sm bg-[#1E2532] border border-border-glass">
         <div className="flex flex-wrap items-center gap-3">
           {/* Time range selector */}
-          <div className="flex rounded-lg border border-white/5 bg-white/[0.01] p-1 shrink-0">
+          <div className="flex rounded-lg border border-border-glass bg-[#161C26] p-1 shrink-0">
             {(['24h', '7d', '30d', '90d'] as const).map((r) => (
               <button
                 key={r}
@@ -2056,7 +2056,7 @@ export default function AnalyticsView({ tasks, projectNamesMap, userNamesMap, us
 
                   {/* Compare Dotted Line */}
                   {compare && (
-                    <path d={data.paths.successPathCompare} fill="none" stroke="#E2E8F0" strokeWidth="1.5" strokeDasharray="4,4" strokeOpacity="0.45" strokeLinecap="round" />
+                    <path d={data.paths.successPathCompare} fill="none" stroke="#718096" strokeWidth="1.5" strokeDasharray="4,4" strokeOpacity="0.45" strokeLinecap="round" />
                   )}
                 </svg>
               </div>

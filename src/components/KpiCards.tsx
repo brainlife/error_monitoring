@@ -127,7 +127,7 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
             </div>
           </div>
 
-          <div className="mt-5 space-y-3.5 border-t border-white/[0.04] pt-4">
+          <div className="mt-5 space-y-3.5 border-t border-[#2D3748] pt-4">
             <div className="flex items-center justify-between text-[11px] leading-none">
               <div className="flex items-center gap-2 text-text-muted">
                 <AlertTriangle className={`h-4 w-4 shrink-0 ${criticalAlerts.length > 0 ? 'text-status-error' : 'text-text-faint'}`} />
@@ -164,21 +164,21 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
         </div>
 
         {/* Critical Alerts Console */}
-        <div className="glass relative overflow-hidden rounded-2xl p-5 shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)]">
-          <div className="flex items-center justify-between border-b border-white/[0.03] pb-2.5">
+        <div className="relative overflow-hidden rounded-2xl p-5 border border-[#4A1E26] bg-[#231519] shadow-sm">
+          <div className="flex items-center justify-between border-b border-[#4A1E26] pb-2.5">
             <div className="flex items-center gap-2">
               {criticalAlerts.length === 0 ? (
                 <CheckCircle2 className="h-4.5 w-4.5 text-status-success animate-pulse" />
               ) : (
-                <ShieldAlert className="h-4.5 w-4.5 text-status-error animate-bounce" />
+                <ShieldAlert className="h-4.5 w-4.5 text-[#F56565] animate-bounce" />
               )}
-              <h3 className="text-xs font-bold uppercase tracking-wider text-text-main">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#F7FAFC]">
                 Critical Alerts
               </h3>
             </div>
             <span className={`rounded-full px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wider font-mono ${criticalAlerts.length === 0
                 ? 'bg-status-success/15 text-status-success'
-                : 'bg-status-error/15 text-status-error'
+                : 'bg-status-error/20 text-[#FEB2B2] border border-status-error/30'
               }`}>
               {criticalAlerts.length === 0 ? 'Healthy' : `${criticalAlerts.length} Active Issues`}
             </span>
@@ -186,7 +186,7 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
 
           <div className="mt-3.5 space-y-2">
             {criticalAlerts.length === 0 ? (
-              <div className="flex items-center gap-2.5 rounded-xl border border-status-success/15 bg-status-success/5 px-3.5 py-3 text-xs text-status-success/90">
+              <div className="flex items-center gap-2.5 rounded-xl border border-status-success/20 bg-[#162722] px-3.5 py-3 text-xs text-[#68D391]">
                 <CheckCircle2 className="h-4.5 w-4.5 shrink-0 text-status-success" />
                 <span className="font-medium tracking-wide">All monitored systems and cluster nodes are fully operational</span>
               </div>
@@ -196,10 +196,10 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
                   key={alert.id}
                   onClick={() => onNavigate && onNavigate('resources')}
                   className={`flex items-center gap-2.5 rounded-xl border px-3.5 py-2.5 text-xs transition-colors duration-150 cursor-pointer ${alert.level === 'danger'
-                      ? 'border-status-error/15 bg-status-error/5 text-status-error/95 hover:bg-status-error/8'
+                      ? 'border-[#5A202A] bg-[#2C181E] text-[#FEB2B2] hover:bg-[#351D24]'
                       : alert.level === 'warning'
-                        ? 'border-status-warning/15 bg-status-warning/5 text-status-warning/95 hover:bg-status-warning/8'
-                        : 'border-accent-cyan/15 bg-accent-cyan/5 text-accent-cyan/95 hover:bg-accent-cyan/8'
+                        ? 'border-status-warning/20 bg-[#2D2314] text-[#F6E05E] hover:bg-[#382C18]'
+                        : 'border-accent-cyan/20 bg-[#162533] text-[#63B3ED] hover:bg-[#1D3245]'
                     }`}
                   title="Click to inspect compute resources"
                 >

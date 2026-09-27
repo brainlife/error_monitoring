@@ -56,7 +56,7 @@ export default function TaskTable({
   return (
     <div className="glass overflow-hidden rounded-2xl w-full border border-border-glass">
       {/* Table Header */}
-      <div className="flex items-center justify-between border-b border-white/[0.04] px-5 py-4">
+      <div className="flex items-center justify-between border-b border-border-glass px-5 py-4">
         <div>
           <h2 className="text-sm font-semibold uppercase tracking-wider text-text-main">
             Recent Tasks
@@ -73,21 +73,21 @@ export default function TaskTable({
       <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-white/[0.04] text-[10px] uppercase tracking-wider text-text-faint bg-white/[0.01]">
-              <th className="px-5 py-3 font-medium">Status</th>
-              <th className="px-5 py-3 font-medium">Task ID</th>
-              <th className="px-5 py-3 font-medium">Service</th>
-              <th className="px-5 py-3 font-medium">Project</th>
-              <th className="px-5 py-3 font-medium">instance_id</th>
-              <th className="px-5 py-3 font-medium">Resource</th>
-              <th className="px-5 py-3 font-medium">Runtime</th>
-              <th className="px-5 py-3 font-medium">Created</th>
-              <th className="px-5 py-3 font-medium">Started</th>
-              <th className="px-5 py-3 font-medium">Message</th>
-              <th className="px-5 py-3 font-medium">User</th>
+            <tr className="border-b border-[#2D3748] text-[10px] uppercase tracking-wider text-[#A0AEC0] bg-[#161C26]">
+              <th className="px-5 py-3 font-semibold">Status</th>
+              <th className="px-5 py-3 font-semibold">Task ID</th>
+              <th className="px-5 py-3 font-semibold">Service</th>
+              <th className="px-5 py-3 font-semibold">Project</th>
+              <th className="px-5 py-3 font-semibold">instance_id</th>
+              <th className="px-5 py-3 font-semibold">Resource</th>
+              <th className="px-5 py-3 font-semibold">Runtime</th>
+              <th className="px-5 py-3 font-semibold">Created</th>
+              <th className="px-5 py-3 font-semibold">Started</th>
+              <th className="px-5 py-3 font-semibold">Message</th>
+              <th className="px-5 py-3 font-semibold">User</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-white/[0.02]">
+          <tbody className="divide-y divide-[#263042]">
             {displayedTasks.map((t) => {
               const cfg = statusConfig[t.status] || statusConfig.unknown;
               const userId = t.userId;
@@ -131,8 +131,8 @@ export default function TaskTable({
                 <tr
                   key={t.id}
                   onClick={() => onSelect(t)}
-                  className={`group cursor-pointer transition-all duration-200 hover:bg-white/[0.02] ${
-                    selectedId === t.id ? 'bg-accent-cyan/[0.04]' : ''
+                  className={`group cursor-pointer transition-all duration-150 hover:bg-[#252E3E] ${
+                    selectedId === t.id ? 'bg-[#202E40]' : ''
                   }`}
                 >
                   {/* Status */}
@@ -241,10 +241,10 @@ export default function TaskTable({
                       {t.message || '--'}
                     </div>
                     {t.message && (
-                      <div className="absolute bottom-full left-1/2 mb-2.5 hidden group-hover/msg:block -translate-x-1/2 z-50 w-64 rounded-xl border border-border-glass bg-[#09111d] p-3 text-[11px] text-text-main shadow-[0_8px_24px_rgba(0,0,0,0.6)] font-sans whitespace-normal break-words pointer-events-none">
+                      <div className="absolute bottom-full left-1/2 mb-2.5 hidden group-hover/msg:block -translate-x-1/2 z-50 w-64 rounded-xl border border-[#3A4352] bg-[#2D3748] p-3 text-[11px] text-white shadow-xl font-sans whitespace-normal break-words pointer-events-none">
                         {t.message}
                         {/* Caret arrow */}
-                        <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[#09111d]" />
+                        <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[#2D3748]" />
                       </div>
                     )}
                   </td>

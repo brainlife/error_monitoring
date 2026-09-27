@@ -603,13 +603,13 @@ export default function TasksView({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search by Task ID, Project, Group, User, Job Name, Datatype..."
-                className="w-full sm:w-80 rounded-lg border border-border-glass bg-[#050811] py-1.5 pl-9 pr-4 text-xs text-text-main placeholder:text-text-faint focus:border-accent-cyan/40 focus:outline-none"
+                className="w-full sm:w-80 rounded-lg border border-border-glass bg-[#161C26] focus:bg-[#1E2532] py-1.5 pl-9 pr-4 text-xs text-text-main placeholder:text-text-faint focus:border-[#3182CE] focus:outline-none transition-all shadow-sm"
               />
             </div>
             
             <button
               onClick={onRefresh}
-              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border-glass bg-white/[0.01] text-text-muted hover:text-text-main hover:bg-white/[0.03] transition-all select-none cursor-pointer"
+              className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border-glass bg-[#161C26] hover:bg-[#1E2532] text-text-muted hover:text-text-main transition-all select-none cursor-pointer shadow-sm"
               title="Refresh Tasks List"
             >
               <RefreshCw className="h-4 w-4" />
@@ -620,11 +620,11 @@ export default function TasksView({
 
         {/* Task Grid Table */}
         <div className="flex-1 shrink-0">
-          <div className="glass overflow-hidden rounded-2xl border border-border-glass bg-bg-dark/20">
+          <div className="overflow-hidden rounded-2xl border border-border-glass bg-[#1E2532] shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-white/[0.04] bg-white/[0.01] font-mono text-[9px] font-bold uppercase tracking-wider text-text-faint select-none">
+                <tr className="border-b border-border-glass bg-[#161C26] font-mono text-[9px] font-bold uppercase tracking-wider text-text-muted select-none">
                   <th className="px-5 py-3.5">Status</th>
                   <th className="px-5 py-3.5">Task ID</th>
                   <th className="px-5 py-3.5">Service</th>
@@ -637,7 +637,7 @@ export default function TasksView({
                   <th className="px-5 py-3.5">User</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.02]">
+              <tbody className="divide-y divide-[#263042]">
                 {filteredTasks.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="px-5 py-12 text-center text-xs text-text-faint font-medium">
@@ -653,8 +653,8 @@ export default function TasksView({
                         onClick={() => onSelect(isSelected ? null : t)}
                         className={`group cursor-pointer select-none transition-colors duration-150 ${
                           isSelected
-                            ? 'bg-accent-cyan/5 text-white'
-                            : 'hover:bg-white/[0.01] text-text-muted'
+                            ? 'bg-[#202E40] text-text-main'
+                            : 'hover:bg-[#252E3E] text-text-muted'
                         }`}
                       >
                         {/* Status */}
@@ -805,10 +805,10 @@ export default function TasksView({
                             {t.message || '--'}
                           </div>
                           {t.message && (
-                            <div className="absolute bottom-full left-1/2 mb-2.5 hidden group-hover/msg:block -translate-x-1/2 z-50 w-64 rounded-xl border border-border-glass bg-[#09111d] p-3 text-[11px] text-text-main shadow-[0_8px_24px_rgba(0,0,0,0.6)] font-sans whitespace-normal break-words pointer-events-none">
+                            <div className="absolute bottom-full left-1/2 mb-2.5 hidden group-hover/msg:block -translate-x-1/2 z-50 w-64 rounded-xl border border-[#3A4352] bg-[#2D3748] p-3 text-[11px] text-white shadow-xl font-sans whitespace-normal break-words pointer-events-none">
                               {t.message}
                               {/* Caret arrow */}
-                              <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[#09111d]" />
+                              <span className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-[#2D3748]" />
                             </div>
                           )}
                         </td>
@@ -823,7 +823,7 @@ export default function TasksView({
               </tbody>
               </table>
             </div>
-            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-white/[0.04] p-3.5 bg-white/[0.01] select-none text-[10px] text-text-faint font-mono font-medium">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-border-glass p-3.5 bg-[#161C26] select-none text-[10px] text-text-muted font-mono font-medium">
               <div>
                 Showing {filteredTasks.length === 0 ? 0 : (currentPage - 1) * 10 + 1} - {Math.min(filteredTasks.length, currentPage * 10)} of {filteredTasks.length} loaded tasks
               </div>
@@ -831,7 +831,7 @@ export default function TasksView({
                 <button
                   onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                   disabled={currentPage === 1 || loadingMore}
-                  className="rounded-lg border border-border-glass bg-white/[0.01] px-3 py-1.5 text-[10px] font-bold text-text-muted hover:text-text-main disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer"
+                  className="rounded-lg border border-border-glass bg-[#1E2532] hover:bg-[#252E3E] px-3 py-1.5 text-[10px] font-bold text-text-muted hover:text-text-main disabled:opacity-30 disabled:pointer-events-none transition-all cursor-pointer shadow-sm"
                 >
                   Prev
                 </button>
@@ -905,18 +905,18 @@ export default function TasksView({
       </div>
 
       {/* Right Selected Task Inspector Panel */}
-      <div className="w-[320px] shrink-0 overflow-y-auto rounded-2xl border border-border-glass bg-bg-dark/45 p-5 space-y-6">
+      <div className="w-[320px] shrink-0 overflow-y-auto rounded-2xl border border-border-glass bg-[#1E2532] shadow-sm p-5 space-y-6">
         {selectedTask ? (
           <>
             {/* Header Details */}
-            <div className="border-b border-white/[0.04] pb-4.5">
+            <div className="border-b border-border-glass pb-4.5">
               <div className="flex items-center gap-2">
                 <Terminal className="h-4.5 w-4.5 text-accent-cyan" />
                 <h2 className="text-xs font-bold uppercase tracking-wider text-text-main font-mono">
                   Task telemetry
                 </h2>
               </div>
-              <h3 className="mt-3 text-sm font-bold text-white break-all leading-tight" title={selectedTask.service}>
+              <h3 className="mt-3 text-sm font-bold text-text-main break-all leading-tight" title={selectedTask.service}>
                 {selectedTask.service.split('/').pop()}
               </h3>
               <p className="text-[10px] text-text-muted mt-1 font-mono break-all">
@@ -927,7 +927,7 @@ export default function TasksView({
             {/* General Metadata */}
             <div className="space-y-4 text-xs">
               {/* Status */}
-              <div className="flex justify-between items-center border-b border-white/[0.02] pb-2">
+              <div className="flex justify-between items-center border-b border-border-glass pb-2">
                 <span className="text-text-faint font-mono text-[10px] uppercase">Status</span>
                 <span className={`rounded-lg px-2.5 py-1 text-[10px] font-bold uppercase ${
                   selectedTask.status === 'finished' ? 'text-status-success bg-status-success/5 border border-status-success/15' :
@@ -939,7 +939,7 @@ export default function TasksView({
               </div>
 
               {/* Project */}
-              <div className="flex justify-between items-center border-b border-white/[0.02] pb-2">
+              <div className="flex justify-between items-center border-b border-border-glass pb-2">
                 <span className="text-text-faint font-mono text-[10px] uppercase">Project</span>
                 <span className="font-semibold text-text-main max-w-[180px] truncate" title={resolvedInspectorProj?.resolvedProjId}>
                   {resolvedInspectorProj && resolvedInspectorProj.resolvedProjId !== 'Unknown' ? (
@@ -958,7 +958,7 @@ export default function TasksView({
               </div>
 
               {/* instance_id */}
-              <div className="flex justify-between items-center border-b border-white/[0.02] pb-2">
+              <div className="flex justify-between items-center border-b border-border-glass pb-2">
                 <span className="text-text-faint font-mono text-[10px] uppercase">instance_id</span>
                 <span className="font-semibold text-text-main max-w-[180px] truncate" title={selectedTask.projectId}>
                   {resolvedInspectorProj && resolvedInspectorProj.resolvedProjId !== 'Unknown' ? (
@@ -979,7 +979,7 @@ export default function TasksView({
               </div>
 
               {/* Resource */}
-              <div className="flex justify-between items-center border-b border-white/[0.02] pb-2">
+              <div className="flex justify-between items-center border-b border-border-glass pb-2">
                 <span className="text-text-faint font-mono text-[10px] uppercase">Resource</span>
                 <button
                   onClick={() => onNavigateToResource?.(selectedTask.resource)}
@@ -991,7 +991,7 @@ export default function TasksView({
 
               {/* User */}
               {!!ownerId && (
-                <div className="flex justify-between items-center border-b border-white/[0.02] pb-2">
+                <div className="flex justify-between items-center border-b border-border-glass pb-2">
                   <span className="text-text-faint font-mono text-[10px] uppercase flex items-center gap-1">
                     <User className="h-3.5 w-3.5 text-text-faint" />
                     Owner
@@ -1081,16 +1081,16 @@ export default function TasksView({
               ) : (
                 <button
                   onClick={() => handleRerun(selectedTask.id)}
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-accent-cyan py-2.5 text-xs font-bold text-bg-dark hover:bg-accent-cyan-dim active:scale-[0.98] transition-all select-none cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#2D3748] hover:bg-[#1A202C] py-2.5 text-xs font-bold text-white shadow-sm active:scale-[0.98] transition-all select-none cursor-pointer"
                 >
-                  <Play className="h-4 w-4 fill-bg-dark" />
+                  <Play className="h-4 w-4 fill-white" />
                   <span>Rerun Task Workflow</span>
                 </button>
               )}
             </div>
 
             {/* Raw JSON viewer */}
-            <div className="border-t border-white/[0.04] pt-4.5 space-y-2">
+            <div className="border-t border-border-glass pt-4.5 space-y-2">
               <button
                 onClick={() => setJsonExpanded(!jsonExpanded)}
                 className="flex w-full items-center justify-between font-mono text-[10px] uppercase text-text-muted hover:text-text-main transition-colors"
@@ -1103,7 +1103,7 @@ export default function TasksView({
               </button>
 
               {jsonExpanded && (
-                <div className="mt-2 rounded-xl border border-white/[0.03] bg-[#03060f] p-3 text-[10px] font-mono leading-relaxed overflow-x-auto max-h-72 select-text selection:bg-accent-cyan/20">
+                <div className="mt-2 rounded-xl border border-border-glass bg-[#121620] p-3 text-[10px] font-mono leading-relaxed overflow-x-auto max-h-72 select-text text-emerald-400">
                   {rawLoading ? (
                     <div className="flex py-6 flex-col items-center justify-center gap-2 text-text-faint">
                       <Loader2 className="h-4 w-4 animate-spin text-accent-cyan" />

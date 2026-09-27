@@ -227,7 +227,7 @@ export default function UsersView({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search users..."
-            className="w-full rounded-lg border border-border-glass bg-[#050811] py-2 pl-9 pr-4 text-xs text-text-main placeholder:text-text-faint focus:border-accent-cyan/40 focus:outline-none"
+            className="w-full rounded-lg border border-border-glass bg-[#161C26] py-2 pl-9 pr-4 text-xs text-text-main placeholder:text-text-faint focus:border-accent-cyan/40 focus:outline-none"
           />
         </div>
 
@@ -251,8 +251,8 @@ export default function UsersView({
                     // console.log("[UsersView] Clicking on user card in directory. Selected ID/Sub ID:", uId, "User Details:", u);
                     setSelectedUserId(isSelected ? null : uId);
                   }}
-                  className={`glass flex items-center gap-3 rounded-xl p-3 border border-border-glass cursor-pointer select-none transition-all duration-200 hover:bg-white/[0.02] ${
-                    isSelected ? 'bg-accent-cyan/10 border-accent-cyan/40 shadow-[0_0_15px_rgba(0,229,255,0.1)] ring-1 ring-accent-cyan/20' : 'bg-bg-dark/10'
+                  className={`flex items-center gap-3 rounded-xl p-3 border cursor-pointer select-none transition-all duration-200 hover:border-border-glass-hover hover:shadow-sm ${
+                    isSelected ? 'bg-[#202E40] border-[#3182CE] shadow-sm ring-1 ring-[#3182CE]/30' : 'bg-[#1E2532] border-border-glass hover:bg-[#252E3E]'
                   }`}
                 >
                   <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent-cyan/15 to-accent-purple/15 text-xs font-bold text-accent-cyan ring-1 ring-accent-cyan/25">
@@ -279,16 +279,16 @@ export default function UsersView({
       </div>
 
       {/* Right User Audit View Panel */}
-      <div className="flex-1 min-w-0 glass rounded-2xl border border-border-glass bg-bg-dark/20 p-5 overflow-hidden flex flex-col justify-between">
+      <div className="flex-1 min-w-0 rounded-2xl border border-border-glass bg-[#1E2532] shadow-sm p-5 overflow-hidden flex flex-col justify-between">
         {selectedUser && userStats ? (
           <div className="h-full min-h-0 flex flex-col space-y-5">
             {/* Header info card */}
-            <div className="flex items-center gap-4 border-b border-white/[0.04] pb-4 shrink-0">
+            <div className="flex items-center gap-4 border-b border-border-glass pb-4 shrink-0">
               <div className="flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-accent-cyan/20 to-accent-purple/20 text-sm font-bold text-accent-cyan ring-1 ring-accent-cyan/30">
                 {getInitials(selectedUser.fullname)}
               </div>
               <div className="space-y-1">
-                <h3 className="text-sm font-bold text-white leading-none">{selectedUser.fullname}</h3>
+                <h3 className="text-sm font-bold text-text-main leading-none">{selectedUser.fullname}</h3>
                 <p className="text-[10px] text-text-faint font-mono">
                   Username: @{selectedUser.username} | Sub ID: {selectedUser.sub}
                 </p>
@@ -310,7 +310,7 @@ export default function UsersView({
                     { label: 'Active Runs', val: userStats.active, color: 'text-status-running' },
                     { label: 'Failed Counts', val: userStats.failed, color: 'text-status-error' }
                   ].map((c, idx) => (
-                    <div key={idx} className="glass rounded-xl border border-white/[0.03] bg-bg-dark/15 p-4 flex flex-col justify-between">
+                    <div key={idx} className="rounded-xl border border-border-glass bg-[#161C26] p-4 flex flex-col justify-between shadow-sm">
                       <span className="text-[8px] font-bold text-text-muted uppercase tracking-wider">{c.label}</span>
                       <span className={`font-mono text-lg font-bold tracking-tight mt-1.5 ${c.color}`}>{c.val}</span>
                     </div>
@@ -325,11 +325,11 @@ export default function UsersView({
                   </h4>
 
                   <div className="flex-1 overflow-y-auto pr-1">
-                    <div className="glass overflow-hidden rounded-xl border border-white/[0.04] bg-white/[0.01]">
+                    <div className="overflow-hidden rounded-xl border border-border-glass bg-[#161C26] shadow-sm">
                       <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse text-xs select-none">
                           <thead>
-                            <tr className="border-b border-white/[0.06] bg-white/[0.02] font-mono text-[9px] font-bold uppercase tracking-wider text-text-faint">
+                            <tr className="border-b border-border-glass bg-[#121620] font-mono text-[9px] font-bold uppercase tracking-wider text-text-muted">
                               <th className="px-3.5 py-2.5">Status</th>
                               <th className="px-3.5 py-2.5">Task ID</th>
                               <th className="px-3.5 py-2.5">Pipeline Service</th>
@@ -337,7 +337,7 @@ export default function UsersView({
                               <th className="px-3.5 py-2.5">Project</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-white/[0.02] text-text-muted">
+                          <tbody className="divide-y divide-[#263042] text-text-muted">
                             {userStats.tasks.length === 0 ? (
                               <tr>
                                 <td colSpan={5} className="px-3.5 py-12 text-center text-xs text-text-faint font-semibold">
@@ -363,7 +363,7 @@ export default function UsersView({
                                       onSelectTask(t);
                                       onNavigateToTask?.(t.id);
                                     }}
-                                    className="hover:bg-white/[0.01] cursor-pointer transition-colors duration-150"
+                                    className="hover:bg-[#202E40] cursor-pointer transition-colors duration-150"
                                     title="Click to view full logs in Log Console"
                                   >
                                     {/* Status */}
@@ -405,7 +405,7 @@ export default function UsersView({
               </div>
 
               {/* Right Column: User Dossier Details */}
-              <div className="w-[200px] shrink-0 border-l border-white/[0.04] pl-5 flex flex-col space-y-4.5 justify-start overflow-y-auto">
+              <div className="w-[200px] shrink-0 border-l border-border-glass pl-5 flex flex-col space-y-4.5 justify-start overflow-y-auto">
                 <h4 className="text-[10px] font-bold uppercase tracking-wider text-text-muted select-none">
                   Dossier Details
                 </h4>
@@ -418,7 +418,7 @@ export default function UsersView({
                   ) : (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {projectNames.map((name, i) => (
-                        <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-white/[0.03] border border-white/[0.05] text-text-main truncate max-w-full inline-block" title={name}>
+                        <span key={i} className="text-[9px] px-1.5 py-0.5 rounded bg-[#161C26] border border-border-glass text-text-main truncate max-w-full inline-block" title={name}>
                           {name}
                         </span>
                       ))}
@@ -443,19 +443,19 @@ export default function UsersView({
                 </div>
 
                 {/* Storage Used */}
-                <div className="space-y-1 border-t border-white/[0.02] pt-3">
+                <div className="space-y-1 border-t border-border-glass pt-3">
                   <span className="text-text-faint font-mono text-[9px] uppercase block">Storage Allocation</span>
                   <span className="font-mono text-xs font-bold text-text-main block mt-0.5">{storageUsed}</span>
                 </div>
 
                 {/* Average Runtime */}
-                <div className="space-y-1 border-t border-white/[0.02] pt-3">
+                <div className="space-y-1 border-t border-border-glass pt-3">
                   <span className="text-text-faint font-mono text-[9px] uppercase block">Average Runtime</span>
                   <span className="font-mono text-xs font-bold text-text-main block mt-0.5">{avgRuntime}</span>
                 </div>
 
                 {/* Last Login */}
-                <div className="space-y-1 border-t border-white/[0.02] pt-3">
+                <div className="space-y-1 border-t border-border-glass pt-3">
                   <span className="text-text-faint font-mono text-[9px] uppercase block">Last Login Session</span>
                   <span className="text-[11px] text-text-muted block mt-0.5">{lastLogin}</span>
                 </div>
@@ -464,7 +464,7 @@ export default function UsersView({
             </div>
 
             {/* Info tip footer bar */}
-            <div className="flex items-center gap-1.5 text-[9px] text-text-faint font-semibold border-t border-white/[0.04] pt-3 select-none shrink-0">
+            <div className="flex items-center gap-1.5 text-[9px] text-text-faint font-semibold border-t border-border-glass pt-3 select-none shrink-0">
               💡 <span className="uppercase tracking-wider">Tip:</span> Clicking any execution row opens its terminal output logs in the sliding console.
             </div>
 

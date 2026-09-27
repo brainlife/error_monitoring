@@ -57,32 +57,32 @@ export default function ResourceGrid({ resources, onTest, testingId }: ResourceG
               key={r.id}
               className={`glass glass-hover relative overflow-hidden rounded-2xl p-4.5 transition-all duration-300 ${
                 isError
-                  ? 'border-status-error/30 shadow-[0_4px_24px_rgba(239,68,68,0.06)] hover:border-status-error/50'
-                  : 'shadow-[inset_0_1px_1px_rgba(255,255,255,0.03)]'
+                  ? 'border-status-error/30 shadow-sm hover:border-status-error/50'
+                  : 'shadow-sm border-[#2D3748]'
               }`}
             >
               {/* Glow background */}
               <div
                 className="absolute -right-8 -top-8 h-20 w-20 rounded-full blur-[24px]"
                 style={{
-                  backgroundColor: isError ? '#EF4444' : r.name.includes('AWS') ? '#00E5FF' : r.name.includes('Docker') ? '#8B5CF6' : '#10B981',
-                  opacity: isError ? 0.08 : 0.05,
+                  backgroundColor: isError ? '#EF4444' : r.name.includes('AWS') ? '#3182CE' : r.name.includes('Docker') ? '#5C4F6E' : '#38A169',
+                  opacity: 0.08,
                 }}
               />
 
               {/* Top Row: Icon and status */}
               <div className="flex items-center justify-between">
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-white/5">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#161C26] border border-[#2D3748]">
                   <Icon className={`h-4.5 w-4.5 ${iconColor}`} strokeWidth={1.75} />
                 </div>
 
                 {/* Status Dot and Label */}
-                <div className="flex items-center gap-1.5 rounded-full bg-white/[0.02] px-2 py-0.5 border border-white/[0.04] shrink-0">
+                <div className="flex items-center gap-1.5 rounded-full bg-[#161C26] px-2 py-0.5 border border-[#2D3748] shrink-0">
                   <span
                     className={`h-1.5 w-1.5 rounded-full ${
                       isError
                         ? 'bg-status-error animate-pulse'
-                        : 'bg-status-success shadow-[0_0_8px_#10B981] animate-pulse-glow'
+                        : 'bg-status-success shadow-[0_0_8px_#38A169]'
                     }`}
                   />
                   <span className={`text-[9px] font-bold uppercase tracking-wider ${isError ? 'text-status-error' : 'text-status-success'}`}>
@@ -116,7 +116,7 @@ export default function ResourceGrid({ resources, onTest, testingId }: ResourceG
                           <span>CPU UTILIZATION</span>
                           <span className="text-text-main font-semibold">{r.cpu}%</span>
                         </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
+                        <div className="h-1.5 overflow-hidden rounded-full bg-[#121620]">
                           <div
                             className="h-full rounded-full bg-gradient-to-r from-accent-cyan to-status-running transition-all duration-500"
                             style={{ width: `${r.cpu}%` }}
@@ -130,7 +130,7 @@ export default function ResourceGrid({ resources, onTest, testingId }: ResourceG
                           <span>MEMORY UTILIZATION</span>
                           <span className="text-text-main font-semibold">{r.memory}%</span>
                         </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
+                        <div className="h-1.5 overflow-hidden rounded-full bg-[#121620]">
                           <div
                             className="h-full rounded-full bg-gradient-to-r from-accent-purple to-accent-cyan transition-all duration-500"
                             style={{ width: `${r.memory}%` }}
@@ -151,7 +151,7 @@ export default function ResourceGrid({ resources, onTest, testingId }: ResourceG
                             {r.vcpusCurrent} / {r.vcpusMax}
                           </span>
                         </div>
-                        <div className="h-1.5 overflow-hidden rounded-full bg-white/5">
+                        <div className="h-1.5 overflow-hidden rounded-full bg-[#121620]">
                           <div
                             className="h-full rounded-full bg-gradient-to-r from-status-running to-accent-purple transition-all duration-500"
                             style={{ width: `${(r.vcpusCurrent / r.vcpusMax) * 100}%` }}
@@ -162,7 +162,7 @@ export default function ResourceGrid({ resources, onTest, testingId }: ResourceG
                   )}
 
                   {/* Queue Details footer */}
-                  <div className="flex items-center justify-between border-t border-white/[0.03] pt-3.5 text-[10px] text-text-muted">
+                  <div className="flex items-center justify-between border-t border-[#2D3748] pt-3.5 text-[10px] text-text-muted">
                     {r.queueJobs !== undefined && (
                       <div className="flex items-center gap-1">
                         <span className="font-mono text-xs font-semibold text-text-main">{r.queueJobs}</span>
@@ -178,7 +178,7 @@ export default function ResourceGrid({ resources, onTest, testingId }: ResourceG
 
                     {/* Sparkline line indicator */}
                     <div className="flex items-center gap-1.5">
-                      <Sparkles className="h-3 w-3 text-accent-cyan animate-pulse" />
+                      <Sparkles className="h-3 w-3 text-accent-cyan" />
                       <span className="text-[9px] uppercase tracking-wider text-text-faint">Optimized</span>
                     </div>
                   </div>
@@ -190,7 +190,7 @@ export default function ResourceGrid({ resources, onTest, testingId }: ResourceG
                 {r.tags?.map((tag, index) => (
                   <span
                     key={`${tag}-${index}`}
-                    className="rounded bg-white/5 border border-white/[0.04] px-1.5 py-0.5 font-mono text-[9px] text-text-muted hover:text-text-main hover:border-white/[0.08] transition-colors"
+                    className="rounded bg-[#161C26] border border-[#2D3748] px-1.5 py-0.5 font-mono text-[9px] text-[#A0AEC0] hover:text-[#F7FAFC] hover:border-[#4A5568] transition-colors"
                   >
                     {tag}
                   </span>
@@ -201,7 +201,7 @@ export default function ResourceGrid({ resources, onTest, testingId }: ResourceG
               <button
                 onClick={() => onTest(r.id)}
                 disabled={isTesting}
-                className="mt-3.5 w-full rounded-lg border border-border-glass bg-white/[0.01] py-1.5 font-mono text-[10px] font-medium text-text-muted hover:bg-white/[0.03] hover:text-text-main hover:border-white/[0.12] active:scale-[0.98] transition-all duration-150"
+                className="mt-3.5 w-full rounded-lg border border-[#2D3748] bg-[#161C26] py-1.5 font-mono text-[10px] font-medium text-[#A0AEC0] hover:bg-[#252E3E] hover:text-[#F7FAFC] hover:border-[#4A5568] active:scale-[0.98] transition-all duration-150 cursor-pointer"
               >
                 {isTesting ? 'CONNECTING...' : 'TEST CONNECTIVITY'}
               </button>
@@ -214,7 +214,7 @@ export default function ResourceGrid({ resources, onTest, testingId }: ResourceG
         <div className="mt-5 flex justify-center">
           <button
             onClick={() => setVisibleCount((prev) => prev + 4)}
-            className="flex items-center gap-2 rounded-xl border border-border-glass bg-[#050811] px-5 py-2.5 text-xs font-bold text-text-muted hover:text-text-main hover:bg-white/[0.03] hover:border-white/20 active:scale-[0.98] transition-all select-none cursor-pointer"
+            className="flex items-center gap-2 rounded-xl border border-[#2D3748] bg-[#1E2532] px-5 py-2.5 text-xs font-bold text-[#A0AEC0] hover:text-[#F7FAFC] hover:bg-[#252E3E] hover:border-[#4A5568] active:scale-[0.98] transition-all select-none cursor-pointer shadow-sm"
           >
             View More Active Resources
           </button>

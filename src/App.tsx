@@ -355,7 +355,7 @@ export default function App() {
     return <Login onLoginSuccess={handleLoginSuccess} />;
   }
   return (
-    <div className="relative z-10 flex h-screen w-full overflow-hidden bg-bg-dark text-text-main">
+    <div className="relative z-10 flex h-screen w-full overflow-hidden bg-[#161C26] text-[#F7FAFC]">
       {/* 1. Left Fixed Sidebar */}
       <Sidebar
         view={view}
@@ -368,12 +368,14 @@ export default function App() {
       />
 
       {/* Main Container for Right Side */}
-      <div className="flex flex-1 flex-col min-w-0">
+      <div className="flex flex-1 flex-col min-w-0 bg-[#161C26]">
+        {/* Subtle top red accent strip */}
+        <div className="h-0.5 w-full bg-[#E53E3E] shrink-0" />
 
         {/* Top Header */}
-        <header className="flex shrink-0 items-center justify-between border-b border-border-glass px-6 py-4.5 bg-bg-dark/40">
+        <header className="flex shrink-0 items-center justify-between border-b border-[#2D3748] px-6 py-3.5 bg-[#1B222E] shadow-[0_1px_3px_rgba(0,0,0,0.3)]">
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-text-main flex items-center gap-2">
+            <h1 className="text-lg font-bold tracking-tight text-[#F7FAFC] flex items-center gap-2">
               {view === 'dashboard' && 'Orchestration Dashboard'}
               {view === 'resources' && 'Compute Resources'}
               {view === 'services' && 'Services'}
@@ -381,7 +383,7 @@ export default function App() {
               {view === 'analytics' && 'Workflow Analytics'}
               {view === 'settings' && 'System Settings'}
             </h1>
-            <p className="mt-0.5 text-xs text-text-muted">
+            <p className="mt-0.5 text-xs text-[#A0AEC0]">
               {view === 'dashboard' && 'Real-time task orchestration, compute resources and system health'}
               {view === 'resources' && 'Connected compute nodes & cluster health'}
               {view === 'services' && 'Search and monitor all orchestration services'}
@@ -393,48 +395,44 @@ export default function App() {
             </p>
           </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             {/* Search Input */}
             <div
               onClick={() => setGlobalSearchOpen(true)}
               className="relative hidden sm:block cursor-pointer"
             >
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-faint" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[#718096]" />
               <input
                 type="text"
                 readOnly
                 placeholder="Search tasks, services, resources..."
-                className="w-64 rounded-lg border border-border-glass bg-white/[0.02] py-1.5 pl-9 pr-12 font-sans text-xs text-text-main placeholder:text-text-faint focus:outline-none cursor-pointer"
+                className="w-64 rounded-lg border border-[#2D3748] bg-[#161C26] hover:bg-[#1A202C] py-1.5 pl-8 pr-10 font-sans text-xs text-[#F7FAFC] placeholder:text-[#718096] focus:border-[#4FD1C5] focus:outline-none transition-all cursor-pointer shadow-sm"
               />
-              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-white/10 px-1 font-mono text-[9px] text-text-faint">
+              <span className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-[#2D3748] bg-[#1E2532] px-1 font-mono text-[9px] text-[#A0AEC0]">
                 ⌘K
               </span>
             </div>
 
             {/* Systems Operational Badge */}
-            <div className="flex items-center gap-2 rounded-lg border border-border-glass bg-white/[0.01] px-3.5 py-1.5 border-white/[0.06]">
-              <span className={`h-2 w-2 rounded-full ${loading ? 'bg-status-warning shadow-[0_0_8px_#F59E0B]' : 'bg-status-success shadow-[0_0_8px_#10B981] animate-pulse-glow'}`} />
-              <span className="text-xs font-semibold text-text-muted">{loading ? 'Synchronizing...' : 'All systems operational'}</span>
+            <div className="flex items-center gap-2 rounded-lg border border-[#2D3748] bg-[#1E2532] px-3 py-1.5 shadow-sm text-xs">
+              <span className={`h-2 w-2 rounded-full ${loading ? 'bg-amber-400 shadow-[0_0_4px_#ECC94B]' : 'bg-emerald-400'}`} />
+              <span className="font-medium text-[#A0AEC0]">{loading ? 'Synchronizing...' : 'All systems operational'}</span>
             </div>
 
             {/* Live Auto-Refresh Pause/Resume Control */}
             <button
               onClick={() => setAutoRefreshPaused(!autoRefreshPaused)}
-              className={`flex items-center gap-2 rounded-lg border px-3 py-1.5 font-mono text-xs font-semibold transition-all cursor-pointer select-none ${
-                autoRefreshPaused
-                  ? 'border-amber-500/40 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20'
-                  : 'border-status-success/30 bg-status-success/10 text-status-success hover:bg-status-success/20'
-              }`}
+              className="flex items-center gap-2 rounded-lg border border-[#2D3748] bg-[#1E2532] hover:bg-[#252D3D] px-3 py-1.5 font-mono text-xs font-semibold text-[#A0AEC0] hover:text-white transition-all cursor-pointer select-none shadow-sm"
               title={autoRefreshPaused ? 'Click to resume real-time auto-refresh' : 'Click to pause auto-refresh while debugging'}
             >
-              <span className={`h-2 w-2 rounded-full ${autoRefreshPaused ? 'bg-amber-400' : 'bg-status-success animate-pulse'}`} />
+              <span className={`h-2 w-2 rounded-full ${autoRefreshPaused ? 'bg-amber-400' : 'bg-emerald-400'}`} />
               <span>{autoRefreshPaused ? 'Auto-Refresh Paused' : 'Live Auto-Refresh (10s)'}</span>
             </button>
 
             {/* Notification Bell */}
-            <button className="relative flex h-9 w-9 items-center justify-center rounded-lg border border-border-glass bg-white/[0.01] text-text-muted hover:text-text-main hover:bg-white/[0.03] transition-colors">
-              <Bell className="h-4.5 w-4.5" strokeWidth={1.75} />
-              <span className="absolute right-2.5 top-2.5 h-1.5 w-1.5 rounded-full bg-status-error shadow-[0_0_4px_#EF4444]" />
+            <button className="relative flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D3748] bg-[#1E2532] text-[#A0AEC0] hover:text-[#F7FAFC] hover:bg-[#252D3D] transition-colors shadow-sm">
+              <Bell className="h-4 w-4" strokeWidth={1.75} />
+              <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-status-error" />
             </button>
           </div>
         </header>
@@ -635,24 +633,24 @@ export default function App() {
           />
 
           {/* Spotlight Modal Box */}
-          <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-white/[0.08] bg-[#090d16]/95 p-4 shadow-2xl backdrop-blur-xl animate-slide-in">
+          <div className="relative w-full max-w-xl overflow-hidden rounded-2xl border border-[#2D3748] bg-[#1E2532] p-4 shadow-2xl animate-slide-in">
             <div className="relative flex items-center">
-              <Search className="absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-text-faint" />
+              <Search className="absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-[#718096]" />
               <input
                 type="text"
                 autoFocus
                 value={globalSearchQuery}
                 onChange={(e) => setGlobalSearchQuery(e.target.value)}
                 placeholder="Spotlight Search: Karst, App, Incidents, Niklas..."
-                className="w-full rounded-xl border border-white/5 bg-white/[0.01] py-3 pl-11 pr-12 font-sans text-sm text-text-main placeholder:text-text-faint focus:border-accent-cyan/40 focus:outline-none focus:ring-1 focus:ring-accent-cyan/20 transition-all"
+                className="w-full rounded-xl border border-[#2D3748] bg-[#161C26] py-3 pl-11 pr-12 font-sans text-sm text-[#F7FAFC] placeholder:text-[#718096] focus:border-[#4FD1C5] focus:outline-none transition-all"
               />
               <div className="absolute right-3.5 top-1/2 -translate-y-1/2 flex items-center gap-2">
                 {spotlightSearching && (
-                  <Loader2 className="h-3 w-3 animate-spin text-accent-cyan" />
+                  <Loader2 className="h-3 w-3 animate-spin text-[#4FD1C5]" />
                 )}
                 <button
                   onClick={() => setGlobalSearchOpen(false)}
-                  className="text-[10px] font-bold text-text-faint hover:text-text-main border border-white/10 rounded px-1.5 py-0.5"
+                  className="text-[10px] font-bold text-[#A0AEC0] hover:text-[#F7FAFC] border border-[#2D3748] bg-[#161C26] rounded px-1.5 py-0.5"
                 >
                   ESC
                 </button>
@@ -662,12 +660,12 @@ export default function App() {
             {/* Results container */}
             <div className="mt-4 max-h-80 overflow-y-auto space-y-3">
               {globalSearchQuery.trim() === '' ? (
-                <div className="text-center text-xs text-text-faint py-10">
+                <div className="text-center text-xs text-[#A0AEC0] py-10">
                   <p>Type to search across resources, tasks, incidents, and users...</p>
-                  <p className="mt-2 text-[10px] opacity-75">Try searching for <span className="text-accent-cyan select-all">"Karst"</span> or <span className="text-accent-purple select-all">"Niklas"</span></p>
+                  <p className="mt-2 text-[10px] opacity-75">Try searching for <span className="text-[#4FD1C5] select-all">"Karst"</span> or <span className="text-[#9F7AEA] select-all">"Niklas"</span></p>
                 </div>
               ) : spotlightResults.length === 0 ? (
-                <div className="text-center text-xs text-text-faint py-10">
+                <div className="text-center text-xs text-[#A0AEC0] py-10">
                   No matching results found for "{globalSearchQuery}"
                 </div>
               ) : (
@@ -685,7 +683,7 @@ export default function App() {
                       <div
                         key={res.id}
                         onClick={res.action}
-                        className="flex items-center justify-between rounded-xl px-3.5 py-3 hover:bg-white/[0.03] border border-transparent hover:border-white/[0.04] cursor-pointer group transition-all duration-150"
+                        className="flex items-center justify-between rounded-xl px-3.5 py-3 hover:bg-[#252E3E] border border-transparent hover:border-[#2D3748] cursor-pointer group transition-all duration-150"
                       >
                         <div className="flex items-center gap-3.5 min-w-0">
                           <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${res.category === 'Incident' ? 'bg-status-error/15 text-status-error' :

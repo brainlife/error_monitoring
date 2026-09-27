@@ -173,8 +173,8 @@ export default function ResourcesView({
                 onClick={() => setActiveFilter(id)}
                 className={`rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 select-none cursor-pointer ${
                   activeFilter === id
-                    ? 'bg-accent-cyan/15 text-accent-cyan ring-1 ring-accent-cyan/20'
-                    : 'bg-white/[0.01] border border-border-glass text-text-muted hover:text-text-main hover:bg-white/[0.03]'
+                    ? 'bg-accent-cyan/15 text-accent-cyan ring-1 ring-accent-cyan/30'
+                    : 'bg-[#1E2532] border border-[#2D3748] text-[#A0AEC0] hover:text-[#F7FAFC] hover:bg-[#252E3E]'
                 }`}
               >
                 {label}
@@ -183,13 +183,13 @@ export default function ResourcesView({
           </div>
 
           <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-faint" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#718096]" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search resource name or type..."
-              className="w-full sm:w-64 rounded-lg border border-border-glass bg-[#050811] py-1.5 pl-9 pr-4 font-sans text-xs text-text-main placeholder:text-text-faint focus:border-accent-cyan/40 focus:outline-none focus:ring-1 focus:ring-accent-cyan/20"
+              className="w-full sm:w-64 rounded-lg border border-[#2D3748] bg-[#121620] focus:bg-[#161C26] py-1.5 pl-9 pr-4 font-sans text-xs text-[#F7FAFC] placeholder:text-[#718096] focus:border-[#4FD1C5] focus:outline-none transition-all shadow-sm"
             />
           </div>
         </div>
@@ -197,7 +197,7 @@ export default function ResourcesView({
         {/* Resources Grid */}
         <div className="flex-1 overflow-y-auto pr-1">
           {filteredResources.length === 0 ? (
-            <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 p-10 text-center">
+            <div className="flex h-64 flex-col items-center justify-center rounded-2xl border border-dashed border-[#2D3748] p-10 text-center">
               <Server className="h-10 w-10 text-text-faint animate-pulse" />
               <p className="mt-4 text-xs font-medium text-text-muted">No compute environments match your filters</p>
             </div>
@@ -214,17 +214,17 @@ export default function ResourcesView({
                     onClick={() => setSelectedResource(r)}
                     className={`group relative flex flex-col justify-between overflow-hidden rounded-2xl border p-5 transition-all duration-200 select-none cursor-pointer ${
                       isSelected
-                        ? 'border-accent-cyan bg-accent-cyan/[0.04] ring-1 ring-accent-cyan/25 shadow-[0_0_20px_rgba(0,229,255,0.08)]'
-                        : 'border-border-glass bg-bg-dark/40 hover:border-white/20 hover:bg-white/[0.01]'
+                        ? 'border-accent-cyan bg-accent-cyan/[0.08] ring-1 ring-accent-cyan/30 shadow-sm'
+                        : 'border-[#2D3748] bg-[#1E2532] hover:border-[#4A5568] hover:shadow-sm'
                     }`}
                   >
                     {isSelected && (
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-accent-cyan shadow-[0_0_10px_#00E5FF]" />
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-accent-cyan shadow-[0_0_10px_#4FD1C5]" />
                     )}
                     {/* Header */}
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-white/[0.04] to-transparent border border-white/[0.06] text-text-muted group-hover:text-text-main transition-colors">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#161C26] border border-[#2D3748] text-text-muted group-hover:text-text-main transition-colors">
                           {(r.type || '').toLowerCase().includes('aws') ? (
                             <Network className="h-5 w-5 text-accent-purple" strokeWidth={1.75} />
                           ) : (
@@ -233,7 +233,7 @@ export default function ResourcesView({
                         </div>
                         <div>
                           <h3 className={`text-xs font-bold transition-colors ${
-                            isSelected ? 'text-accent-cyan' : 'text-text-main group-hover:text-white'
+                            isSelected ? 'text-accent-cyan' : 'text-text-main'
                           }`}>
                             {r.name}
                           </h3>
@@ -267,12 +267,12 @@ export default function ResourcesView({
                     </div>
 
                     {/* Status Message */}
-                    <div className="mt-4 rounded-lg bg-white/[0.01] border border-white/[0.03] p-3 text-[10px] text-text-muted font-mono leading-relaxed h-16 overflow-y-auto">
+                    <div className="mt-4 rounded-lg bg-[#161C26] border border-[#2D3748] p-3 text-[10px] text-text-muted font-mono leading-relaxed h-16 overflow-y-auto">
                       {r.detail}
                     </div>
 
                     {/* Footer Actions */}
-                    <div className="mt-4 flex items-center justify-between border-t border-white/[0.04] pt-4.5">
+                    <div className="mt-4 flex items-center justify-between border-t border-[#2D3748] pt-4.5">
                       <span className="text-[10px] text-text-faint font-medium">
                         ID: {r.id.slice(-8)}
                       </span>
@@ -282,7 +282,7 @@ export default function ResourcesView({
                           onTest(r.id);
                         }}
                         disabled={isTesting}
-                        className="rounded-lg border border-border-glass bg-white/[0.02] px-3 py-1.5 text-[10px] font-semibold text-text-main hover:bg-white/[0.05] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none transition-all select-none cursor-pointer"
+                        className="rounded-lg border border-[#2D3748] bg-[#161C26] px-3 py-1.5 text-[10px] font-semibold text-text-main hover:bg-[#252E3E] active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none transition-all select-none cursor-pointer"
                       >
                         {isTesting ? 'Testing...' : 'Test Connection'}
                       </button>
@@ -296,18 +296,18 @@ export default function ResourcesView({
       </div>
 
       {/* Selected Resource Detail Inspector Panel (Sidebar drawer) */}
-      <div className="w-[320px] shrink-0 overflow-y-auto rounded-2xl border border-border-glass bg-bg-dark/45 p-5 space-y-6">
+      <div className="w-[320px] shrink-0 overflow-y-auto rounded-2xl border border-[#2D3748] bg-[#1E2532] p-5 space-y-6">
         {selectedResource ? (
           <>
             {/* Header info */}
-            <div className="border-b border-white/[0.04] pb-4.5">
+            <div className="border-b border-[#2D3748] pb-4.5">
               <div className="flex items-center gap-2">
                 <Server className="h-4.5 w-4.5 text-accent-cyan" />
                 <h2 className="text-xs font-bold uppercase tracking-wider text-text-main">
                   Resource details
                 </h2>
               </div>
-              <h3 className="mt-3 text-sm font-bold text-white leading-tight">
+              <h3 className="mt-3 text-sm font-bold text-text-main leading-tight">
                 {selectedResource.name}
               </h3>
               <p className="text-[10px] text-text-muted mt-1 font-mono">
@@ -350,7 +350,7 @@ export default function ResourcesView({
                   System telemetry
                 </h4>
                 
-                <div className="space-y-3 rounded-xl border border-white/[0.04] bg-[#03060f] p-4 text-xs">
+                <div className="space-y-3 rounded-xl border border-[#2D3748] bg-[#161C26] p-4 text-xs">
                   {/* CPU Usage */}
                   <div>
                     <div className="flex justify-between text-[10px] text-text-muted mb-1 font-mono">
@@ -378,7 +378,7 @@ export default function ResourcesView({
                   </div>
 
                   {/* Details block */}
-                  <div className="grid grid-cols-2 gap-3.5 border-t border-white/[0.03] pt-3 mt-1 font-mono text-[9px] text-text-muted">
+                  <div className="grid grid-cols-2 gap-3.5 border-t border-[#2D3748] pt-3 mt-1 font-mono text-[9px] text-text-muted">
                     <div>
                       <span className="text-text-faint uppercase block mb-0.5">SSH LATENCY</span>
                       <span className="text-text-main font-bold">{metrics.latency} ms</span>
@@ -407,7 +407,7 @@ export default function ResourcesView({
                 </span>
 
                 {runningTasks.length === 0 ? (
-                  <div className="rounded-xl border border-white/[0.03] bg-white/[0.01] p-3.5 text-center text-[10px] text-text-faint">
+                  <div className="rounded-xl border border-[#2D3748] bg-[#161C26] p-3.5 text-center text-[10px] text-text-faint">
                     No active tasks executing
                   </div>
                 ) : (
@@ -415,7 +415,7 @@ export default function ResourcesView({
                     {runningTasks.map((t) => (
                       <div
                         key={t._id}
-                        className="flex items-center justify-between rounded-lg bg-white/[0.02] border border-white/[0.04] p-2 text-[10px]"
+                        className="flex items-center justify-between rounded-lg bg-[#161C26] border border-[#2D3748] p-2 text-[10px]"
                       >
                         <span className="truncate font-semibold text-text-muted max-w-[150px]" title={t.service}>
                           {t.service.split('/').pop()}
@@ -437,7 +437,7 @@ export default function ResourcesView({
                 </span>
 
                 {recentTasks.length === 0 ? (
-                  <div className="rounded-xl border border-white/[0.03] bg-white/[0.01] p-3.5 text-center text-[10px] text-text-faint">
+                  <div className="rounded-xl border border-[#2D3748] bg-[#161C26] p-3.5 text-center text-[10px] text-text-faint">
                     No recent executions
                   </div>
                 ) : (
@@ -446,7 +446,7 @@ export default function ResourcesView({
                       <div
                         key={t._id}
                         onClick={() => onNavigateToTask?.(t._id)}
-                        className="flex items-center justify-between rounded-lg bg-white/[0.01] border border-white/[0.03] p-2 text-[10px] cursor-pointer hover:bg-white/5 transition-all group"
+                        className="flex items-center justify-between rounded-lg bg-[#161C26] border border-[#2D3748] p-2 text-[10px] cursor-pointer hover:bg-[#252E3E] transition-all group"
                       >
                         <div className="min-w-0 flex-1 pr-2">
                           <p className="truncate font-semibold text-text-muted leading-tight group-hover:text-accent-cyan" title={t.service}>
@@ -469,11 +469,11 @@ export default function ResourcesView({
             </div>
 
             {/* Test button inside details panel */}
-            <div className="pt-4 border-t border-white/[0.04]">
+            <div className="pt-4 border-t border-[#2D3748]">
               <button
                 onClick={() => onTest(selectedResource.id)}
                 disabled={testingId === selectedResource.id}
-                className="w-full rounded-xl bg-accent-cyan px-4 py-2.5 text-xs font-bold text-bg-dark hover:bg-accent-cyan-dim disabled:opacity-50 transition-all select-none cursor-pointer"
+                className="w-full rounded-xl bg-[#2D3748] hover:bg-[#3A4556] border border-[#4A5568] px-4 py-2.5 text-xs font-bold text-white shadow-sm disabled:opacity-50 transition-all select-none cursor-pointer"
               >
                 {testingId === selectedResource.id ? 'Testing System...' : 'Test System Connectivity'}
               </button>

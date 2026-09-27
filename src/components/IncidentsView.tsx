@@ -435,11 +435,11 @@ export default function IncidentsView({
 
         {/* Table List container */}
         <div className="flex-1 overflow-y-auto pr-1">
-          <div className="glass overflow-hidden rounded-2xl border border-border-glass bg-bg-dark/20">
+          <div className="overflow-hidden rounded-2xl border border-border-glass bg-[#1E2532] shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse text-xs select-none">
                 <thead>
-                  <tr className="border-b border-white/[0.04] bg-white/[0.01] font-mono text-[9px] font-bold uppercase tracking-wider text-text-faint">
+                  <tr className="border-b border-border-glass bg-[#161C26] font-mono text-[9px] font-bold uppercase tracking-wider text-text-muted">
                     <th className="px-4 py-3">Severity</th>
                     <th className="px-4 py-3">Alarm Description</th>
                     <th className="px-4 py-3">Source Node</th>
@@ -449,7 +449,7 @@ export default function IncidentsView({
                     <th className="px-4 py-3">Assignee</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/[0.02] text-text-muted">
+                <tbody className="divide-y divide-[#263042] text-text-muted">
                   {filteredList.length === 0 ? (
                     <tr>
                       <td colSpan={7} className="px-4 py-16 text-center text-xs text-text-faint font-semibold">
@@ -474,8 +474,8 @@ export default function IncidentsView({
                         <tr
                           key={inc.id}
                           onClick={() => setSelectedIncidentId(isSelected ? null : inc.id)}
-                          className={`hover:bg-white/[0.01] cursor-pointer transition-colors duration-150 ${
-                            isSelected ? 'bg-accent-cyan/5 text-white font-bold' : ''
+                          className={`hover:bg-[#252E3E] cursor-pointer transition-colors duration-150 ${
+                            isSelected ? 'bg-[#202E40] text-text-main font-bold' : ''
                           }`}
                         >
                           {/* Severity */}
@@ -540,16 +540,16 @@ export default function IncidentsView({
       </div>
 
       {/* Right Incident Diagnostics Inspector Panel */}
-      <div className="w-[320px] shrink-0 overflow-y-auto rounded-2xl border border-border-glass bg-bg-dark/45 p-5 space-y-5">
+      <div className="w-[320px] shrink-0 overflow-y-auto rounded-2xl border border-border-glass bg-[#1E2532] shadow-sm p-5 space-y-5">
         {selectedIncident ? (
           <>
             {/* Header Title */}
-            <div className="border-b border-white/[0.04] pb-4.5 space-y-1.5">
+            <div className="border-b border-border-glass pb-4.5 space-y-1.5">
               <div className="flex items-center gap-2">
                 <AlertOctagon className="h-4.5 w-4.5 text-status-error" />
                 <span className="text-[9px] font-bold uppercase tracking-wider text-text-faint font-mono">Incident Diagnostics</span>
               </div>
-              <h3 className="text-sm font-bold text-white leading-tight">
+              <h3 className="text-sm font-bold text-text-main leading-tight">
                 {selectedIncident.title}
               </h3>
               <p className="font-mono text-[9px] text-text-faint tracking-tight break-all uppercase">
@@ -559,7 +559,7 @@ export default function IncidentsView({
 
             {/* Incident Details Metadata list */}
             <div className="space-y-4 text-xs">
-              <div className="flex justify-between items-center border-b border-white/[0.02] pb-1.5">
+              <div className="flex justify-between items-center border-b border-border-glass pb-1.5">
                 <span className="text-text-faint font-mono text-[9px] uppercase">Node Resource</span>
                 <button
                   onClick={() => onNavigateToResource?.(selectedIncident.resource)}
@@ -569,17 +569,17 @@ export default function IncidentsView({
                 </button>
               </div>
 
-              <div className="flex justify-between items-center border-b border-white/[0.02] pb-1.5">
+              <div className="flex justify-between items-center border-b border-border-glass pb-1.5">
                 <span className="text-text-faint font-mono text-[9px] uppercase">Triggered At</span>
                 <span className="font-semibold text-text-main">{selectedIncident.triggeredAt}</span>
               </div>
 
-              <div className="flex justify-between items-center border-b border-white/[0.02] pb-1.5">
+              <div className="flex justify-between items-center border-b border-border-glass pb-1.5">
                 <span className="text-text-faint font-mono text-[9px] uppercase">Duration Active</span>
                 <span className="font-mono font-semibold text-text-main">{selectedIncident.duration}</span>
               </div>
 
-              <div className="flex justify-between items-center border-b border-white/[0.02] pb-1.5">
+              <div className="flex justify-between items-center border-b border-border-glass pb-1.5">
                 <span className="text-text-faint font-mono text-[9px] uppercase">Current Assignee</span>
                 <span className="font-semibold text-text-main">
                   {selectedIncident.assignee || 'Unassigned'}
@@ -590,7 +590,7 @@ export default function IncidentsView({
             {/* Error Message logs */}
             <div className="space-y-2">
               <span className="text-text-faint font-mono text-[9px] uppercase block">Diagnostics Details</span>
-              <div className="rounded-xl border border-white/[0.03] bg-[#050811] p-3 text-[10px] text-text-muted leading-relaxed font-mono whitespace-pre-wrap max-h-48 overflow-y-auto select-text selection:bg-accent-cyan/25 selection:text-white">
+              <div className="rounded-xl border border-border-glass bg-[#121620] p-3 text-[10px] text-emerald-400 leading-relaxed font-mono whitespace-pre-wrap max-h-48 overflow-y-auto select-text">
                 {loadingLogs ? (
                   <span className="text-text-faint italic animate-pulse">Fetching incident logs from Elasticsearch...</span>
                 ) : (
@@ -600,9 +600,9 @@ export default function IncidentsView({
             </div>
 
             {/* Incident Timeline */}
-            <div className="space-y-3 border-t border-white/[0.04] pt-4">
+            <div className="space-y-3 border-t border-border-glass pt-4">
               <span className="text-text-faint font-mono text-[9px] uppercase block">Incident Timeline</span>
-              <div className="relative space-y-3 before:absolute before:left-[9px] before:top-2 before:bottom-2 before:w-[1px] before:bg-white/[0.08]">
+              <div className="relative space-y-3 before:absolute before:left-[9px] before:top-2 before:bottom-2 before:w-[1px] before:bg-border-glass">
                 {timelineSteps.map((step, idx) => {
                   const isCompleted = step.status === 'completed';
                   const isCurrent = step.status === 'current';
@@ -616,7 +616,7 @@ export default function IncidentsView({
                           ? 'bg-status-success border-status-success/35 shadow-[0_0_6px_rgba(16,185,129,0.5)]' 
                           : isCurrent 
                           ? 'bg-status-warning border-status-warning/35 animate-pulse shadow-[0_0_6px_rgba(245,158,11,0.5)]' 
-                          : 'bg-[#050811] border-white/10 text-text-faint'
+                          : 'bg-[#1E2532] border-[#2D3748] text-text-faint'
                       }`} />
                       
                       <span className={`font-semibold leading-tight pr-2 ${isPending ? 'text-text-faint italic font-normal' : 'text-text-main font-bold'}`}>
@@ -633,7 +633,7 @@ export default function IncidentsView({
             </div>
 
             {/* Action operations controls */}
-            <div className="space-y-3.5 border-t border-white/[0.04] pt-4.5">
+            <div className="space-y-3.5 border-t border-border-glass pt-4.5">
               
               {/* Owner Assignment selection */}
               <div className="space-y-1.5">
@@ -641,7 +641,7 @@ export default function IncidentsView({
                 <select
                   value={selectedIncident.assignee || 'Unassigned'}
                   onChange={(e) => handleAssign(selectedIncident.id, e.target.value)}
-                  className="w-full rounded-lg border border-border-glass bg-[#050811] py-1.5 px-3 text-xs text-text-main focus:border-accent-cyan/40 focus:outline-none cursor-pointer"
+                  className="w-full rounded-lg border border-border-glass bg-[#161C26] focus:bg-[#1E2532] py-1.5 px-3 text-xs text-text-main focus:border-[#3182CE] focus:outline-none cursor-pointer shadow-sm"
                 >
                   {teamList.map((m) => (
                     <option key={m} value={m}>{m}</option>
@@ -654,7 +654,7 @@ export default function IncidentsView({
                 {selectedIncident.status === 'Triggered' && (
                   <button
                     onClick={() => handleAcknowledge(selectedIncident.id, 'Patrick Filima')}
-                    className="flex-1 flex justify-center items-center gap-1.5 rounded-lg bg-accent-cyan py-2 px-3 text-xs font-bold text-[#050811] hover:bg-accent-cyan-dim active:scale-[0.98] transition-all cursor-pointer shadow-[0_0_12px_rgba(0,229,255,0.2)]"
+                    className="flex-1 flex justify-center items-center gap-1.5 rounded-lg bg-[#2D3748] hover:bg-[#1A202C] py-2 px-3 text-xs font-bold text-white active:scale-[0.98] transition-all cursor-pointer shadow-sm"
                   >
                     <Eye className="h-3.5 w-3.5" />
                     Acknowledge
@@ -674,7 +674,7 @@ export default function IncidentsView({
             </div>
 
             {selectedIncident.taskId && (
-              <div className="border-t border-white/[0.04] pt-4 text-[9px] text-text-faint font-mono leading-relaxed">
+              <div className="border-t border-border-glass pt-4 text-[9px] text-text-faint font-mono leading-relaxed">
                 🔗 Mapped Task ID:{' '}
                 <button
                   onClick={() => onNavigateToTask?.(selectedIncident.taskId!)}

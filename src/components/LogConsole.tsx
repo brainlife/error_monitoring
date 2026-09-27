@@ -405,10 +405,10 @@ export default function LogConsole({ task }: LogConsoleProps) {
 
   if (isCollapsed) {
     return (
-      <div className="flex h-full w-12 flex-col items-center bg-bg-dark/60 shrink-0 border-l border-border-glass py-4 transition-all duration-300">
+      <div className="flex h-full w-12 flex-col items-center bg-[#181F2A] shrink-0 border-l border-[#2D3748] py-4 transition-all duration-300">
         <button
           onClick={() => setIsCollapsed(false)}
-          className="flex h-8 w-8 items-center justify-center rounded-lg border border-border-glass bg-white/[0.01] text-text-muted hover:text-text-main hover:bg-white/[0.03] transition-all cursor-pointer"
+          className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D3748] bg-[#1E2532] text-[#A0AEC0] hover:text-[#F7FAFC] hover:bg-[#252E3E] transition-all cursor-pointer shadow-sm"
           title="Expand console"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -419,7 +419,7 @@ export default function LogConsole({ task }: LogConsoleProps) {
             <span className="h-1.5 w-1.5 rounded-full bg-status-success animate-pulse" />
           )}
         </div>
-        <div className="mt-12 select-none font-mono text-[9px] font-bold uppercase tracking-widest text-text-faint [writing-mode:vertical-lr] rotate-180">
+        <div className="mt-12 select-none font-mono text-[9px] font-bold uppercase tracking-widest text-[#718096] [writing-mode:vertical-lr] rotate-180">
           LOG CONSOLE
         </div>
       </div>
@@ -427,13 +427,13 @@ export default function LogConsole({ task }: LogConsoleProps) {
   }
 
   return (
-    <div className="flex h-full flex-col bg-bg-dark/40 w-[420px] shrink-0 border-l border-border-glass transition-all duration-300">
+    <div className="flex h-full flex-col bg-[#181F2A] w-[420px] shrink-0 border-l border-[#2D3748] transition-all duration-300">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/[0.04] px-5 py-4 shrink-0">
+      <div className="flex items-center justify-between border-b border-[#2D3748] px-5 py-4 shrink-0 bg-[#141A23]">
         <div className="flex items-center gap-2">
           <Terminal className="h-4.5 w-4.5 text-accent-cyan" strokeWidth={1.75} />
           <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-text-main flex items-center gap-2">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-[#F7FAFC] flex items-center gap-2">
               Log Console
               {task?.status === 'running' && (
                 <span className="flex items-center gap-1 rounded-full bg-status-success/15 px-2 py-0.5 text-[9px] font-bold text-status-success animate-pulse">
@@ -442,7 +442,7 @@ export default function LogConsole({ task }: LogConsoleProps) {
                 </span>
               )}
             </h2>
-            <p className="text-[10px] text-text-muted mt-0.5">
+            <p className="text-[10px] text-[#A0AEC0] mt-0.5">
               {loading ? 'Retrieving task logs...' : `Total logs: ${visibleLogs.length} events`}
             </p>
           </div>
@@ -451,7 +451,7 @@ export default function LogConsole({ task }: LogConsoleProps) {
           {task && (
             <button
               onClick={downloadLogs}
-              className="flex h-8 w-8 items-center justify-center rounded-lg border border-border-glass bg-white/[0.01] text-text-muted hover:text-text-main hover:bg-white/[0.03] transition-all duration-150 cursor-pointer"
+              className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D3748] bg-[#1E2532] text-[#A0AEC0] hover:text-[#F7FAFC] hover:bg-[#252E3E] transition-all duration-150 cursor-pointer shadow-sm"
               title="Download raw log file"
             >
               <Download className="h-4 w-4" />
@@ -459,14 +459,14 @@ export default function LogConsole({ task }: LogConsoleProps) {
           )}
           <button
             onClick={handleClear}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border-glass bg-white/[0.01] text-text-muted hover:text-text-main hover:bg-white/[0.03] transition-all duration-150 cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D3748] bg-[#1E2532] text-[#A0AEC0] hover:text-[#F7FAFC] hover:bg-[#252E3E] transition-all duration-150 cursor-pointer shadow-sm"
             title="Clear console"
           >
             <Trash2 className="h-4 w-4" />
           </button>
           <button
             onClick={() => setIsCollapsed(true)}
-            className="flex h-8 w-8 items-center justify-center rounded-lg border border-border-glass bg-white/[0.01] text-text-muted hover:text-text-main hover:bg-white/[0.03] transition-all duration-150 cursor-pointer"
+            className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#2D3748] bg-[#1E2532] text-[#A0AEC0] hover:text-[#F7FAFC] hover:bg-[#252E3E] transition-all duration-150 cursor-pointer shadow-sm"
             title="Collapse console"
           >
             <ChevronRight className="h-4 w-4" />
@@ -476,13 +476,13 @@ export default function LogConsole({ task }: LogConsoleProps) {
 
       {/* Tab Switcher */}
       {task && (
-        <div className="flex border-b border-white/[0.04] bg-[#050811]/45 shrink-0 px-4 select-none">
+        <div className="flex border-b border-[#2D3748] bg-[#141A23] shrink-0 px-4 select-none">
           <button
             onClick={() => setActiveTab('logs')}
             className={`px-4 py-2 text-xs font-semibold tracking-wider transition-all duration-150 border-b-2 cursor-pointer ${
               activeTab === 'logs'
-                ? 'border-accent-cyan text-accent-cyan bg-white/[0.01]'
-                : 'border-transparent text-text-muted hover:text-text-main'
+                ? 'border-accent-cyan text-accent-cyan bg-[#181F2A]'
+                : 'border-transparent text-[#A0AEC0] hover:text-[#F7FAFC]'
             }`}
           >
             Terminal Logs
@@ -491,8 +491,8 @@ export default function LogConsole({ task }: LogConsoleProps) {
             onClick={() => setActiveTab('warehouse')}
             className={`px-4 py-2 text-xs font-semibold tracking-wider transition-all duration-150 border-b-2 cursor-pointer ${
               activeTab === 'warehouse'
-                ? 'border-accent-cyan text-accent-cyan bg-white/[0.01]'
-                : 'border-transparent text-text-muted hover:text-text-main'
+                ? 'border-accent-cyan text-accent-cyan bg-[#181F2A]'
+                : 'border-transparent text-[#A0AEC0] hover:text-[#F7FAFC]'
             }`}
           >
             Warehouse Data
@@ -503,17 +503,17 @@ export default function LogConsole({ task }: LogConsoleProps) {
       {activeTab === 'logs' && (
         <>
           {/* Control panel: Search & Filters */}
-          <div className="p-4 border-b border-white/[0.03] shrink-0 bg-white/[0.01]">
+          <div className="p-4 border-b border-[#2D3748] shrink-0 bg-[#161C26]">
             {/* Search */}
             <div className="relative">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-text-faint" />
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#718096]" />
               <input
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Search logs... (e.g. ERROR, service)"
-                className="w-full rounded-lg border border-border-glass bg-[#050811] py-1.5 pl-9 pr-14 font-mono text-xs text-text-main placeholder:text-text-faint focus:border-accent-cyan/40 focus:outline-none focus:ring-1 focus:ring-accent-cyan/20"
+                className="w-full rounded-lg border border-[#2D3748] bg-[#121620] focus:bg-[#161C26] py-1.5 pl-9 pr-14 font-mono text-xs text-[#F7FAFC] placeholder:text-[#718096] focus:border-[#4FD1C5] focus:outline-none transition-all shadow-sm"
               />
-              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-white/10 px-1 font-mono text-[9px] text-text-faint">
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 rounded border border-[#2D3748] bg-[#1E2532] px-1 font-mono text-[9px] text-[#A0AEC0]">
                 ⌘K
               </div>
             </div>
@@ -524,15 +524,15 @@ export default function LogConsole({ task }: LogConsoleProps) {
               <div className="relative">
                 <button
                   onClick={() => setOpenDropdown(openDropdown === 'services' ? null : 'services')}
-                  className="w-full flex items-center justify-between rounded-lg border border-border-glass bg-white/[0.01] px-2.5 py-1.5 text-[10px] font-medium text-text-muted hover:border-white/[0.12] hover:text-text-main transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-between rounded-lg border border-[#2D3748] bg-[#121620] hover:bg-[#1E2532] px-2.5 py-1.5 text-[10px] font-medium text-[#A0AEC0] hover:text-[#F7FAFC] transition-colors cursor-pointer shadow-sm"
                 >
                   <span className="truncate" title={selectedService}>
                     {selectedService.split('/').pop() || selectedService}
                   </span>
-                  <ChevronDown className={`h-3.5 w-3.5 text-text-faint shrink-0 transition-transform duration-200 ${openDropdown === 'services' ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`h-3.5 w-3.5 text-[#718096] shrink-0 transition-transform duration-200 ${openDropdown === 'services' ? 'rotate-180' : ''}`} />
                 </button>
                 {openDropdown === 'services' && (
-                  <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border-glass bg-[#050811] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+                  <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-[#2D3748] bg-[#1E2532] p-1 shadow-xl">
                     {services.map((s) => (
                       <button
                         key={s}
@@ -542,8 +542,8 @@ export default function LogConsole({ task }: LogConsoleProps) {
                         }}
                         className={`w-full text-left rounded px-2 py-1.5 text-[10px] transition-colors truncate cursor-pointer ${
                           selectedService === s
-                            ? 'bg-accent-cyan/10 text-accent-cyan font-semibold'
-                            : 'text-text-muted hover:bg-white/5 hover:text-text-main'
+                            ? 'bg-[#252E3E] text-[#4FD1C5] font-semibold'
+                            : 'text-[#A0AEC0] hover:bg-[#252E3E] hover:text-[#F7FAFC]'
                         }`}
                         title={s}
                       >
@@ -558,17 +558,17 @@ export default function LogConsole({ task }: LogConsoleProps) {
               <div className="relative">
                 <button
                   onClick={() => setOpenDropdown(openDropdown === 'projects' ? null : 'projects')}
-                  className="w-full flex items-center justify-between rounded-lg border border-border-glass bg-white/[0.01] px-2.5 py-1.5 text-[10px] font-medium text-text-muted hover:border-white/[0.12] hover:text-text-main transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-between rounded-lg border border-[#2D3748] bg-[#121620] hover:bg-[#1E2532] px-2.5 py-1.5 text-[10px] font-medium text-[#A0AEC0] hover:text-[#F7FAFC] transition-colors cursor-pointer shadow-sm"
                 >
                   <span className="truncate">
                     {selectedProject === 'All Projects'
                       ? 'All Projects'
                       : (projectNamesMap[selectedProject] || selectedProject.slice(-6))}
                   </span>
-                  <ChevronDown className={`h-3.5 w-3.5 text-text-faint shrink-0 transition-transform duration-200 ${openDropdown === 'projects' ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`h-3.5 w-3.5 text-[#718096] shrink-0 transition-transform duration-200 ${openDropdown === 'projects' ? 'rotate-180' : ''}`} />
                 </button>
                 {openDropdown === 'projects' && (
-                  <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border-glass bg-[#050811] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+                  <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-[#2D3748] bg-[#1E2532] p-1 shadow-xl">
                     {projects.map((p) => (
                       <button
                         key={p.id}
@@ -578,8 +578,8 @@ export default function LogConsole({ task }: LogConsoleProps) {
                         }}
                         className={`w-full text-left rounded px-2 py-1.5 text-[10px] transition-colors truncate cursor-pointer ${
                           selectedProject === p.id
-                            ? 'bg-accent-cyan/10 text-accent-cyan font-semibold'
-                            : 'text-text-muted hover:bg-white/5 hover:text-text-main'
+                            ? 'bg-[#252E3E] text-[#4FD1C5] font-semibold'
+                            : 'text-[#A0AEC0] hover:bg-[#252E3E] hover:text-[#F7FAFC]'
                         }`}
                         title={p.name}
                       >
@@ -594,13 +594,13 @@ export default function LogConsole({ task }: LogConsoleProps) {
               <div className="relative">
                 <button
                   onClick={() => setOpenDropdown(openDropdown === 'timeframe' ? null : 'timeframe')}
-                  className="w-full flex items-center justify-between rounded-lg border border-border-glass bg-white/[0.01] px-2.5 py-1.5 text-[10px] font-medium text-text-muted hover:border-white/[0.12] hover:text-text-main transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-between rounded-lg border border-[#2D3748] bg-[#121620] hover:bg-[#1E2532] px-2.5 py-1.5 text-[10px] font-medium text-[#A0AEC0] hover:text-[#F7FAFC] transition-colors cursor-pointer shadow-sm"
                 >
                   <span className="truncate">{selectedTimeframe}</span>
-                  <ChevronDown className={`h-3.5 w-3.5 text-text-faint shrink-0 transition-transform duration-200 ${openDropdown === 'timeframe' ? 'rotate-180' : ''}`} />
+                  <ChevronDown className={`h-3.5 w-3.5 text-[#718096] shrink-0 transition-transform duration-200 ${openDropdown === 'timeframe' ? 'rotate-180' : ''}`} />
                 </button>
                 {openDropdown === 'timeframe' && (
-                  <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-border-glass bg-[#050811] p-1 shadow-[0_8px_24px_rgba(0,0,0,0.6)] backdrop-blur-xl">
+                  <div className="absolute left-0 right-0 z-50 mt-1 max-h-48 overflow-y-auto rounded-lg border border-[#2D3748] bg-[#1E2532] p-1 shadow-xl">
                     {['Last 1h', 'Last 24h', 'Last 7d', 'All Time'].map((t) => (
                       <button
                         key={t}
@@ -610,8 +610,8 @@ export default function LogConsole({ task }: LogConsoleProps) {
                         }}
                         className={`w-full text-left rounded px-2 py-1.5 text-[10px] transition-colors truncate cursor-pointer ${
                           selectedTimeframe === t
-                            ? 'bg-accent-cyan/10 text-accent-cyan font-semibold'
-                            : 'text-text-muted hover:bg-white/5 hover:text-text-main'
+                            ? 'bg-[#252E3E] text-[#4FD1C5] font-semibold'
+                            : 'text-[#A0AEC0] hover:bg-[#252E3E] hover:text-[#F7FAFC]'
                         }`}
                       >
                         {t}
@@ -633,13 +633,13 @@ export default function LogConsole({ task }: LogConsoleProps) {
                       ? 'bg-accent-cyan/20 text-accent-cyan ring-1 ring-accent-cyan/30'
                       : f === 'ERROR'
                       ? 'bg-status-error/15 text-status-error border border-status-error/20 hover:bg-status-error/25'
-                      : 'bg-white/5 text-text-muted hover:bg-white/10 hover:text-text-main border border-white/[0.04]'
+                      : 'bg-[#1E2532] text-[#A0AEC0] hover:bg-[#252E3E] hover:text-[#F7FAFC] border border-[#2D3748]'
                   }`}
                 >
                   {f}
                 </button>
               ))}
-              <button className="flex items-center gap-0.5 rounded border border-dashed border-white/20 bg-transparent px-1.5 py-0.5 font-mono text-[9px] text-text-faint hover:text-text-main hover:border-white/40 transition-colors">
+              <button className="flex items-center gap-0.5 rounded border border-dashed border-[#2D3748] bg-transparent px-1.5 py-0.5 font-mono text-[9px] text-[#A0AEC0] hover:text-[#F7FAFC] hover:border-[#4A5568] transition-colors">
                 <Plus className="h-2.5 w-2.5" />
                 Add filter
               </button>
@@ -648,9 +648,9 @@ export default function LogConsole({ task }: LogConsoleProps) {
 
           {/* Terminal panel */}
           <div className="flex-1 min-h-0 p-4">
-            <div className="terminal-panel flex h-full flex-col overflow-hidden rounded-xl bg-[#03060f] border border-white/[0.04]">
+            <div className="terminal-panel flex h-full flex-col overflow-hidden rounded-xl bg-[#1A202C] border border-[#2D3748]">
               {/* Header tabs bar */}
-              <div className="flex items-center justify-between border-b border-white/5 bg-[#050811]/90 px-3.5 py-2 shrink-0 select-none">
+              <div className="flex items-center justify-between border-b border-[#2D3748] bg-[#171923] px-3.5 py-2 shrink-0 select-none">
                 <div className="flex gap-1.5">
                   <span className="h-2.5 w-2.5 rounded-full bg-status-error/60" />
                   <span className="h-2.5 w-2.5 rounded-full bg-status-warning/60" />
@@ -769,16 +769,16 @@ export default function LogConsole({ task }: LogConsoleProps) {
                 ) : (
                   <div className="space-y-1.5 pl-4">
                     {inputDatasets.map((ds) => (
-                      <div key={ds._id} className="p-3 rounded-xl border border-white/[0.03] bg-[#03060f] flex items-center justify-between text-xs hover:border-white/10 transition-colors">
+                      <div key={ds._id} className="p-3 rounded-xl border border-[#2D3748] bg-[#161C26] flex items-center justify-between text-xs hover:border-[#4A5568] transition-colors shadow-sm">
                         <div className="min-w-0 flex-1">
-                          <div className="font-semibold text-text-main flex items-center gap-1.5">
+                          <div className="font-semibold text-[#F7FAFC] flex items-center gap-1.5">
                             <span className="text-[9px] uppercase font-bold text-accent-cyan px-1 bg-accent-cyan/15 rounded shrink-0">
                               {ds.datatype?.name?.split('/').pop() || ds.datatype || 'Data'}
                             </span>
                             <span className="truncate font-mono" title={ds.desc || ds._id}>{ds.desc || ds._id.slice(-8)}</span>
                           </div>
-                          <div className="text-[9px] text-text-faint mt-1">
-                            Storage: <span className="font-mono text-text-muted">{ds.storage || 'S3 Bucket'}</span>
+                          <div className="text-[9px] text-[#718096] mt-1">
+                            Storage: <span className="font-mono text-[#A0AEC0]">{ds.storage || 'S3 Bucket'}</span>
                             {ds.size && ` • ${Math.round(ds.size / 1024 / 1024)} MB`}
                           </div>
                         </div>
@@ -800,7 +800,7 @@ export default function LogConsole({ task }: LogConsoleProps) {
               </div>
 
               {/* Outputs section */}
-              <div className="space-y-2 pt-2 border-t border-white/[0.03]">
+              <div className="space-y-2 pt-2 border-t border-[#2D3748]">
                 <h3 className="text-[10px] font-bold uppercase tracking-wider text-text-muted flex items-center gap-1.5 animate-pulse">
                   <ChevronDown className="h-3.5 w-3.5 text-accent-cyan" />
                   Generated Outputs ({outputDatasets.length > 0 ? outputDatasets.length : outputCount > 0 ? `${outputCount} Restricted` : '0'})
@@ -822,15 +822,15 @@ export default function LogConsole({ task }: LogConsoleProps) {
                 ) : (
                   <div className="space-y-1.5 pl-4">
                     {outputDatasets.map((ds) => (
-                      <div key={ds._id} className="p-3 rounded-xl border border-white/[0.03] bg-[#03060f] flex items-center justify-between text-xs hover:border-white/10 transition-colors">
+                      <div key={ds._id} className="p-3 rounded-xl border border-[#2D3748] bg-[#161C26] flex items-center justify-between text-xs hover:border-[#4A5568] transition-colors shadow-sm">
                         <div className="min-w-0 flex-1">
-                          <div className="font-semibold text-text-main flex items-center gap-1.5">
+                          <div className="font-semibold text-[#F7FAFC] flex items-center gap-1.5">
                             <span className="text-[9px] uppercase font-bold text-status-success px-1 bg-status-success/15 rounded shrink-0">
                               {ds.datatype?.name?.split('/').pop() || ds.datatype || 'Data'}
                             </span>
                             <span className="truncate font-mono" title={ds.desc || ds._id}>{ds.desc || ds._id.slice(-8)}</span>
                           </div>
-                          <div className="text-[9px] text-text-faint mt-1">
+                          <div className="text-[9px] text-[#718096] mt-1">
                             Status: <span className={`font-bold uppercase text-[9px] ${ds.status === 'stored' ? 'text-status-success' : 'text-status-warning'}`}>{ds.status}</span>
                             {ds.size && ` • ${Math.round(ds.size / 1024 / 1024)} MB`}
                           </div>
@@ -855,9 +855,9 @@ export default function LogConsole({ task }: LogConsoleProps) {
       )}
 
       {/* Footer Diagnostic Panel */}
-      <div className="border-t border-white/[0.04] p-4 shrink-0 flex items-center justify-between bg-white/[0.01]">
+      <div className="border-t border-[#2D3748] p-4 shrink-0 flex items-center justify-between bg-[#141A23]">
         <div className="text-xs">
-          <span className="text-text-muted">Viewing Task ID:</span>{' '}
+          <span className="text-[#A0AEC0]">Viewing Task ID:</span>{' '}
           <span className="font-mono font-bold text-accent-cyan">
             {task ? task.id.slice(-8) : '--'}
           </span>
@@ -865,11 +865,11 @@ export default function LogConsole({ task }: LogConsoleProps) {
         <button 
           onClick={() => activeTab === 'logs' ? fetchLogs(true) : fetchWarehouseData()}
           disabled={!task || (activeTab === 'warehouse' && warehouseLoading)}
-          className="flex items-center gap-1.5 rounded-lg border border-border-glass bg-white/[0.02] px-3.5 py-2 text-xs font-semibold text-text-main hover:bg-white/[0.05] hover:border-white/20 active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none select-none"
+          className="flex items-center gap-1.5 rounded-lg border border-[#2D3748] bg-[#1E2532] px-3.5 py-2 text-xs font-semibold text-[#F7FAFC] hover:bg-[#252E3E] active:scale-[0.98] transition-all disabled:opacity-50 disabled:pointer-events-none select-none shadow-sm cursor-pointer"
         >
           <Cloud className="h-4 w-4 text-status-running" />
           <span>{activeTab === 'logs' ? 'Refresh Logs' : 'Refresh Data'}</span>
-          <ExternalLink className="h-3.5 w-3.5 text-text-faint" />
+          <ExternalLink className="h-3.5 w-3.5 text-[#A0AEC0]" />
         </button>
       </div>
     </div>

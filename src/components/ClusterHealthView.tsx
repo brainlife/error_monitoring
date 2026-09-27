@@ -23,16 +23,15 @@ import {
   ShieldAlert,
   Play,
   Layers,
-  Filter,
-  SlidersHorizontal,
-  FileText
+  Filter
 } from 'lucide-react';
 import type { View } from './Sidebar';
 import { 
   fetchResourceHealthAll, 
   refreshResourceHealth, 
   type ResourceHealthAllResponse,
-  type SlurmJob
+  type SlurmJob,
+  type ResourceMountHealth
 } from '../api';
 import { useDashboardStore } from '../store/useDashboardStore';
 
@@ -514,24 +513,35 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
   }, [selectedNode, slurmNodeJobs]);
 
   // Associated storage mounts for the selected node's cluster
-  const nodeClusterMounts = useMemo(() => {
-    if (!selectedNode || !liveHealthData?.resources) return vmStorageMounts;
+  const nodeClusterMounts = useMemo<ResourceMountHealth[]>(() => {
+    if (!selectedNode || !liveHealthData?.resources) return [];
     const clusterResource = liveHealthData.resources.find(
       r => r.resource_name.toLowerCase() === selectedNode.cluster.toLowerCase()
     );
     if (clusterResource && clusterResource.mounts && clusterResource.mounts.length > 0) {
       return clusterResource.mounts;
     }
-    return vmStorageMounts;
+    const clusterMounts = vmStorageMounts.filter(
+      m => m.hostName.toLowerCase() === selectedNode.cluster.toLowerCase()
+    );
+    const source = clusterMounts.length > 0 ? clusterMounts : vmStorageMounts;
+    return source.map(m => ({
+      mount: m.mount,
+      accessible: m.accessible,
+      latency_ms: m.latency_ms,
+      free_space_pct: m.freePct ?? 0,
+      warning: m.warning,
+      error: m.error
+    }));
   }, [selectedNode, liveHealthData, vmStorageMounts]);
 
   return (
     <div className="space-y-6 pb-12">
       {/* Top Header Bar */}
-      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-white/[0.06] pb-5">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-border-glass pb-5">
         <div>
           <div className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent-cyan/15 border border-accent-cyan/30 text-accent-cyan shadow-[0_0_12px_rgba(0,229,255,0.2)]">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#1E2532] border border-border-glass text-text-muted shadow-sm">
               <Cpu className="h-5 w-5" />
             </div>
             <div>
@@ -540,19 +550,19 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
                   Cluster & Jetstream2 VM Health Monitor
                 </h1>
                 {isLiveConnected ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-status-success/15 px-2.5 py-0.5 text-[10px] font-bold font-mono text-status-success ring-1 ring-status-success/30">
-                    <span className="h-1.5 w-1.5 rounded-full bg-status-success animate-pulse" />
-                    Live Amaretti Telemetry Active
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-[#161C26] px-2.5 py-0.5 text-[10px] font-mono text-text-muted border border-border-glass">
+                    <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                    Live Telemetry Active
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-bold font-mono text-amber-300 ring-1 ring-amber-500/30">
-                    <AlertTriangle className="h-3 w-3 text-amber-400" />
+                  <span className="inline-flex items-center gap-1.5 rounded-md bg-[#161C26] px-2.5 py-0.5 text-[10px] font-mono text-text-muted border border-border-glass">
+                    <span className="h-1.5 w-1.5 rounded-full bg-amber-400" />
                     Live Telemetry Unavailable
                   </span>
                 )}
               </div>
               <p className="text-xs text-text-muted mt-0.5 font-sans">
-                Real-time daemon health probes from <strong className="text-accent-cyan font-mono">GET /resource/health/all</strong> covering <strong className="text-amber-300 font-mono">all storage mounts</strong>, <strong className="text-accent-cyan font-mono">SLURM nodes (sinfo)</strong>, and <strong className="text-accent-purple font-mono">compute jobs (squeue)</strong>
+                Real-time daemon health probes from <strong className="text-white font-mono">GET /resource/health/all</strong> covering storage mounts, SLURM nodes, and compute jobs
               </p>
             </div>
           </div>
@@ -560,19 +570,13 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
 
         {/* Global Controls & Status */}
         <div className="flex items-center gap-3 self-end md:self-auto font-mono text-xs">
-          <div className={`flex items-center gap-2 rounded-xl border px-3 py-1.5 ${
-            !isLiveConnected
-              ? 'border-white/10 bg-white/[0.03] text-text-muted'
-              : hasSystemWarnings 
-              ? 'border-amber-500/30 bg-amber-500/10 text-amber-300'
-              : 'border-status-success/30 bg-status-success/10 text-status-success'
-          }`}>
-            <ShieldCheck className={`h-4 w-4 ${hasSystemWarnings ? 'text-amber-400' : isLiveConnected ? 'animate-pulse' : 'text-text-muted'}`} />
+          <div className="flex items-center gap-2 rounded-xl border border-border-glass bg-[#1E2532] px-3 py-1.5 text-text-muted shadow-sm">
+            <ShieldCheck className={`h-4 w-4 ${hasSystemWarnings ? 'text-amber-400' : 'text-emerald-400'}`} />
             <span>
               {!isLiveConnected 
-                ? 'Probes Offline / Unauthenticated' 
+                ? 'Probes Offline' 
                 : hasSystemWarnings 
-                ? 'Cluster Warnings Detected' 
+                ? 'Cluster Warnings' 
                 : 'All Probes Operational'}
             </span>
           </div>
@@ -580,10 +584,10 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
           <button
             onClick={() => loadHealthData(true)}
             disabled={isRefreshing}
-            className="flex items-center gap-1.5 rounded-xl border border-border-glass bg-white/[0.03] px-3.5 py-1.5 font-bold text-white hover:bg-white/[0.07] transition-all cursor-pointer disabled:opacity-50"
+            className="flex items-center gap-1.5 rounded-xl border border-border-glass bg-[#1E2532] hover:bg-[#252E3E] px-3.5 py-1.5 font-bold text-white transition-all cursor-pointer disabled:opacity-50 shadow-sm"
             title="Bypasses 5-minute Redis cache via POST /resource/:id/health/refresh"
           >
-            <RefreshCw className={`h-3.5 w-3.5 text-accent-cyan ${isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 text-text-muted ${isRefreshing ? 'animate-spin' : ''}`} />
             <span>{isRefreshing ? 'Polling Probes...' : 'Run Probes'}</span>
           </button>
         </div>
@@ -591,35 +595,35 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
 
       {/* Telemetry Unavailable / Auth Required Alert Banner */}
       {!isLiveConnected && !isLoading && (
-        <div className="glass rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-[#0a0f1e] to-amber-500/5 p-5 space-y-3 animate-fadeIn">
+        <div className="rounded-2xl border border-border-glass bg-[#1E2532] p-5 space-y-3 shadow-sm animate-fadeIn">
           <div className="flex items-start justify-between gap-4">
             <div className="flex items-start gap-3">
-              <div className="rounded-xl bg-amber-500/20 p-2.5 text-amber-400 border border-amber-500/30 shrink-0 mt-0.5">
+              <div className="rounded-xl bg-[#161C26] p-2.5 text-text-muted border border-border-glass shrink-0 mt-0.5">
                 <Lock className="h-5 w-5" />
               </div>
               <div className="space-y-1">
                 <h3 className="font-mono text-sm font-bold text-white flex items-center gap-2">
                   Live Infrastructure Health Telemetry Unavailable
-                  <span className="text-[10px] font-normal text-amber-300 font-sans">(Simulated fallbacks disabled for accuracy)</span>
+                  <span className="text-[10px] font-normal text-text-muted font-sans">(Simulated fallbacks disabled for accuracy)</span>
                 </h3>
                 <p className="text-xs text-text-muted leading-relaxed">
                   {apiError || 'The live endpoint GET https://brainlife.io/api/amaretti/resource/health/all requires an active Admin JWT token.'}
                 </p>
                 <div className="pt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] font-mono text-text-faint">
-                  <span>Backend Cache: <strong className="text-text-main">5 min (Redis)</strong></span>
+                  <span>Backend Cache: <strong className="text-white">5 min (Redis)</strong></span>
                   <span>•</span>
-                  <span>Historical Persistence: <strong className="text-text-main">90 days (MongoDB)</strong></span>
+                  <span>Historical Persistence: <strong className="text-white">90 days (MongoDB)</strong></span>
                   <span>•</span>
-                  <span>Live Refresh Hook: <strong className="text-accent-cyan">POST /resource/:id/health/refresh</strong></span>
+                  <span>Live Refresh Hook: <strong className="text-white font-mono">POST /resource/:id/health/refresh</strong></span>
                 </div>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 shrink-0">
+            <div className="flex flex-col sm:flex-row gap-2 shrink-0 font-mono text-xs">
               <button
                 onClick={() => loadHealthData(true)}
                 disabled={isRefreshing}
-                className="flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/20 px-3.5 py-2 text-xs font-bold text-amber-200 hover:bg-amber-500/30 transition-all cursor-pointer"
+                className="flex items-center gap-1.5 rounded-xl border border-[#4A5568] bg-[#2D3748] hover:bg-[#374254] px-3.5 py-2 font-bold text-white transition-all cursor-pointer shadow-sm"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
                 <span>Retry Probe Query</span>
@@ -627,7 +631,7 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
               {onNavigate && (
                 <button
                   onClick={() => onNavigate('settings')}
-                  className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 py-2 text-xs font-bold text-white hover:bg-white/10 transition-all cursor-pointer"
+                  className="flex items-center gap-1.5 rounded-xl border border-border-glass bg-[#161C26] hover:bg-[#252E3E] px-3.5 py-2 font-bold text-text-muted hover:text-white transition-all cursor-pointer shadow-sm"
                 >
                   <ExternalLink className="h-3.5 w-3.5" />
                   <span>Configure Token</span>
@@ -640,9 +644,9 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
 
       {/* Loading Skeleton */}
       {isLoading && (
-        <div className="glass rounded-2xl border border-border-glass p-8 text-center space-y-3 animate-pulse">
+        <div className="rounded-2xl border border-border-glass bg-[#1E2532] p-8 text-center space-y-3 animate-pulse">
           <div className="flex justify-center">
-            <RefreshCw className="h-8 w-8 text-accent-cyan animate-spin" />
+            <RefreshCw className="h-8 w-8 text-text-muted animate-spin" />
           </div>
           <div className="font-mono text-sm font-bold text-white">Querying Jetstream2 & SLURM Health Probes...</div>
           <div className="text-xs text-text-muted font-mono">Fetching GET /resource/health/all</div>
@@ -653,11 +657,11 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2 font-mono">
-            <HardDrive className="h-4 w-4 text-amber-400" />
+            <HardDrive className="h-4 w-4 text-text-muted" />
             <h2 className="text-xs font-bold uppercase tracking-wider text-white">
-              1. Multi-Host Storage Mounts Telemetry (<span className="text-amber-300">/mnt/scratch & /mnt/osiris</span>)
+              1. Multi-Host Storage Mounts Telemetry (/mnt/scratch & /mnt/osiris)
             </h2>
-            <span className="rounded-md bg-white/5 border border-white/10 px-2 py-0.5 text-[9.5px] text-text-faint">
+            <span className="rounded-md bg-[#161C26] border border-border-glass px-2 py-0.5 text-[9.5px] text-text-muted">
               {vmStorageMounts.length} Monitored Mounts
             </span>
           </div>
@@ -675,8 +679,8 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
               onClick={() => setSelectedMountHostFilter('all')}
               className={`rounded-lg px-2.5 py-1 font-bold transition-all cursor-pointer ${
                 selectedMountHostFilter === 'all'
-                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                  : 'bg-white/[0.02] border border-border-glass text-text-muted hover:text-white'
+                  ? 'bg-[#2D3748] text-white border border-[#4A5568] shadow-sm'
+                  : 'bg-[#1E2532] border border-border-glass text-text-muted hover:text-white hover:bg-[#252E3E]'
               }`}
             >
               All Hosts ({vmStorageMounts.length})
@@ -689,8 +693,8 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
                   onClick={() => setSelectedMountHostFilter(host)}
                   className={`rounded-lg px-2.5 py-1 font-bold transition-all cursor-pointer ${
                     selectedMountHostFilter === host
-                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
-                      : 'bg-white/[0.02] border border-border-glass text-text-muted hover:text-white'
+                      ? 'bg-[#2D3748] text-white border border-[#4A5568] shadow-sm'
+                      : 'bg-[#1E2532] border border-border-glass text-text-muted hover:text-white hover:bg-[#252E3E]'
                   }`}
                 >
                   {host} ({count})
@@ -702,8 +706,8 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
 
         {/* Mount Cards Grid */}
         {filteredStorageMounts.length === 0 ? (
-          <div className="glass rounded-2xl border border-dashed border-white/10 p-6 text-center text-xs font-mono text-text-muted space-y-1">
-            <div className="text-amber-300 font-bold">Storage Mount Telemetry: Not Available</div>
+          <div className="glass rounded-2xl border border-dashed border-border-glass p-6 text-center text-xs font-mono text-text-muted space-y-1">
+            <div className="text-white font-bold">Storage Mount Telemetry: Not Available</div>
             <div className="text-[11px] text-text-faint">
               {isLiveConnected ? 'No storage mounts match the selected host filter.' : 'Waiting for live probe connection from /resource/health/all.'}
             </div>
@@ -717,15 +721,15 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
               return (
                 <div 
                   key={mount.id}
-                  className="glass relative overflow-hidden rounded-2xl p-4.5 border border-border-glass space-y-3.5 shadow-lg group hover:border-accent-cyan/40 transition-all flex flex-col justify-between"
+                  className="glass relative overflow-hidden rounded-2xl p-4.5 border border-border-glass bg-[#1E2532] space-y-3.5 shadow-sm hover:border-[#4A5568] transition-all flex flex-col justify-between"
                 >
                   <div className="space-y-3">
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-center gap-2.5 min-w-0">
-                        <div className={`flex h-9 w-9 items-center justify-center rounded-xl border shrink-0 shadow-[0_0_10px_rgba(16,185,129,0.2)] ${
+                        <div className={`flex h-9 w-9 items-center justify-center rounded-xl border shrink-0 ${
                           isHealthy 
-                            ? 'bg-status-success/15 border-status-success/30 text-status-success' 
-                            : 'bg-status-error/15 border-status-error/30 text-status-error'
+                            ? 'bg-[#161C26] border-border-glass text-text-muted' 
+                            : 'bg-red-500/15 border-red-500/30 text-red-400'
                         }`}>
                           {mount.mount.includes('scratch') ? (
                             <HardDrive className="h-4.5 w-4.5" />
@@ -738,7 +742,7 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
                             {mount.mount}
                           </h3>
                           <div className="flex items-center gap-1.5 mt-0.5">
-                            <span className="rounded bg-accent-cyan/10 border border-accent-cyan/30 px-1.5 py-0.2 text-[9.5px] font-mono text-accent-cyan font-bold truncate">
+                            <span className="rounded bg-[#161C26] border border-border-glass px-1.5 py-0.2 text-[9.5px] font-mono text-text-muted font-bold truncate">
                               Host: {mount.hostName}
                             </span>
                             <span className="text-[9.5px] font-sans text-text-faint truncate">
@@ -751,9 +755,9 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
                       <span className={`flex items-center gap-1 rounded-full border px-2 py-0.5 text-[9.5px] font-bold font-mono shrink-0 ${
                         isHealthy
                           ? isWarning 
-                            ? 'border-amber-500/40 bg-amber-500/15 text-amber-300'
-                            : 'border-status-success/40 bg-status-success/15 text-status-success'
-                          : 'border-status-error/40 bg-status-error/15 text-status-error'
+                            ? 'border-amber-500/30 bg-amber-500/10 text-amber-400'
+                            : 'border-emerald-500/25 bg-emerald-500/10 text-emerald-400'
+                          : 'border-red-500/30 bg-red-500/10 text-red-400'
                       }`}>
                         {isHealthy ? (
                           <>
@@ -778,39 +782,39 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
                         </span>
                       </div>
                       {mount.usedPct != null ? (
-                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-1.5 w-full bg-[#121620] rounded-full overflow-hidden border border-border-glass/50">
                           <div 
                             className={`h-full rounded-full transition-all duration-500 ${
                               mount.usedPct > 90 || (mount.freePct != null && mount.freePct < 10)
-                                ? 'bg-gradient-to-r from-amber-500 to-red-500'
+                                ? 'bg-red-500'
                                 : mount.usedPct > 75
-                                ? 'bg-gradient-to-r from-accent-cyan via-amber-400 to-amber-500'
-                                : 'bg-gradient-to-r from-accent-cyan to-status-success'
+                                ? 'bg-amber-400'
+                                : 'bg-[#4A5568]'
                             }`} 
                             style={{ width: `${mount.usedPct}%` }} 
                           />
                         </div>
                       ) : (
-                        <div className="h-2 w-full bg-white/5 rounded-full" />
+                        <div className="h-1.5 w-full bg-[#121620] rounded-full" />
                       )}
                     </div>
                   </div>
 
                   {/* Mount Details Grid */}
-                  <div className="grid grid-cols-3 gap-1.5 pt-2.5 border-t border-white/[0.04] font-mono text-[9.5px]">
+                  <div className="grid grid-cols-3 gap-1.5 pt-2.5 border-t border-border-glass font-mono text-[9.5px]">
                     <div>
                       <span className="text-text-faint block">Access Status</span>
-                      <span className={isHealthy ? 'text-emerald-300 font-bold' : 'text-red-400 font-bold'}>
+                      <span className={isHealthy ? 'text-text-main font-semibold' : 'text-red-400 font-bold'}>
                         {isHealthy ? 'Accessible (rw)' : 'Unreachable'}
                       </span>
                     </div>
                     <div>
                       <span className="text-text-faint block">Probe Latency</span>
-                      <span className="text-white font-bold">{mount.latency}</span>
+                      <span className="text-text-muted font-bold">{mount.latency}</span>
                     </div>
                     <div>
                       <span className="text-text-faint block">Diagnostic State</span>
-                      <span className={mount.warning || mount.error ? 'text-amber-300 font-bold' : 'text-status-success font-bold'}>
+                      <span className={mount.warning || mount.error ? 'text-amber-400 font-bold' : 'text-text-muted font-semibold'}>
                         {mount.error || mount.warning || 'Normal'}
                       </span>
                     </div>
@@ -826,19 +830,19 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
       <div className="space-y-4 pt-2">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2 font-mono">
-            <Cpu className="h-4 w-4 text-accent-cyan" />
+            <Cpu className="h-4 w-4 text-text-muted" />
             <h2 className="text-xs font-bold uppercase tracking-wider text-white">
-              2. Jetstream2 SLURM Clusters Matrix (<span className="text-accent-cyan">sinfo command monitor</span>)
+              2. Jetstream2 SLURM Clusters Matrix (sinfo command monitor)
             </h2>
           </div>
 
           <button
             onClick={() => setShowRawSinfoConsole(!showRawSinfoConsole)}
             disabled={!isLiveConnected || slurmNodes.length === 0}
-            className={`flex items-center gap-1.5 rounded-xl border px-3 py-1 text-[10.5px] font-mono font-bold transition-all cursor-pointer disabled:opacity-40 self-start sm:self-auto ${
+            className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[10.5px] font-mono font-bold transition-all cursor-pointer disabled:opacity-40 self-start sm:self-auto ${
               showRawSinfoConsole
-                ? 'border-accent-purple/50 bg-accent-purple/20 text-accent-purple'
-                : 'border-border-glass bg-white/[0.02] text-text-muted hover:text-white'
+                ? 'border-[#4A5568] bg-[#2D3748] text-white'
+                : 'border-border-glass bg-[#1E2532] text-text-muted hover:text-white hover:bg-[#252E3E]'
             }`}
           >
             <Terminal className="h-3.5 w-3.5" />
@@ -848,8 +852,8 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
 
         {/* Dynamic SLURM Cluster Cards Grid */}
         {slurmClusterCards.length === 0 ? (
-          <div className="glass rounded-2xl border border-dashed border-white/10 p-6 text-center text-xs font-mono text-text-muted space-y-1">
-            <div className="text-amber-300 font-bold">SLURM Cluster Telemetry: Not Available</div>
+          <div className="glass rounded-2xl border border-dashed border-border-glass p-6 text-center text-xs font-mono text-text-muted space-y-1">
+            <div className="text-white font-bold">SLURM Cluster Telemetry: Not Available</div>
             <div className="text-[11px] text-text-faint">
               {isLiveConnected ? 'No SLURM clusters returned in active health payload.' : 'Waiting for live endpoint authentication.'}
             </div>
@@ -863,10 +867,10 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
                 <div 
                   key={cluster.name}
                   onClick={() => setSelectedClusterFilter(isSelected ? 'all' : cluster.name)}
-                  className={`glass rounded-2xl p-4 border transition-all cursor-pointer ${
+                  className={`glass rounded-2xl p-4 border transition-all cursor-pointer bg-[#1E2532] shadow-sm ${
                     isSelected 
-                      ? 'border-accent-cyan bg-accent-cyan/10 ring-1 ring-accent-cyan shadow-[0_0_15px_rgba(0,229,255,0.15)]' 
-                      : 'border-border-glass hover:border-white/20'
+                      ? 'border-[#3182CE] bg-[#202E40] ring-1 ring-[#3182CE]/30' 
+                      : 'border-border-glass hover:border-[#4A5568]'
                   }`}
                 >
                   <div className="flex justify-between items-start">
@@ -874,40 +878,45 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
                       <span className="text-[10px] font-bold font-mono uppercase tracking-wider text-text-faint block">Cluster Node</span>
                       <h4 className="font-mono text-sm font-bold text-white">{cluster.name}</h4>
                     </div>
-                    <span className={`rounded-md border px-2 py-0.5 text-[9.5px] font-mono font-bold ${cluster.statusBadge}`}>
-                      {cluster.statusText}
+                    <span className={`rounded-md border px-2 py-0.5 text-[9.5px] font-mono font-bold ${
+                      cluster.down > 0 
+                        ? 'border-red-500/30 bg-red-500/10 text-red-400' 
+                        : 'border-border-glass bg-[#161C26] text-text-muted'
+                    }`}>
+                      {cluster.down > 0 ? `${cluster.down} Nodes Down` : 'Optimal'}
                     </span>
                   </div>
 
-                  {/* Cluster Node Stats Grid */}
-                  <div className="mt-3 grid grid-cols-3 gap-1 font-mono text-[10px] text-center">
-                    <div className="bg-status-success/15 border border-status-success/30 rounded-lg p-1 text-status-success">
-                      <span className="block font-bold">{cluster.idle} Idle</span>
+                  {/* Cluster Node Stats Grid - Neutral Ash Cards */}
+                  <div className="mt-3 grid grid-cols-3 gap-1.5 font-mono text-[10px] text-center">
+                    <div className="bg-[#161C26] border border-border-glass rounded-lg p-1.5">
+                      <span className="text-text-muted text-[9px] block">Idle</span>
+                      <span className="font-bold text-white text-xs">{cluster.idle}</span>
                     </div>
-                    <div className="bg-accent-cyan/15 border border-accent-cyan/30 rounded-lg p-1 text-accent-cyan">
-                      <span className="block font-bold">{cluster.alloc} Alloc</span>
+                    <div className="bg-[#161C26] border border-border-glass rounded-lg p-1.5">
+                      <span className="text-text-muted text-[9px] block">Alloc</span>
+                      <span className="font-bold text-white text-xs">{cluster.alloc}</span>
                     </div>
-                    <div className={`border rounded-lg p-1 ${
+                    <div className={`border rounded-lg p-1.5 ${
                       cluster.down > 0 
-                        ? 'bg-red-500/15 border-red-500/30 text-red-400' 
-                        : cluster.drain > 0
-                        ? 'bg-amber-500/15 border-amber-500/30 text-amber-300'
-                        : 'bg-white/5 border-white/10 text-text-faint'
+                        ? 'bg-red-500/10 border-red-500/30 text-red-400' 
+                        : 'bg-[#161C26] border-border-glass text-text-muted'
                     }`}>
-                      <span className="block font-bold">
-                        {cluster.down > 0 ? `${cluster.down} Down` : cluster.drain > 0 ? `${cluster.drain} Drain` : '0 Down'}
+                      <span className="text-[9px] block">Down</span>
+                      <span className="font-bold text-xs">
+                        {cluster.down > 0 ? cluster.down : cluster.drain > 0 ? `${cluster.drain}d` : '0'}
                       </span>
                     </div>
                   </div>
 
                   {/* Cluster Footer: Mount Status & Active SLURM Jobs */}
-                  <div className="mt-2.5 pt-2 border-t border-white/[0.04] flex items-center justify-between text-[9.5px] font-mono text-text-faint">
-                    <span className="flex items-center gap-1 truncate text-amber-300/90" title="Scratch Mount Status">
-                      <HardDrive className="h-3 w-3 shrink-0" />
+                  <div className="mt-2.5 pt-2 border-t border-border-glass flex items-center justify-between text-[9.5px] font-mono text-text-muted">
+                    <span className="flex items-center gap-1 truncate" title="Scratch Mount Status">
+                      <HardDrive className="h-3 w-3 shrink-0 text-text-faint" />
                       {cluster.scratchMount ? `${cluster.scratchMount.free_space_pct}% free (${cluster.scratchMount.latency_ms}ms)` : 'scratch ok'}
                     </span>
-                    <span className="flex items-center gap-1 font-bold text-accent-purple truncate">
-                      <Zap className="h-3 w-3 shrink-0" />
+                    <span className="flex items-center gap-1 font-semibold truncate">
+                      <Zap className="h-3 w-3 shrink-0 text-text-faint" />
                       {cluster.jobsRunning} Job{cluster.jobsRunning === 1 ? '' : 's'} Active
                     </span>
                   </div>
@@ -919,15 +928,15 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
 
         {/* Optional Raw sinfo Terminal View */}
         {showRawSinfoConsole && isLiveConnected && (
-          <div className="rounded-2xl border border-accent-purple/30 bg-[#060913] p-4 font-mono text-xs text-green-400 space-y-2 shadow-2xl animate-fade-in">
-            <div className="flex items-center justify-between text-text-faint border-b border-white/10 pb-2 text-[10.5px]">
-              <span className="flex items-center gap-1.5 text-accent-purple font-bold">
-                <Terminal className="h-4 w-4" />
+          <div className="rounded-2xl border border-border-glass bg-[#121620] p-4 font-mono text-xs text-text-main space-y-2 shadow-xl animate-fade-in">
+            <div className="flex items-center justify-between text-text-faint border-b border-border-glass pb-2 text-[10.5px]">
+              <span className="flex items-center gap-1.5 text-white font-bold">
+                <Terminal className="h-4 w-4 text-text-muted" />
                 sinfo -Ne (Live Amaretti Diagnostic stdout)
               </span>
               <span>Host: jetstream2-master-control (Cached 5m Redis / 90d Mongo)</span>
             </div>
-            <pre className="overflow-x-auto text-[11px] leading-relaxed text-gray-300 select-all py-2">
+            <pre className="overflow-x-auto text-[11px] leading-relaxed text-[#A0AEC0] select-all py-2">
 {`$ sinfo -Ne -o "%.12N %.8P %.10t %.10C %.12m %.30E"
 NODELIST     PARTITION  STATE      CPUS(A/I/O) MEMORY       REASON
 ${filteredNodes.length === 0 ? 'No nodes matching active filters' : filteredNodes.slice(0, 20).map(n => 
@@ -943,18 +952,18 @@ ${filteredNodes.length === 0 ? 'No nodes matching active filters' : filteredNode
           <div className="flex flex-wrap items-center gap-1 font-mono text-[10.5px]">
             {[
               { id: 'all', label: `All Nodes (${slurmNodes.length})` },
-              { id: 'idle', label: `Idle (${clusterStats.idle}) 🟢` },
-              { id: 'allocated', label: `Allocated (${clusterStats.allocated}) 🔵` },
-              { id: 'down', label: `Down (${clusterStats.down}) 🔴` },
-              { id: 'drain', label: `Drain (${clusterStats.drain}) 🟡` },
+              { id: 'idle', label: `Idle (${clusterStats.idle})` },
+              { id: 'allocated', label: `Allocated (${clusterStats.allocated})` },
+              { id: 'down', label: `Down (${clusterStats.down})` },
+              { id: 'drain', label: `Drain (${clusterStats.drain})` },
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setSelectedStateFilter(tab.id)}
-                className={`rounded-xl px-3 py-1.5 font-bold transition-all cursor-pointer ${
+                className={`rounded-lg px-3 py-1.5 font-bold transition-all cursor-pointer ${
                   selectedStateFilter === tab.id
-                    ? 'bg-accent-cyan/20 text-accent-cyan border border-accent-cyan/40'
-                    : 'bg-white/[0.02] border border-border-glass text-text-muted hover:text-white'
+                    ? 'bg-[#2D3748] text-white border border-[#4A5568] shadow-sm'
+                    : 'bg-[#1E2532] border border-border-glass text-text-muted hover:text-white hover:bg-[#252E3E]'
                 }`}
               >
                 {tab.label}
@@ -970,16 +979,16 @@ ${filteredNodes.length === 0 ? 'No nodes matching active filters' : filteredNode
               placeholder="Search node ID, cluster, or reason..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-border-glass bg-bg-dark/60 pl-9 pr-3 py-1.5 text-white placeholder-text-faint focus:outline-none focus:border-accent-cyan/50"
+              className="w-full rounded-xl border border-border-glass bg-[#161C26] pl-9 pr-3 py-1.5 text-white placeholder-text-faint focus:outline-none focus:border-[#4FD1C5]"
             />
           </div>
         </div>
 
         {/* Interactive Node Table */}
-        <div className="glass overflow-hidden rounded-2xl border border-border-glass">
+        <div className="glass overflow-hidden rounded-2xl border border-border-glass bg-[#1E2532]">
           <div className="overflow-x-auto">
             <table className="w-full text-left font-mono text-xs">
-              <thead className="bg-white/[0.02] border-b border-white/[0.06] text-[10px] uppercase text-text-faint">
+              <thead className="bg-[#161C26] border-b border-border-glass text-[9px] uppercase tracking-wider text-text-muted">
                 <tr>
                   <th className="py-3 px-4">Node ID</th>
                   <th className="py-3 px-4">Cluster</th>
@@ -990,7 +999,7 @@ ${filteredNodes.length === 0 ? 'No nodes matching active filters' : filteredNode
                   <th className="py-3 px-4">Diagnostic / Down Reason</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.03]">
+              <tbody className="divide-y divide-[#263042]">
                 {filteredNodes.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="py-8 text-center text-text-faint font-sans">
@@ -1001,27 +1010,27 @@ ${filteredNodes.length === 0 ? 'No nodes matching active filters' : filteredNode
                   </tr>
                 ) : (
                   filteredNodes.slice(0, visibleNodeCount).map(node => {
-                    let stateBadge = 'bg-status-success/15 text-status-success border-status-success/30';
-                    if (node.state === 'allocated') stateBadge = 'bg-accent-cyan/15 text-accent-cyan border-accent-cyan/30';
-                    else if (node.state === 'down') stateBadge = 'bg-red-500/20 text-red-300 border-red-500/40 animate-pulse';
-                    else if (node.state === 'drain') stateBadge = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+                    let stateBadge = 'bg-[#161C26] text-text-muted border border-border-glass';
+                    if (node.state === 'allocated') stateBadge = 'bg-[#161C26] text-white border border-border-glass font-semibold';
+                    else if (node.state === 'down') stateBadge = 'bg-red-500/10 text-red-400 border border-red-500/30';
+                    else if (node.state === 'drain') stateBadge = 'bg-amber-500/10 text-amber-400 border border-amber-500/30';
 
                     return (
                       <tr 
                         key={`${node.cluster}-${node.id}`} 
                         onClick={() => setSelectedNode(node)}
-                        className={`hover:bg-accent-cyan/[0.06] transition-colors cursor-pointer group ${
-                          selectedNode?.id === node.id ? 'bg-accent-cyan/[0.08] ring-1 ring-inset ring-accent-cyan/30' : ''
+                        className={`hover:bg-[#252E3E] transition-colors cursor-pointer group ${
+                          selectedNode?.id === node.id ? 'bg-[#202E40]' : ''
                         }`}
                         title="Click to open SLURM node telemetry & diagnostic inspector"
                       >
                         <td className="py-3 px-4 font-bold text-white flex items-center justify-between gap-1.5">
                           <span>{node.id}</span>
-                          <span className="opacity-0 group-hover:opacity-100 text-[10px] text-accent-cyan transition-opacity font-normal">
+                          <span className="opacity-0 group-hover:opacity-100 text-[10px] text-text-muted transition-opacity font-normal">
                             Inspect →
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-accent-cyan font-bold">{node.cluster}</td>
+                        <td className="py-3 px-4 text-text-main font-semibold">{node.cluster}</td>
                         <td className="py-3 px-4 text-text-muted">{node.partition}</td>
                         <td className="py-3 px-4">
                           <span className={`inline-block rounded-lg px-2.5 py-0.5 text-[10px] font-bold border uppercase ${stateBadge}`}>
@@ -1033,7 +1042,7 @@ ${filteredNodes.length === 0 ? 'No nodes matching active filters' : filteredNode
                         <td className="py-3 px-4 text-text-faint text-[11px]">
                           {node.reason ? (
                             <div className="flex items-center justify-between gap-2">
-                              <span className="text-red-300 font-bold truncate max-w-[200px]" title={node.reason}>{node.reason}</span>
+                              <span className="text-red-400 font-bold truncate max-w-[200px]" title={node.reason}>{node.reason}</span>
                               {onNavigate && (
                                 <button
                                   onClick={(e) => {
@@ -1061,7 +1070,7 @@ ${filteredNodes.length === 0 ? 'No nodes matching active filters' : filteredNode
 
           {/* Centered Read More Button for Nodes */}
           {filteredNodes.length > 10 && (
-            <div className="flex justify-center border-t border-white/[0.04] p-3 bg-white/[0.01]">
+            <div className="flex justify-center border-t border-border-glass p-3 bg-[#161C26]">
               <button
                 onClick={() => {
                   if (visibleNodeCount >= filteredNodes.length) {
@@ -1070,7 +1079,7 @@ ${filteredNodes.length === 0 ? 'No nodes matching active filters' : filteredNode
                     setVisibleNodeCount((prev) => prev + 10);
                   }
                 }}
-                className="rounded-lg border border-border-glass bg-white/[0.01] px-4 py-2 text-xs font-semibold text-accent-cyan hover:bg-white/[0.03] hover:text-accent-cyan-dim transition-all cursor-pointer select-none animate-fade-up"
+                className="rounded-lg border border-border-glass bg-[#1E2532] hover:bg-[#252E3E] px-4 py-2 text-xs font-semibold text-text-muted hover:text-white transition-all cursor-pointer select-none"
               >
                 {visibleNodeCount >= filteredNodes.length 
                   ? 'Show Less Nodes' 
@@ -1085,11 +1094,11 @@ ${filteredNodes.length === 0 ? 'No nodes matching active filters' : filteredNode
       <div className="space-y-4 pt-2">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2 font-mono">
-            <Zap className="h-4 w-4 text-accent-purple" />
+            <Zap className="h-4 w-4 text-text-muted" />
             <h2 className="text-xs font-bold uppercase tracking-wider text-white">
-              3. Jetstream2 SLURM Node Jobs Queue (<span className="text-accent-purple">squeue command monitor</span>)
+              3. Jetstream2 SLURM Node Jobs Queue (squeue command monitor)
             </h2>
-            <span className="rounded-md bg-accent-purple/10 border border-accent-purple/30 px-2 py-0.5 text-[9.5px] text-accent-purple font-bold">
+            <span className="rounded-md bg-[#161C26] border border-border-glass px-2 py-0.5 text-[9.5px] text-text-muted">
               {jobStats.total} Active Node Jobs
             </span>
           </div>
@@ -1097,10 +1106,10 @@ ${filteredNodes.length === 0 ? 'No nodes matching active filters' : filteredNode
           <button
             onClick={() => setShowRawSqueueConsole(!showRawSqueueConsole)}
             disabled={!isLiveConnected || slurmNodeJobs.length === 0}
-            className={`flex items-center gap-1.5 rounded-xl border px-3 py-1 text-[10.5px] font-mono font-bold transition-all cursor-pointer disabled:opacity-40 self-start sm:self-auto ${
+            className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-[10.5px] font-mono font-bold transition-all cursor-pointer disabled:opacity-40 self-start sm:self-auto ${
               showRawSqueueConsole
-                ? 'border-accent-purple/50 bg-accent-purple/20 text-accent-purple'
-                : 'border-border-glass bg-white/[0.02] text-text-muted hover:text-white'
+                ? 'border-[#4A5568] bg-[#2D3748] text-white'
+                : 'border-border-glass bg-[#1E2532] text-text-muted hover:text-white hover:bg-[#252E3E]'
             }`}
           >
             <Terminal className="h-3.5 w-3.5" />
@@ -1110,15 +1119,15 @@ ${filteredNodes.length === 0 ? 'No nodes matching active filters' : filteredNode
 
         {/* Optional Raw squeue Terminal View */}
         {showRawSqueueConsole && isLiveConnected && (
-          <div className="rounded-2xl border border-accent-purple/30 bg-[#060913] p-4 font-mono text-xs text-green-400 space-y-2 shadow-2xl animate-fade-in">
-            <div className="flex items-center justify-between text-text-faint border-b border-white/10 pb-2 text-[10.5px]">
-              <span className="flex items-center gap-1.5 text-accent-purple font-bold">
-                <Terminal className="h-4 w-4" />
+          <div className="rounded-2xl border border-border-glass bg-[#121620] p-4 font-mono text-xs text-text-main space-y-2 shadow-xl animate-fade-in">
+            <div className="flex items-center justify-between text-text-faint border-b border-border-glass pb-2 text-[10.5px]">
+              <span className="flex items-center gap-1.5 text-white font-bold">
+                <Terminal className="h-4 w-4 text-text-muted" />
                 squeue -o "%.18i %.9P %.20j %.8u %.2t %.10M %.6D %R" (Live SLURM Telemetry)
               </span>
               <span>Host: jetstream2-master-control</span>
             </div>
-            <pre className="overflow-x-auto text-[11px] leading-relaxed text-gray-300 select-all py-2">
+            <pre className="overflow-x-auto text-[11px] leading-relaxed text-[#A0AEC0] select-all py-2">
 {`$ squeue -o "%.18i %.9P %.20j %.8u %.2t %.10M %.6D %R"
 JOBID              PARTITION NAME                 USER     ST TIME       NODES NODELIST(REASON)
 ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNodeJobs.slice(0, 25).map(j => {
@@ -1138,39 +1147,43 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
 
         {/* Node Jobs Summary Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono">
-          <div className="glass rounded-xl border border-white/10 p-3 flex items-center justify-between">
+          <div className="glass rounded-xl border border-border-glass bg-[#1E2532] p-3.5 flex items-center justify-between shadow-sm">
             <div>
-              <span className="text-[10px] text-text-faint uppercase font-bold block">Total Node Jobs</span>
+              <span className="text-[10px] text-text-muted uppercase font-bold block">Total Node Jobs</span>
               <span className="text-lg font-bold text-white">{jobStats.total}</span>
             </div>
-            <div className="p-2 rounded-lg bg-white/5 text-text-muted">
+            <div className="p-2 rounded-lg bg-[#161C26] border border-border-glass text-text-muted">
               <Zap className="h-4 w-4" />
             </div>
           </div>
-          <div className="glass rounded-xl border border-status-success/20 p-3 flex items-center justify-between bg-status-success/[0.02]">
+          <div className="glass rounded-xl border border-border-glass bg-[#1E2532] p-3.5 flex items-center justify-between shadow-sm">
             <div>
-              <span className="text-[10px] text-status-success uppercase font-bold block">Running on Nodes</span>
-              <span className="text-lg font-bold text-status-success">{jobStats.running}</span>
+              <span className="text-[10px] text-text-muted uppercase font-bold block">Running on Nodes</span>
+              <span className="text-lg font-bold text-white">{jobStats.running}</span>
             </div>
-            <div className="p-2 rounded-lg bg-status-success/15 text-status-success">
+            <div className="p-2 rounded-lg bg-[#161C26] border border-border-glass text-text-muted">
               <Play className="h-4 w-4" />
             </div>
           </div>
-          <div className="glass rounded-xl border border-amber-500/20 p-3 flex items-center justify-between bg-amber-500/[0.02]">
+          <div className="glass rounded-xl border border-border-glass bg-[#1E2532] p-3.5 flex items-center justify-between shadow-sm">
             <div>
-              <span className="text-[10px] text-amber-300 uppercase font-bold block">Pending in SLURM</span>
-              <span className="text-lg font-bold text-amber-300">{jobStats.pending}</span>
+              <span className="text-[10px] text-text-muted uppercase font-bold block">Pending in SLURM</span>
+              <span className="text-lg font-bold text-white">{jobStats.pending}</span>
             </div>
-            <div className="p-2 rounded-lg bg-amber-500/15 text-amber-300">
+            <div className="p-2 rounded-lg bg-[#161C26] border border-border-glass text-text-muted">
               <Clock className="h-4 w-4" />
             </div>
           </div>
-          <div className="glass rounded-xl border border-red-500/20 p-3 flex items-center justify-between bg-red-500/[0.02]">
+          <div className="glass rounded-xl border border-border-glass bg-[#1E2532] p-3.5 flex items-center justify-between shadow-sm">
             <div>
-              <span className="text-[10px] text-red-300 uppercase font-bold block">Failed on Nodes</span>
-              <span className="text-lg font-bold text-red-300">{jobStats.failed}</span>
+              <span className="text-[10px] text-text-muted uppercase font-bold block">Failed on Nodes</span>
+              <span className={`text-lg font-bold ${jobStats.failed > 0 ? 'text-red-400' : 'text-white'}`}>{jobStats.failed}</span>
             </div>
-            <div className="p-2 rounded-lg bg-red-500/15 text-red-300">
+            <div className={`p-2 rounded-lg border ${
+              jobStats.failed > 0 
+                ? 'bg-red-500/10 border-red-500/30 text-red-400' 
+                : 'bg-[#161C26] border-border-glass text-text-muted'
+            }`}>
               <AlertTriangle className="h-4 w-4" />
             </div>
           </div>
@@ -1182,17 +1195,17 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
           <div className="flex flex-wrap items-center gap-1 font-mono text-[10.5px]">
             {[
               { id: 'all', label: `All Jobs (${slurmNodeJobs.length})` },
-              { id: 'RUNNING', label: `Running (${jobStats.running}) 🟢` },
-              { id: 'PENDING', label: `Pending (${jobStats.pending}) 🟡` },
-              { id: 'FAILED', label: `Failed (${jobStats.failed}) 🔴` },
+              { id: 'RUNNING', label: `Running (${jobStats.running})` },
+              { id: 'PENDING', label: `Pending (${jobStats.pending})` },
+              { id: 'FAILED', label: `Failed (${jobStats.failed})` },
             ].map(tab => (
               <button
                 key={tab.id}
                 onClick={() => setSelectedJobStatusFilter(tab.id)}
-                className={`rounded-xl px-3 py-1.5 font-bold transition-all cursor-pointer ${
+                className={`rounded-lg px-3 py-1.5 font-bold transition-all cursor-pointer ${
                   selectedJobStatusFilter === tab.id
-                    ? 'bg-accent-purple/20 text-accent-purple border border-accent-purple/40'
-                    : 'bg-white/[0.02] border border-border-glass text-text-muted hover:text-white'
+                    ? 'bg-[#2D3748] text-white border border-[#4A5568] shadow-sm'
+                    : 'bg-[#1E2532] border border-border-glass text-text-muted hover:text-white hover:bg-[#252E3E]'
                 }`}
               >
                 {tab.label}
@@ -1208,16 +1221,16 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
               placeholder="Search job ID, name, user, node..."
               value={jobSearchQuery}
               onChange={(e) => setJobSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-border-glass bg-bg-dark/60 pl-9 pr-3 py-1.5 text-white placeholder-text-faint focus:outline-none focus:border-accent-purple/50"
+              className="w-full rounded-xl border border-border-glass bg-[#161C26] pl-9 pr-3 py-1.5 text-white placeholder-text-faint focus:outline-none focus:border-[#4FD1C5]"
             />
           </div>
         </div>
 
         {/* Interactive SLURM Jobs Table */}
-        <div className="glass overflow-hidden rounded-2xl border border-border-glass">
+        <div className="glass overflow-hidden rounded-2xl border border-border-glass bg-[#1E2532]">
           <div className="overflow-x-auto">
             <table className="w-full text-left font-mono text-xs">
-              <thead className="bg-white/[0.02] border-b border-white/[0.06] text-[10px] uppercase text-text-faint">
+              <thead className="bg-[#161C26] border-b border-border-glass text-[9px] uppercase tracking-wider text-text-muted">
                 <tr>
                   <th className="py-3 px-4">SLURM Job ID</th>
                   <th className="py-3 px-4">Cluster</th>
@@ -1230,7 +1243,7 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                   <th className="py-3 px-4">CPUs</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/[0.03]">
+              <tbody className="divide-y divide-[#263042]">
                 {filteredNodeJobs.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="py-8 text-center text-text-faint font-sans">
@@ -1242,13 +1255,13 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                 ) : (
                   filteredNodeJobs.slice(0, visibleJobCount).map(job => {
                     const statusUpper = String(job.status || job.state || 'RUNNING').toUpperCase();
-                    let stateBadge = 'bg-status-success/15 text-status-success border-status-success/30';
+                    let stateBadge = 'bg-[#161C26] text-text-muted border border-border-glass';
                     if (statusUpper.includes('PEND') || statusUpper === 'PD') {
-                      stateBadge = 'bg-amber-500/20 text-amber-300 border-amber-500/40';
+                      stateBadge = 'bg-amber-500/10 text-amber-400 border border-amber-500/30';
                     } else if (statusUpper.includes('FAIL') || statusUpper === 'F') {
-                      stateBadge = 'bg-red-500/20 text-red-300 border-red-500/40';
+                      stateBadge = 'bg-red-500/10 text-red-400 border border-red-500/30';
                     } else if (statusUpper.includes('RUN') || statusUpper === 'R') {
-                      stateBadge = 'bg-accent-cyan/15 text-accent-cyan border-accent-cyan/30';
+                      stateBadge = 'bg-[#161C26] text-white border border-border-glass font-semibold';
                     }
 
                     const jobId = String(job.job_id || job.id || 'N/A');
@@ -1260,24 +1273,24 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
 
                     return (
                       <tr 
-                        key={`${job.cluster}-${jobId}`}
+                        key={`${job.cluster}-${jobId}`} 
                         onClick={() => setSelectedJob(job)}
-                        className="hover:bg-accent-purple/[0.06] transition-colors cursor-pointer group"
+                        className="hover:bg-[#252E3E] transition-colors cursor-pointer group"
                         title="Click to inspect full SLURM job details & CLI commands"
                       >
                         <td className="py-3 px-4 font-bold text-white flex items-center justify-between gap-1.5">
-                          <span className="text-accent-purple">#{jobId}</span>
-                          <span className="opacity-0 group-hover:opacity-100 text-[10px] text-accent-purple transition-opacity font-normal">
+                          <span>#{jobId}</span>
+                          <span className="opacity-0 group-hover:opacity-100 text-[10px] text-text-muted transition-opacity font-normal">
                             Inspect →
                           </span>
                         </td>
-                        <td className="py-3 px-4 text-accent-cyan font-bold">{job.cluster}</td>
+                        <td className="py-3 px-4 text-text-main font-semibold">{job.cluster}</td>
                         <td className="py-3 px-4 text-white font-bold max-w-[180px] truncate" title={jobName}>
                           {jobName}
                         </td>
                         <td className="py-3 px-4 text-text-muted">{user}</td>
                         <td className="py-3 px-4 text-text-faint">{job.partition || 'main'}</td>
-                        <td className="py-3 px-4 text-accent-cyan font-bold">{nodes}</td>
+                        <td className="py-3 px-4 text-text-muted">{nodes}</td>
                         <td className="py-3 px-4">
                           <span className={`inline-block rounded-lg px-2.5 py-0.5 text-[10px] font-bold border uppercase ${stateBadge}`}>
                             {statusUpper}
@@ -1295,7 +1308,7 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
 
           {/* Centered Read More Button for Jobs */}
           {filteredNodeJobs.length > 10 && (
-            <div className="flex justify-center border-t border-white/[0.04] p-3 bg-white/[0.01]">
+            <div className="flex justify-center border-t border-border-glass p-3 bg-[#161C26]">
               <button
                 onClick={() => {
                   if (visibleJobCount >= filteredNodeJobs.length) {
@@ -1304,7 +1317,7 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                     setVisibleJobCount((prev) => prev + 10);
                   }
                 }}
-                className="rounded-lg border border-border-glass bg-white/[0.01] px-4 py-2 text-xs font-semibold text-accent-purple hover:bg-white/[0.03] hover:text-accent-purple-dim transition-all cursor-pointer select-none animate-fade-up"
+                className="rounded-lg border border-border-glass bg-[#1E2532] hover:bg-[#252E3E] px-4 py-2 text-xs font-semibold text-text-muted hover:text-white transition-all cursor-pointer select-none"
               >
                 {visibleJobCount >= filteredNodeJobs.length 
                   ? 'Show Less Jobs' 
@@ -1322,13 +1335,13 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
           onClick={() => setSelectedJob(null)}
         >
           <div 
-            className="glass relative flex w-full max-w-2xl flex-col rounded-2xl border border-white/15 bg-[#070b16]/95 shadow-2xl overflow-hidden"
+            className="relative flex w-full max-w-2xl flex-col rounded-2xl border border-border-glass bg-[#1E2532] shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 bg-white/[0.02]">
+            <div className="flex items-center justify-between border-b border-border-glass px-6 py-4 bg-[#1B222E]">
               <div className="flex items-center gap-3">
-                <div className="rounded-xl p-2.5 bg-accent-purple/15 border border-accent-purple/30 text-accent-purple shadow-[0_0_12px_rgba(168,85,247,0.25)]">
+                <div className="rounded-xl p-2.5 bg-[#161C26] border border-border-glass text-text-muted">
                   <Zap className="h-6 w-6" />
                 </div>
                 <div>
@@ -1336,10 +1349,10 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                     <h2 className="font-mono text-base font-bold text-white tracking-wide">
                       SLURM Job #{selectedJob.job_id || selectedJob.id}
                     </h2>
-                    <span className="rounded-md bg-status-success/15 border border-status-success/30 px-2.5 py-0.5 text-[10px] font-mono font-bold text-status-success uppercase">
+                    <span className="rounded-md bg-[#161C26] border border-border-glass px-2.5 py-0.5 text-[10px] font-mono font-bold text-text-muted uppercase">
                       {selectedJob.status || selectedJob.state || 'RUNNING'}
                     </span>
-                    <span className="rounded bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] font-mono text-accent-cyan font-bold">
+                    <span className="rounded-md bg-[#161C26] border border-border-glass px-2 py-0.5 text-[10px] font-mono text-text-muted font-bold">
                       Cluster: {selectedJob.cluster}
                     </span>
                   </div>
@@ -1351,7 +1364,7 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
 
               <button
                 onClick={() => setSelectedJob(null)}
-                className="rounded-xl border border-white/10 bg-white/5 p-2 text-text-muted hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                className="rounded-xl border border-border-glass bg-[#161C26] p-2 text-text-muted hover:bg-[#252E3E] hover:text-white transition-colors cursor-pointer"
                 title="Close (ESC)"
               >
                 <X className="h-5 w-5" />
@@ -1362,31 +1375,31 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
             <div className="p-6 space-y-5 font-mono text-xs max-h-[75vh] overflow-y-auto">
               {/* Job Metadata Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                <div className="glass rounded-xl border border-white/10 p-3 space-y-1">
+                <div className="rounded-xl border border-border-glass bg-[#161C26] p-3 space-y-1">
                   <span className="text-text-faint text-[10px] uppercase font-bold block">Job Name</span>
                   <span className="text-white font-bold block truncate" title={selectedJob.name || selectedJob.job_name}>
                     {selectedJob.name || selectedJob.job_name || 'slurm_job'}
                   </span>
                 </div>
-                <div className="glass rounded-xl border border-white/10 p-3 space-y-1">
+                <div className="rounded-xl border border-border-glass bg-[#161C26] p-3 space-y-1">
                   <span className="text-text-faint text-[10px] uppercase font-bold block">User / Owner</span>
-                  <span className="text-accent-cyan font-bold block">
+                  <span className="text-white font-bold block">
                     {selectedJob.user || selectedJob.username || 'unknown'}
                   </span>
                 </div>
-                <div className="glass rounded-xl border border-white/10 p-3 space-y-1">
+                <div className="rounded-xl border border-border-glass bg-[#161C26] p-3 space-y-1">
                   <span className="text-text-faint text-[10px] uppercase font-bold block">Partition</span>
                   <span className="text-white font-bold block">{selectedJob.partition || 'main'}</span>
                 </div>
-                <div className="glass rounded-xl border border-white/10 p-3 space-y-1">
+                <div className="rounded-xl border border-border-glass bg-[#161C26] p-3 space-y-1">
                   <span className="text-text-faint text-[10px] uppercase font-bold block">Allocated Nodes</span>
-                  <span className="text-accent-cyan font-bold block">{selectedJob.nodes || selectedJob.nodelist || '1'}</span>
+                  <span className="text-white font-bold block">{selectedJob.nodes || selectedJob.nodelist || '1'}</span>
                 </div>
-                <div className="glass rounded-xl border border-white/10 p-3 space-y-1">
+                <div className="rounded-xl border border-border-glass bg-[#161C26] p-3 space-y-1">
                   <span className="text-text-faint text-[10px] uppercase font-bold block">Runtime Duration</span>
                   <span className="text-white font-bold block">{selectedJob.time || selectedJob.runtime || selectedJob.duration || '00:00:00'}</span>
                 </div>
-                <div className="glass rounded-xl border border-white/10 p-3 space-y-1">
+                <div className="rounded-xl border border-border-glass bg-[#161C26] p-3 space-y-1">
                   <span className="text-text-faint text-[10px] uppercase font-bold block">CPU Allocation</span>
                   <span className="text-white font-bold block">{selectedJob.cpus || '16'} Cores</span>
                 </div>
@@ -1396,19 +1409,19 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
               <div className="space-y-3 pt-2">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-white uppercase text-[11px] flex items-center gap-1.5">
-                    <Terminal className="h-4 w-4 text-accent-purple" />
+                    <Terminal className="h-4 w-4 text-text-muted" />
                     SLURM Sysadmin CLI Commands
                   </span>
                   <span className="text-[10px] text-text-faint">Click to copy command</span>
                 </div>
 
                 {/* Command 1: scontrol show job */}
-                <div className="glass rounded-xl border border-white/10 p-3 bg-black/50 space-y-1.5">
+                <div className="rounded-xl border border-border-glass p-3 bg-[#161C26] space-y-1.5">
                   <div className="flex items-center justify-between text-text-muted text-[10.5px]">
                     <span>1. Inspect full SLURM job details:</span>
                     <button
                       onClick={() => handleCopy(`scontrol show job ${selectedJob.job_id || selectedJob.id}`, 'showjob')}
-                      className="flex items-center gap-1 text-[10.5px] font-bold text-accent-purple hover:text-white transition-colors cursor-pointer"
+                      className="flex items-center gap-1 text-[10.5px] font-bold text-text-muted hover:text-white transition-colors cursor-pointer"
                     >
                       {copiedText === 'showjob' ? (
                         <>
@@ -1423,18 +1436,18 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                       )}
                     </button>
                   </div>
-                  <code className="block bg-[#03060f] p-2.5 rounded-lg text-green-400 select-all border border-white/5">
+                  <code className="block bg-[#111620] p-2.5 rounded-lg text-text-main select-all border border-border-glass">
                     scontrol show job {selectedJob.job_id || selectedJob.id}
                   </code>
                 </div>
 
                 {/* Command 2: Cancel Job */}
-                <div className="glass rounded-xl border border-white/10 p-3 bg-black/50 space-y-1.5">
+                <div className="rounded-xl border border-border-glass p-3 bg-[#161C26] space-y-1.5">
                   <div className="flex items-center justify-between text-text-muted text-[10.5px]">
                     <span>2. Cancel / Kill SLURM job:</span>
                     <button
                       onClick={() => handleCopy(`scancel ${selectedJob.job_id || selectedJob.id}`, 'canceljob')}
-                      className="flex items-center gap-1 text-[10.5px] font-bold text-red-400 hover:text-white transition-colors cursor-pointer"
+                      className="flex items-center gap-1 text-[10.5px] font-bold text-red-400 hover:text-red-300 transition-colors cursor-pointer"
                     >
                       {copiedText === 'canceljob' ? (
                         <>
@@ -1449,7 +1462,7 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                       )}
                     </button>
                   </div>
-                  <code className="block bg-[#03060f] p-2.5 rounded-lg text-red-400 select-all border border-white/5">
+                  <code className="block bg-[#111620] p-2.5 rounded-lg text-text-muted select-all border border-border-glass">
                     scancel {selectedJob.job_id || selectedJob.id}
                   </code>
                 </div>
@@ -1457,13 +1470,13 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
             </div>
 
             {/* Modal Footer */}
-            <div className="flex items-center justify-between border-t border-white/10 px-6 py-3.5 bg-white/[0.02] font-mono text-xs">
+            <div className="flex items-center justify-between border-t border-border-glass px-6 py-3.5 bg-[#1B222E] font-mono text-xs">
               <div className="text-text-faint text-[11px]">
-                Press <kbd className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-white">ESC</kbd> or click outside to dismiss
+                Press <kbd className="rounded bg-[#161C26] border border-border-glass px-1.5 py-0.5 text-[10px] text-text-muted">ESC</kbd> or click outside to dismiss
               </div>
               <button
                 onClick={() => setSelectedJob(null)}
-                className="rounded-xl border border-accent-purple/30 bg-accent-purple/15 px-4 py-1.5 font-bold text-accent-purple hover:bg-accent-purple/25 transition-all cursor-pointer"
+                className="rounded-xl border border-[#4A5568] bg-[#2D3748] hover:bg-[#374254] px-4 py-1.5 font-bold text-white transition-all cursor-pointer shadow-sm"
               >
                 Done
               </button>
@@ -1479,20 +1492,18 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
           onClick={() => setSelectedNode(null)}
         >
           <div 
-            className="glass relative flex h-[88vh] max-h-[850px] w-full max-w-4xl flex-col rounded-2xl border border-white/15 bg-[#070b16]/95 shadow-2xl overflow-hidden"
+            className="relative flex h-[88vh] max-h-[850px] w-full max-w-4xl flex-col rounded-2xl border border-border-glass bg-[#1E2532] shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-white/10 px-6 py-4 bg-white/[0.02]">
+            <div className="flex items-center justify-between border-b border-border-glass px-6 py-4 bg-[#1B222E]">
               <div className="flex items-center gap-3">
-                <div className={`rounded-xl p-2.5 border shadow-lg ${
-                  selectedNode.state === 'allocated' 
-                    ? 'bg-accent-cyan/15 border-accent-cyan/30 text-accent-cyan shadow-[0_0_12px_rgba(0,229,255,0.2)]'
-                    : selectedNode.state === 'down'
-                    ? 'bg-red-500/20 border-red-500/30 text-red-400 shadow-[0_0_12px_rgba(239,68,68,0.25)] animate-pulse'
+                <div className={`rounded-xl p-2.5 border ${
+                  selectedNode.state === 'down'
+                    ? 'bg-red-500/10 border-red-500/30 text-red-400'
                     : selectedNode.state === 'drain'
-                    ? 'bg-amber-500/20 border-amber-500/30 text-amber-300 shadow-[0_0_12px_rgba(245,158,11,0.2)]'
-                    : 'bg-status-success/15 border-status-success/30 text-status-success shadow-[0_0_12px_rgba(16,185,129,0.2)]'
+                    ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                    : 'bg-[#161C26] border-border-glass text-text-muted'
                 }`}>
                   <Cpu className="h-6 w-6" />
                 </div>
@@ -1502,20 +1513,18 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                       {selectedNode.id}
                     </h2>
                     <span className={`rounded-md px-2.5 py-0.5 text-[10px] font-mono font-bold uppercase border ${
-                      selectedNode.state === 'allocated' 
-                        ? 'bg-accent-cyan/15 border-accent-cyan/30 text-accent-cyan'
-                        : selectedNode.state === 'down'
-                        ? 'bg-red-500/20 border-red-500/40 text-red-300 animate-pulse'
+                      selectedNode.state === 'down'
+                        ? 'bg-red-500/10 border-red-500/30 text-red-400'
                         : selectedNode.state === 'drain'
-                        ? 'bg-amber-500/20 border-amber-500/40 text-amber-300'
-                        : 'bg-status-success/15 border-status-success/30 text-status-success'
+                        ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                        : 'bg-[#161C26] border-border-glass text-text-muted'
                     }`}>
                       {selectedNode.state}
                     </span>
-                    <span className="rounded bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] font-mono text-accent-cyan font-bold">
+                    <span className="rounded-md bg-[#161C26] border border-border-glass px-2 py-0.5 text-[10px] font-mono text-text-muted font-bold">
                       Cluster: {selectedNode.cluster}
                     </span>
-                    <span className="rounded bg-white/5 border border-white/10 px-2 py-0.5 text-[10px] font-mono text-text-muted">
+                    <span className="rounded-md bg-[#161C26] border border-border-glass px-2 py-0.5 text-[10px] font-mono text-text-muted">
                       Partition: {selectedNode.partition}
                     </span>
                   </div>
@@ -1527,7 +1536,7 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
 
               <button
                 onClick={() => setSelectedNode(null)}
-                className="rounded-xl border border-white/10 bg-white/5 p-2 text-text-muted hover:bg-white/10 hover:text-white transition-colors cursor-pointer"
+                className="rounded-xl border border-border-glass bg-[#161C26] p-2 text-text-muted hover:bg-[#252E3E] hover:text-white transition-colors cursor-pointer"
                 title="Close (ESC)"
               >
                 <X className="h-5 w-5" />
@@ -1535,7 +1544,7 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
             </div>
 
             {/* Navigation Tabs */}
-            <div className="flex border-b border-white/10 bg-[#040711] px-6 gap-2 pt-2 text-xs font-mono">
+            <div className="flex border-b border-border-glass bg-[#161C26] px-6 gap-2 pt-2 text-xs font-mono">
               {[
                 { id: 'overview' as const, label: 'Node Overview & Telemetry', icon: Server },
                 { id: 'jobs' as const, label: `SLURM Jobs & Tasks (${nodeSlurmJobs.length + nodeTasks.length})`, icon: Activity },
@@ -1549,8 +1558,8 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                     onClick={() => setModalTab(tab.id)}
                     className={`flex items-center gap-2 border-b-2 px-4 py-2.5 font-bold transition-all cursor-pointer ${
                       isActive
-                        ? 'border-accent-cyan text-accent-cyan bg-accent-cyan/[0.06] rounded-t-lg'
-                        : 'border-transparent text-text-muted hover:text-white hover:bg-white/[0.02]'
+                        ? 'border-white text-white bg-[#1E2532] rounded-t-lg'
+                        : 'border-transparent text-text-muted hover:text-white hover:bg-[#1E2532]/50'
                     }`}
                   >
                     <Icon className="h-4 w-4" />
@@ -1568,22 +1577,18 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                   {/* Status Alert Banner */}
                   <div className={`rounded-xl border p-4 flex items-start gap-3 ${
                     selectedNode.state === 'down'
-                      ? 'border-red-500/40 bg-red-500/10 text-red-300 shadow-[0_0_15px_rgba(239,68,68,0.15)]'
+                      ? 'border-red-500/40 bg-red-500/10 text-red-300'
                       : selectedNode.state === 'drain'
                       ? 'border-amber-500/40 bg-amber-500/10 text-amber-300'
-                      : selectedNode.state === 'allocated'
-                      ? 'border-accent-cyan/30 bg-accent-cyan/10 text-cyan-200'
-                      : 'border-status-success/30 bg-status-success/10 text-emerald-200'
+                      : 'border-border-glass bg-[#161C26] text-text-muted'
                   }`}>
                     <div className="p-1 shrink-0 mt-0.5">
                       {selectedNode.state === 'down' ? (
                         <AlertTriangle className="h-5 w-5 text-red-400" />
                       ) : selectedNode.state === 'drain' ? (
                         <AlertTriangle className="h-5 w-5 text-amber-400" />
-                      ) : selectedNode.state === 'allocated' ? (
-                        <Zap className="h-5 w-5 text-accent-cyan" />
                       ) : (
-                        <CheckCircle2 className="h-5 w-5 text-status-success" />
+                        <CheckCircle2 className="h-5 w-5 text-text-muted" />
                       )}
                     </div>
                     <div className="space-y-1">
@@ -1605,10 +1610,10 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                   {/* Hardware Metrics Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-mono">
                     {/* CPU Metrics */}
-                    <div className="glass rounded-xl border border-white/10 p-4 space-y-3">
+                    <div className="rounded-xl border border-border-glass bg-[#161C26] p-4 space-y-3">
                       <div className="flex items-center justify-between text-xs">
                         <span className="flex items-center gap-2 text-text-muted font-bold">
-                          <Cpu className="h-4 w-4 text-accent-cyan" />
+                          <Cpu className="h-4 w-4 text-text-muted" />
                           CPU Cores Allocation
                         </span>
                         <span className="text-white font-bold">{selectedNode.cpus}</span>
@@ -1618,27 +1623,27 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                           <span>Cores in Use</span>
                           <span>{selectedNode.state === 'allocated' ? '100% (32 Cores)' : '0% (0 Cores)'}</span>
                         </div>
-                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-2 w-full bg-[#111620] rounded-full overflow-hidden">
                           <div 
                             className={`h-full rounded-full transition-all duration-500 ${
                               selectedNode.state === 'allocated' 
-                                ? 'w-full bg-gradient-to-r from-accent-cyan to-blue-500' 
-                                : 'w-0 bg-accent-cyan'
+                                ? 'w-full bg-[#4A5568]' 
+                                : 'w-0 bg-[#4A5568]'
                             }`} 
                           />
                         </div>
                       </div>
-                      <div className="flex justify-between text-[10px] text-text-faint pt-1 border-t border-white/[0.04]">
+                      <div className="flex justify-between text-[10px] text-text-faint pt-1 border-t border-border-glass">
                         <span>Arch: x86_64 AMD EPYC</span>
                         <span>Sockets: 1 • Threads/Core: 1</span>
                       </div>
                     </div>
 
                     {/* Memory Metrics */}
-                    <div className="glass rounded-xl border border-white/10 p-4 space-y-3">
+                    <div className="rounded-xl border border-border-glass bg-[#161C26] p-4 space-y-3">
                       <div className="flex items-center justify-between text-xs">
                         <span className="flex items-center gap-2 text-text-muted font-bold">
-                          <Database className="h-4 w-4 text-amber-400" />
+                          <Database className="h-4 w-4 text-text-muted" />
                           RAM Memory Allocation
                         </span>
                         <span className="text-white font-bold">{selectedNode.memory}</span>
@@ -1648,17 +1653,17 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                           <span>Memory in Use</span>
                           <span>{selectedNode.state === 'allocated' ? '128 GB (100%)' : selectedNode.state === 'drain' ? '2 GB (1.5%)' : '4 GB (3.1%)'}</span>
                         </div>
-                        <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden">
+                        <div className="h-2 w-full bg-[#111620] rounded-full overflow-hidden">
                           <div 
                             className={`h-full rounded-full transition-all duration-500 ${
                               selectedNode.state === 'allocated' 
-                                ? 'w-full bg-gradient-to-r from-amber-400 to-red-500' 
-                                : 'w-[4%] bg-status-success'
+                                ? 'w-full bg-[#4A5568]' 
+                                : 'w-[4%] bg-[#4A5568]'
                             }`} 
                           />
                         </div>
                       </div>
-                      <div className="flex justify-between text-[10px] text-text-faint pt-1 border-t border-white/[0.04]">
+                      <div className="flex justify-between text-[10px] text-text-faint pt-1 border-t border-border-glass">
                         <span>Total Real Memory: 128,000 MB</span>
                         <span>Swap: 0 MB / 4096 MB</span>
                       </div>
@@ -1668,14 +1673,14 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                   {/* Jetstream2 Storage Mounts on Cluster Host */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 font-mono text-xs font-bold uppercase tracking-wider text-white">
-                      <HardDrive className="h-4 w-4 text-amber-400" />
+                      <HardDrive className="h-4 w-4 text-text-muted" />
                       <span>Cluster Storage Mounts for {selectedNode.cluster}</span>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                      {nodeClusterMounts.map((m: any) => {
+                      {nodeClusterMounts.map((m: ResourceMountHealth) => {
                         const isAccessible = m.accessible !== false;
                         return (
-                          <div key={m.mount} className="glass rounded-xl border border-white/10 p-3.5 space-y-2 font-mono text-xs">
+                          <div key={m.mount} className="rounded-xl border border-border-glass bg-[#161C26] p-3.5 space-y-2 font-mono text-xs">
                             <div className="flex items-center justify-between">
                               <span className="font-bold text-white flex items-center gap-1.5">
                                 {m.mount}
@@ -1684,14 +1689,14 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                                 </span>
                               </span>
                               <span className={`px-2 py-0.5 rounded text-[9.5px] font-bold ${
-                                isAccessible ? 'bg-status-success/15 text-status-success border border-status-success/30' : 'bg-red-500/20 text-red-300 border border-red-500/40'
+                                isAccessible ? 'bg-[#1E2532] text-text-muted border border-border-glass' : 'bg-red-500/10 text-red-400 border border-red-500/30'
                               }`}>
                                 {isAccessible ? 'MOUNTED' : 'UNREACHABLE'}
                               </span>
                             </div>
                             <div className="flex items-center justify-between text-[11px] text-text-muted">
                               <span>Latency: <strong className="text-white">{m.latency_ms ? `${m.latency_ms} ms` : '12 ms'}</strong></span>
-                              <span>Free Space: <strong className="text-accent-cyan">{m.free_space_pct != null ? `${m.free_space_pct}%` : '54%'}</strong></span>
+                              <span>Free Space: <strong className="text-white">{m.free_space_pct != null ? `${m.free_space_pct}%` : '54%'}</strong></span>
                             </div>
                           </div>
                         );
@@ -1709,7 +1714,7 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                     <div className="flex items-center justify-between">
                       <div>
                         <h4 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
-                          <Zap className="h-4 w-4 text-accent-purple" />
+                          <Zap className="h-4 w-4 text-text-muted" />
                           SLURM Compute Jobs on {selectedNode.cluster} ({nodeSlurmJobs.length})
                         </h4>
                         <p className="text-xs text-text-muted font-sans mt-0.5">
@@ -1719,7 +1724,7 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                     </div>
 
                     {nodeSlurmJobs.length === 0 ? (
-                      <div className="glass rounded-xl border border-dashed border-white/10 p-6 text-center text-xs text-text-muted">
+                      <div className="rounded-xl border border-dashed border-border-glass p-6 text-center text-xs text-text-muted">
                         No active SLURM node jobs currently executing on {selectedNode.cluster}.
                       </div>
                     ) : (
@@ -1728,26 +1733,26 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                           <div 
                             key={`${job.cluster}-${job.job_id || job.id}`}
                             onClick={() => setSelectedJob(job)}
-                            className="glass rounded-xl border border-white/10 p-3 flex items-center justify-between gap-3 hover:border-accent-purple/40 hover:bg-white/[0.03] transition-all cursor-pointer group text-xs"
+                            className="rounded-xl border border-border-glass bg-[#161C26] p-3 flex items-center justify-between gap-3 hover:bg-[#252E3E] transition-all cursor-pointer group text-xs"
                           >
                             <div className="flex items-center gap-3">
-                              <div className="h-2 w-2 rounded-full bg-accent-purple animate-pulse" />
+                              <div className="h-2 w-2 rounded-full bg-text-muted" />
                               <div>
                                 <div className="flex items-center gap-2">
                                   <span className="font-bold text-white">{job.name || job.job_name || 'job'}</span>
-                                  <span className="text-accent-purple text-[11px]">#{job.job_id || job.id}</span>
+                                  <span className="text-text-muted text-[11px]">#{job.job_id || job.id}</span>
                                 </div>
                                 <div className="text-[10.5px] text-text-muted mt-0.5">
-                                  User: <strong className="text-white">{job.user || job.username}</strong> • Nodes: <strong className="text-accent-cyan">{job.nodes || selectedNode.id}</strong> • Runtime: <strong className="text-white">{job.time || job.runtime || '00:00:00'}</strong>
+                                  User: <strong className="text-white">{job.user || job.username}</strong> • Nodes: <strong className="text-white">{job.nodes || selectedNode.id}</strong> • Runtime: <strong className="text-white">{job.time || job.runtime || '00:00:00'}</strong>
                                 </div>
                               </div>
                             </div>
 
                             <div className="flex items-center gap-2">
-                              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-status-success/15 text-status-success border border-status-success/30">
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-[#1E2532] text-text-muted border border-border-glass">
                                 {job.status || 'RUNNING'}
                               </span>
-                              <ArrowRight className="h-4 w-4 text-text-faint group-hover:text-accent-purple transition-colors" />
+                              <ArrowRight className="h-4 w-4 text-text-faint group-hover:text-white transition-colors" />
                             </div>
                           </div>
                         ))}
@@ -1756,11 +1761,11 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                   </div>
 
                   {/* 2. Amaretti Platform Tasks */}
-                  <div className="space-y-3 pt-3 border-t border-white/[0.06]">
+                  <div className="space-y-3 pt-3 border-t border-border-glass">
                     <div className="flex items-center justify-between">
                       <div>
                         <h4 className="text-xs font-bold uppercase tracking-wider text-white flex items-center gap-1.5">
-                          <Activity className="h-4 w-4 text-accent-cyan" />
+                          <Activity className="h-4 w-4 text-text-muted" />
                           Amaretti Platform Tasks ({nodeTasks.length})
                         </h4>
                         <p className="text-xs text-text-muted font-sans mt-0.5">
@@ -1773,7 +1778,7 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                             setSelectedNode(null);
                             onNavigate('tasks');
                           }}
-                          className="flex items-center gap-1 text-xs font-bold text-accent-cyan hover:underline cursor-pointer"
+                          className="flex items-center gap-1 text-xs font-bold text-text-muted hover:text-white transition-colors cursor-pointer"
                         >
                           <span>Open Tasks View</span>
                           <ExternalLink className="h-3.5 w-3.5" />
@@ -1782,7 +1787,7 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                     </div>
 
                     {nodeTasks.length === 0 ? (
-                      <div className="glass rounded-xl border border-dashed border-white/10 p-6 text-center text-xs text-text-muted">
+                      <div className="rounded-xl border border-dashed border-border-glass p-6 text-center text-xs text-text-muted">
                         No active Amaretti tasks assigned to <strong className="text-white font-mono">{selectedNode.cluster}</strong> in the active window.
                       </div>
                     ) : (
@@ -1798,18 +1803,16 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                                 setSelectedNode(null);
                                 handleNavigateToTask(task.id);
                               }}
-                              className="glass rounded-xl border border-white/10 p-3 flex items-center justify-between gap-4 hover:border-accent-cyan/40 hover:bg-white/[0.03] transition-all cursor-pointer group text-xs"
+                              className="rounded-xl border border-border-glass bg-[#161C26] p-3 flex items-center justify-between gap-4 hover:bg-[#252E3E] transition-all cursor-pointer group text-xs"
                             >
                               <div className="flex items-center gap-3">
                                 <div className={`h-2 w-2 rounded-full ${
-                                  task.status === 'running' ? 'bg-accent-cyan animate-pulse' :
-                                  task.status === 'finished' ? 'bg-status-success' :
-                                  task.status === 'failed' ? 'bg-red-500' : 'bg-amber-400'
+                                  task.status === 'failed' ? 'bg-red-500' : 'bg-text-muted'
                                 }`} />
                                 <div>
                                   <div className="flex items-center gap-2">
                                     <span className="font-bold text-white text-xs">{serviceName}</span>
-                                    <span className="text-[11px] text-accent-cyan font-mono">#{task.id.slice(-8)}</span>
+                                    <span className="text-[11px] text-text-muted font-mono">#{task.id.slice(-8)}</span>
                                   </div>
                                   <div className="flex items-center gap-3 text-[10.5px] text-text-muted mt-0.5">
                                     <span className="flex items-center gap-1">
@@ -1827,14 +1830,12 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
 
                               <div className="flex items-center gap-2">
                                 <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                                  task.status === 'running' ? 'bg-accent-cyan/15 text-accent-cyan border border-accent-cyan/30' :
-                                  task.status === 'finished' ? 'bg-status-success/15 text-status-success border border-status-success/30' :
-                                  task.status === 'failed' ? 'bg-red-500/20 text-red-300 border border-red-500/40' :
-                                  'bg-amber-500/15 text-amber-300 border border-amber-500/30'
+                                  task.status === 'failed' ? 'bg-red-500/10 text-red-400 border border-red-500/30' :
+                                  'bg-[#1E2532] text-text-muted border border-border-glass'
                                 }`}>
                                   {task.status}
                                 </span>
-                                <ArrowRight className="h-4 w-4 text-text-faint group-hover:text-accent-cyan transition-colors" />
+                                <ArrowRight className="h-4 w-4 text-text-faint group-hover:text-white transition-colors" />
                               </div>
                             </div>
                           );
@@ -1850,7 +1851,7 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                 <div className="space-y-5 animate-fadeIn font-mono text-xs">
                   {/* If Down/Drain Reason */}
                   {selectedNode.reason && (
-                    <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 space-y-2 text-red-300 shadow-lg">
+                    <div className="rounded-xl border border-red-500/40 bg-red-500/10 p-4 space-y-2 text-red-300">
                       <div className="flex items-center justify-between">
                         <span className="font-bold uppercase tracking-wider text-[11px] text-red-400 flex items-center gap-1.5">
                           <ShieldAlert className="h-4 w-4" />
@@ -1868,29 +1869,29 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                           </button>
                         )}
                       </div>
-                      <p className="text-white font-bold bg-black/40 rounded-lg p-2.5 border border-white/10 font-mono">
+                      <p className="text-white font-bold bg-[#111620] rounded-lg p-2.5 border border-border-glass font-mono">
                         {selectedNode.reason}
                       </p>
                     </div>
                   )}
 
-                  {/* Quick CLI Commands Helper for Taylor */}
+                  {/* Quick CLI Commands Helper */}
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-white uppercase text-[11px] flex items-center gap-1.5">
-                        <Terminal className="h-4 w-4 text-accent-cyan" />
+                        <Terminal className="h-4 w-4 text-text-muted" />
                         Sysadmin Quick CLI Commands
                       </span>
                       <span className="text-[10px] text-text-faint">Click to copy command</span>
                     </div>
 
                     {/* Command 1: scontrol show node */}
-                    <div className="glass rounded-xl border border-white/10 p-3 bg-black/50 space-y-1.5">
+                    <div className="rounded-xl border border-border-glass p-3 bg-[#161C26] space-y-1.5">
                       <div className="flex items-center justify-between text-text-muted text-[10.5px]">
                         <span>1. Inspect full SLURM node metadata:</span>
                         <button
                           onClick={() => handleCopy(`scontrol show node ${selectedNode.id}`, 'scontrol')}
-                          className="flex items-center gap-1 text-[10.5px] font-bold text-accent-cyan hover:text-white transition-colors cursor-pointer"
+                          className="flex items-center gap-1 text-[10.5px] font-bold text-text-muted hover:text-white transition-colors cursor-pointer"
                         >
                           {copiedText === 'scontrol' ? (
                             <>
@@ -1905,18 +1906,18 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                           )}
                         </button>
                       </div>
-                      <code className="block bg-[#03060f] p-2.5 rounded-lg text-green-400 select-all border border-white/5">
+                      <code className="block bg-[#111620] p-2.5 rounded-lg text-text-main select-all border border-border-glass">
                         scontrol show node {selectedNode.id}
                       </code>
                     </div>
 
                     {/* Command 2: squeue for this node */}
-                    <div className="glass rounded-xl border border-white/10 p-3 bg-black/50 space-y-1.5">
+                    <div className="rounded-xl border border-border-glass p-3 bg-[#161C26] space-y-1.5">
                       <div className="flex items-center justify-between text-text-muted text-[10.5px]">
                         <span>2. Query active jobs allocated to this node:</span>
                         <button
                           onClick={() => handleCopy(`squeue -w ${selectedNode.id}`, 'squeuenode')}
-                          className="flex items-center gap-1 text-[10.5px] font-bold text-accent-purple hover:text-white transition-colors cursor-pointer"
+                          className="flex items-center gap-1 text-[10.5px] font-bold text-text-muted hover:text-white transition-colors cursor-pointer"
                         >
                           {copiedText === 'squeuenode' ? (
                             <>
@@ -1931,18 +1932,18 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                           )}
                         </button>
                       </div>
-                      <code className="block bg-[#03060f] p-2.5 rounded-lg text-accent-purple select-all border border-white/5">
+                      <code className="block bg-[#111620] p-2.5 rounded-lg text-text-main select-all border border-border-glass">
                         squeue -w {selectedNode.id}
                       </code>
                     </div>
 
                     {/* Command 3: SSH Jump */}
-                    <div className="glass rounded-xl border border-white/10 p-3 bg-black/50 space-y-1.5">
+                    <div className="rounded-xl border border-border-glass p-3 bg-[#161C26] space-y-1.5">
                       <div className="flex items-center justify-between text-text-muted text-[10.5px]">
                         <span>3. SSH into cluster head node:</span>
                         <button
                           onClick={() => handleCopy(`ssh -A js2-${selectedNode.cluster}`, 'ssh')}
-                          className="flex items-center gap-1 text-[10.5px] font-bold text-accent-cyan hover:text-white transition-colors cursor-pointer"
+                          className="flex items-center gap-1 text-[10.5px] font-bold text-text-muted hover:text-white transition-colors cursor-pointer"
                         >
                           {copiedText === 'ssh' ? (
                             <>
@@ -1957,19 +1958,19 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                           )}
                         </button>
                       </div>
-                      <code className="block bg-[#03060f] p-2.5 rounded-lg text-cyan-300 select-all border border-white/5">
+                      <code className="block bg-[#111620] p-2.5 rounded-lg text-text-main select-all border border-border-glass">
                         ssh -A js2-{selectedNode.cluster}
                       </code>
                     </div>
 
                     {/* Command 4: Resume node if down or drain */}
                     {(selectedNode.state === 'down' || selectedNode.state === 'drain') && (
-                      <div className="glass rounded-xl border border-amber-500/20 p-3 bg-amber-500/5 space-y-1.5">
-                        <div className="flex items-center justify-between text-amber-300 text-[10.5px]">
+                      <div className="rounded-xl border border-border-glass p-3 bg-[#161C26] space-y-1.5">
+                        <div className="flex items-center justify-between text-text-muted text-[10.5px]">
                           <span>4. Resume drained / recovered compute node:</span>
                           <button
                             onClick={() => handleCopy(`scontrol update NodeName=${selectedNode.id} State=RESUME`, 'resume')}
-                            className="flex items-center gap-1 text-[10.5px] font-bold text-amber-300 hover:text-white transition-colors cursor-pointer"
+                            className="flex items-center gap-1 text-[10.5px] font-bold text-text-muted hover:text-white transition-colors cursor-pointer"
                           >
                             {copiedText === 'resume' ? (
                               <>
@@ -1984,7 +1985,7 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                             )}
                           </button>
                         </div>
-                        <code className="block bg-[#03060f] p-2.5 rounded-lg text-amber-300 select-all border border-white/5">
+                        <code className="block bg-[#111620] p-2.5 rounded-lg text-text-main select-all border border-border-glass">
                           scontrol update NodeName={selectedNode.id} State=RESUME
                         </code>
                       </div>
@@ -1994,7 +1995,7 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                   {/* Raw sinfo Node Line */}
                   <div className="space-y-1.5 pt-2">
                     <span className="text-text-muted text-[10.5px]">Live sinfo line for this node:</span>
-                    <pre className="p-3 bg-[#03060f] rounded-xl border border-white/5 text-gray-300 overflow-x-auto text-[11px]">
+                    <pre className="p-3 bg-[#111620] rounded-xl border border-border-glass text-text-muted overflow-x-auto text-[11px]">
 {`NodeName=${selectedNode.id} Arch=x86_64 CoresPerSocket=32
    CPUAlloc=${selectedNode.cpus.split('/')[0]} CPUTot=${selectedNode.cpus.split('/')[1] || '32'} CPULoad=0.02
    RealMemory=${selectedNode.memory} AllocMem=${selectedNode.state === 'allocated' ? '128000' : '4000'} FreeMem=124000
@@ -2007,9 +2008,9 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
             </div>
 
             {/* Modal Footer */}
-            <div className="flex items-center justify-between border-t border-white/10 px-6 py-3.5 bg-white/[0.02] font-mono text-xs">
+            <div className="flex items-center justify-between border-t border-border-glass px-6 py-3.5 bg-[#1B222E] font-mono text-xs">
               <div className="text-text-faint text-[11px]">
-                Press <kbd className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] text-white">ESC</kbd> or click outside to dismiss
+                Press <kbd className="rounded bg-[#161C26] border border-border-glass px-1.5 py-0.5 text-[10px] text-text-muted">ESC</kbd> or click outside to dismiss
               </div>
               <div className="flex items-center gap-3">
                 {onNavigate && (
@@ -2019,15 +2020,15 @@ ${filteredNodeJobs.length === 0 ? 'No jobs matching active filters' : filteredNo
                       setSelectedNode(null);
                       handleNavigateToResource(clusterName);
                     }}
-                    className="flex items-center gap-1.5 rounded-xl border border-white/10 bg-white/5 px-3.5 py-1.5 font-bold text-white hover:bg-white/10 transition-all cursor-pointer"
+                    className="flex items-center gap-1.5 rounded-xl border border-border-glass bg-[#161C26] hover:bg-[#252E3E] px-3.5 py-1.5 font-bold text-text-muted hover:text-white transition-all cursor-pointer"
                   >
-                    <Server className="h-3.5 w-3.5 text-accent-cyan" />
+                    <Server className="h-3.5 w-3.5 text-text-muted" />
                     <span>View in Resources</span>
                   </button>
                 )}
                 <button
                   onClick={() => setSelectedNode(null)}
-                  className="rounded-xl border border-accent-cyan/30 bg-accent-cyan/15 px-4 py-1.5 font-bold text-accent-cyan hover:bg-accent-cyan/25 transition-all cursor-pointer"
+                  className="rounded-xl border border-[#4A5568] bg-[#2D3748] hover:bg-[#374254] px-4 py-1.5 font-bold text-white transition-all cursor-pointer shadow-sm"
                 >
                   Done
                 </button>

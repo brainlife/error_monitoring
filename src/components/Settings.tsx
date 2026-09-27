@@ -259,13 +259,13 @@ export default function Settings({ onConfigChange }: SettingsProps) {
                           <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1.5">
                               <span className="text-[9px] font-bold text-text-faint uppercase tracking-wider">Full Name</span>
-                              <div className="bg-[#050811]/50 border border-white/[0.04] rounded-lg px-3 py-2 text-xs text-text-main font-semibold">
+                              <div className="bg-[#161C26] border border-border-glass rounded-lg px-3 py-2 text-xs text-text-main font-semibold">
                                 {userProfile.fullname || 'Not specified'}
                               </div>
                             </div>
                             <div className="space-y-1.5">
                               <span className="text-[9px] font-bold text-text-faint uppercase tracking-wider">Username Handle</span>
-                              <div className="bg-[#050811]/50 border border-white/[0.04] rounded-lg px-3 py-2 text-xs font-mono text-accent-cyan">
+                              <div className="bg-[#161C26] border border-border-glass rounded-lg px-3 py-2 text-xs font-mono text-accent-cyan font-bold">
                                 @{userProfile.username || 'Not specified'}
                               </div>
                             </div>
@@ -273,14 +273,14 @@ export default function Settings({ onConfigChange }: SettingsProps) {
 
                           <div className="space-y-1.5">
                             <span className="text-[9px] font-bold text-text-faint uppercase tracking-wider">Email Address</span>
-                            <div className="bg-[#050811]/50 border border-white/[0.04] rounded-lg px-3 py-2 text-xs text-text-muted">
+                            <div className="bg-[#161C26] border border-border-glass rounded-lg px-3 py-2 text-xs text-text-muted">
                               {userProfile.email || 'No email associated'}
                             </div>
                           </div>
 
                           <div className="space-y-1.5">
                             <span className="text-[9px] font-bold text-text-faint uppercase tracking-wider">Database ID / Sub</span>
-                            <div className="bg-[#050811]/50 border border-white/[0.04] rounded-lg px-3 py-2 text-xs font-mono text-text-faint">
+                            <div className="bg-[#161C26] border border-border-glass rounded-lg px-3 py-2 text-xs font-mono text-text-faint">
                               {userProfile.id || 'Unknown'}
                             </div>
                           </div>
@@ -296,7 +296,7 @@ export default function Settings({ onConfigChange }: SettingsProps) {
               )}
 
               {/* Form Buttons */}
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/[0.04]">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t border-border-glass">
                 <button
                   type="button"
                   onClick={() => {
@@ -305,14 +305,14 @@ export default function Settings({ onConfigChange }: SettingsProps) {
                     setRefreshInterval('10000');
                     setTelemetry(true);
                   }}
-                  className="rounded-lg border border-border-glass bg-white/[0.01] px-4 py-2.5 text-xs font-semibold text-text-muted hover:bg-white/[0.03] hover:text-text-main transition-all cursor-pointer"
+                  className="rounded-lg border border-border-glass bg-[#161C26] hover:bg-[#1E2532] px-4 py-2.5 text-xs font-semibold text-text-muted hover:text-text-main transition-all cursor-pointer shadow-sm"
                 >
                   Reset Defaults
                 </button>
                 <button
                   type="submit"
                   disabled={saveStatus === 'saving'}
-                  className="rounded-lg bg-accent-cyan px-5 py-2.5 text-xs font-bold text-bg-dark hover:bg-accent-cyan-dim active:scale-[0.98] transition-all shadow-[0_0_12px_rgba(0,229,255,0.2)] cursor-pointer flex items-center gap-1.5"
+                  className="rounded-lg bg-[#2D3748] hover:bg-[#1A202C] px-5 py-2.5 text-xs font-bold text-white active:scale-[0.98] transition-all shadow-sm cursor-pointer flex items-center gap-1.5"
                 >
                   {saveStatus === 'saving' ? (
                     <>
