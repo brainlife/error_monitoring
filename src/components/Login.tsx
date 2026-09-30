@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { login, getApiUrl, NonAdminError } from '../api';
 import { useDashboardStore } from '../store/useDashboardStore';
-import { Loader2, AlertCircle, User, Lock, ArrowRight, ShieldAlert, AlertTriangle, LogOut } from 'lucide-react';
+import { Loader2, AlertCircle, User, Lock, ArrowRight, AlertTriangle, LogOut } from 'lucide-react';
 
 interface LoginProps {
   onLoginSuccess: () => void;
@@ -183,13 +183,14 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       {/* Non-Admin Access Denied Modal */}
       {nonAdminAttemptUser && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-red-500/30 bg-[#1A202C] p-6 shadow-2xl">
-            {/* Top accent glow line */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-red-500 to-rose-600" />
-
-            {/* Icon */}
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 border border-red-500/25 text-red-400 mb-4 shadow-inner">
-              <ShieldAlert className="h-7 w-7 text-red-400" />
+          <div className="relative w-full max-w-md rounded-2xl border border-border-glass bg-[#1E2532] p-6 shadow-2xl">
+            {/* Brainlife Brand Icon */}
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-[#2D3748] border border-[#3A4352] p-2.5 mb-4 shadow-sm">
+              <img
+                src={`${import.meta.env.BASE_URL}Assets/icon1.png`}
+                alt="Brainlife"
+                className="h-8 w-8 object-contain"
+              />
             </div>
 
             {/* Title & Description */}
@@ -201,7 +202,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             </p>
 
             {/* Account Details Box */}
-            <div className="mt-5 rounded-xl border border-border-glass bg-[#141822] p-3.5 text-xs">
+            <div className="mt-5 rounded-xl border border-border-glass bg-[#161C26] p-3.5 text-xs">
               <div className="flex items-center justify-between pb-2 mb-2 border-b border-border-glass/60">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-text-faint">
                   Authenticated Account
