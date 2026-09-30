@@ -19,7 +19,7 @@ import {
   Cpu,
   HardDrive
 } from 'lucide-react';
-import type { Task } from '../data';
+import type { Task, ComputeResource } from '../data';
 import { apiFetch, fetchWarehouseApps, type WarehouseApp } from '../api';
 import MobileCrashlyticsView from './MobileCrashlyticsView';
 
@@ -53,12 +53,44 @@ function formatSecondsToDuration(seconds: number): string {
   return `${s}s`;
 }
 
+interface ResourceItem {
+  _id?: string;
+  name?: string;
+}
+interface BackendTaskItem {
+  _id: string;
+  service: string;
+  instance_id?: string;
+  resource_id?: string;
+  status: string;
+  status_msg?: string;
+  start_date?: string;
+  finish_date?: string;
+  create_date?: string;
+  user_id?: string | number;
+}
+interface UserItem {
+  _id?: string;
+  sub?: number;
+  username?: string;
+  fullname?: string;
+  email?: string;
+  scopes?: { brainlife?: string[] };
+  times?: { register?: string; local_login?: string };
+  create_date?: string;
+  profile?: {
+    public?: {
+      institution?: string;
+    };
+  };
+}
+
 interface AnalyticsViewProps {
   tasks: Task[];
   projectNamesMap?: Record<string, string>;
   userNamesMap?: Record<string, string>;
-  usersList?: any[];
-  resourcesList?: any[];
+  usersList?: UserItem[];
+  resourcesList?: ComputeResource[];
   loading?: boolean;
 }
 
@@ -98,10 +130,10 @@ export default function AnalyticsView({ tasks, projectNamesMap, userNamesMap, us
           console.warn("Warehouse apps API offline, using cached catalog:", err);
         });
 
-        apiFetch<any>('/resource').then(resData => {
+        apiFetch<ResourceItem[] | { resources?: ResourceItem[]; results?: ResourceItem[] }>('/resource').then(resData => {
           const resources = Array.isArray(resData) ? resData : resData?.resources || resData?.results || [];
           const resMap: Record<string, string> = {};
-          resources.forEach((r: any) => {
+          resources.forEach((r: ResourceItem) => {
             if (r._id && r.name) {
               resMap[r._id] = r.name;
             }
@@ -110,12 +142,12 @@ export default function AnalyticsView({ tasks, projectNamesMap, userNamesMap, us
         }).catch(err => {
           console.warn("Amaretti resource names API offline:", err);
         });
-      } catch (e) {
+      } catch {
         // ignore fallback
       }
 
       try {
-        const findParams: Record<string, any> = {};
+        const findParams: Record<string, unknown> = {};
 
         
         // Calculate date threshold based on timeRange
@@ -153,7 +185,7 @@ export default function AnalyticsView({ tasks, projectNamesMap, userNamesMap, us
           sort: '-create_date'
         });
 
-        const res = await apiFetch<{ tasks: any[] }>(`/task?${queryParams.toString()}`);
+        const res = await apiFetch<{ tasks: BackendTaskItem[] }>(`/task?${queryParams.toString()}`);
         const backendTasks = res.tasks || [];
         
         const mapped = backendTasks.map(t => {
@@ -1484,7 +1516,7 @@ export default function AnalyticsView({ tasks, projectNamesMap, userNamesMap, us
       usersList.forEach(u => {
         const uid = u.sub ? u.sub.toString() : u._id;
         if (!uid) return;
-        const uName = u.fullname || u.username;
+        const uName = u.fullname || u.username || uid;
         const institution = u.profile?.public?.institution || 'Unknown';
         researcherMap[uid] = {
           name: uName,
