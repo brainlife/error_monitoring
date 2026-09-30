@@ -297,10 +297,26 @@ export interface ResourceSlurmHealth {
   } | null;
 }
 
+export interface DockerHealth {
+  status: 'ok' | 'warning' | 'error';
+  total_containers: number;
+  expected_configured: boolean;
+  missing_containers: string[];
+  containers: Array<{
+    container_id: string; name: string; image: string; state: string;
+    health: string; restart_count: number; exit_code: number; monitored?: boolean;
+  }>;
+}
+
 export interface MonitoredResourceHealth {
-  resource_id: string;
+  docker?: DockerHealth | null;
+  docker_check?: {
+    status: 'ok' | 'warning' | 'error' | 'unknown';
+    stale: boolean; check_date: string | null; error_msg: string | null;
+  } | null;
+  resource_id: string | null;
   resource_name: string;
-  last_check: string;
+  last_check: string | null;
   overall_status: 'ok' | 'warning' | 'error' | 'unknown';
   mounts: ResourceMountHealth[];
   slurm: ResourceSlurmHealth;

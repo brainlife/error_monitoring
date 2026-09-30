@@ -33,6 +33,7 @@ import {
   type SlurmJob,
   type ResourceMountHealth
 } from '../api';
+import DockerHealthPanel from './DockerHealthPanel';
 import { useDashboardStore } from '../store/useDashboardStore';
 
 interface ClusterHealthViewProps {
@@ -147,12 +148,14 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
     setApiError(null);
     try {
       console.log('📡 [ClusterHealthView] Triggering health check poll. Force live refresh:', forceLiveRefresh);
-      // If forcing live refresh, trigger POST /resource/:id/health/refresh for known resources
+      // Force probes only for storage/SLURM Resources. Docker observations arrive from the prod collector.
       if (forceLiveRefresh && liveHealthData?.resources) {
         console.log('⚡ [ClusterHealthView] Bypassing Redis cache for resources:', liveHealthData.resources.map(r => r.resource_name));
-        await Promise.allSettled(
-          liveHealthData.resources.map(r => refreshResourceHealth(r.resource_id))
+        const results = await Promise.allSettled(
+          liveHealthData.resources.filter(r => r.resource_id && !r.docker_check).map(r => refreshResourceHealth(r.resource_id!))
         );
+        const failed = results.filter(result => result.status === 'rejected');
+        if(failed.length) setApiError(`${failed.length} resource refresh requests failed; showing stored results.`);
       }
 
       const res = await fetchResourceHealthAll();
@@ -177,7 +180,7 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
       setApiError(
         err?.message?.includes('Unauthorized') || err?.message?.includes('401')
           ? 'Admin authorization required. Please authenticate with an Admin JWT token to view live infrastructure probes.'
-          : (err?.message || 'Failed to query live health probes from backend daemon.')
+          : (err?.message || 'Failed to load health observations.')
       );
     } finally {
       setIsRefreshing(false);
@@ -190,6 +193,11 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
     loadHealthData(false);
   }, []);
 
+  useEffect(() => {
+    const timer = window.setInterval(() => { if(!isRefreshing) loadHealthData(false); }, 30000);
+    return () => window.clearInterval(timer);
+  }, [loadHealthData, isRefreshing]);
+
   // 1. Storage Mounts Derivation (Across ALL monitored resources: Stager, slurm147, slurm24, slurm-marshall, slurm-pirate)
   const vmStorageMounts = useMemo<StorageMountItem[]>(() => {
     if (!liveHealthData?.resources) return [];
@@ -197,6 +205,8 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
     const items: StorageMountItem[] = [];
 
     liveHealthData.resources.forEach(r => {
+      if(!r.resource_id) return;
+      const resourceId = r.resource_id;
       (r.mounts || []).forEach((m, idx) => {
         const isScratch = m.mount.includes('scratch');
         const freePct = m.free_space_pct != null ? m.free_space_pct : null;
@@ -204,7 +214,7 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
 
         items.push({
           id: `${r.resource_id}-${m.mount}-${idx}`,
-          resourceId: r.resource_id,
+          resourceId,
           hostName: r.resource_name,
           mount: m.mount,
           subtitle: isScratch ? '(NFS Scratch Storage)' : '(Ceph Osiris Storage)',
@@ -409,6 +419,7 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
 
     const jobs: EnrichedSlurmJob[] = [];
     liveHealthData.resources.forEach(r => {
+      if(!r.resource_id) return;
       const clusterName = r.resource_name;
       const resourceId = r.resource_id;
 
@@ -547,7 +558,7 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
             <div>
               <div className="flex items-center gap-2.5 flex-wrap">
                 <h1 className="text-xl font-bold tracking-tight text-white font-mono flex items-center gap-2">
-                  Cluster & Jetstream2 VM Health Monitor
+                  Cluster, Storage & Docker Health Monitor
                 </h1>
                 {isLiveConnected ? (
                   <span className="inline-flex items-center gap-1.5 rounded-md bg-[#161C26] px-2.5 py-0.5 text-[10px] font-mono text-text-muted border border-border-glass">
@@ -562,7 +573,7 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
                 )}
               </div>
               <p className="text-xs text-text-muted mt-0.5 font-sans">
-                Real-time daemon health probes from <strong className="text-white font-mono">GET /resource/health/all</strong> covering storage mounts, SLURM nodes, and compute jobs
+                Latest health observations from <strong className="text-white font-mono">GET /resource/health/all</strong> covering storage mounts, SLURM nodes, compute jobs, and API host containers
               </p>
             </div>
           </div>
@@ -585,10 +596,10 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
             onClick={() => loadHealthData(true)}
             disabled={isRefreshing}
             className="flex items-center gap-1.5 rounded-xl border border-border-glass bg-[#1E2532] hover:bg-[#252E3E] px-3.5 py-1.5 font-bold text-white transition-all cursor-pointer disabled:opacity-50 shadow-sm"
-            title="Bypasses 5-minute Redis cache via POST /resource/:id/health/refresh"
+            title="Runs storage and SLURM probes and reloads the latest Docker collector observations"
           >
             <RefreshCw className={`h-3.5 w-3.5 text-text-muted ${isRefreshing ? 'animate-spin' : ''}`} />
-            <span>{isRefreshing ? 'Polling Probes...' : 'Run Probes'}</span>
+            <span>{isRefreshing ? 'Refreshing...' : 'Refresh Health'}</span>
           </button>
         </div>
       </div>
@@ -652,6 +663,9 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
           <div className="text-xs text-text-muted font-mono">Fetching GET /resource/health/all</div>
         </div>
       )}
+
+      {isLiveConnected && apiError && <p role="alert" className="text-sm text-amber-300">{apiError}</p>}
+      <DockerHealthPanel resources={liveHealthData?.resources || []} />
 
       {/* SECTION 1: Multi-Resource Storage Mounts Telemetry (/mnt/scratch & /mnt/osiris) */}
       <div className="space-y-4">
