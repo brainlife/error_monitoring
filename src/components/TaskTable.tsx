@@ -52,7 +52,7 @@ export default function TaskTable({
   const displayedTasks = useMemo(() => {
     return showAll ? sorted : sorted.slice(0, 8);
   }, [sorted, showAll]);
-  // console.log("tasks", tasks);
+
   return (
     <div className="glass overflow-hidden rounded-2xl w-full border border-border-glass">
       {/* Table Header */}
@@ -255,7 +255,6 @@ export default function TaskTable({
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          // console.log("[TaskTable] Clicking on user. t.userId (Sub ID):", userId, "Username:", userNamesMap?.[userId] || 'Unknown');
                           onNavigateToUser?.(userId);
                         }}
                         className="hover:text-accent-cyan hover:underline cursor-pointer transition-colors text-left font-semibold"

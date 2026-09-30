@@ -147,10 +147,8 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
     setIsRefreshing(true);
     setApiError(null);
     try {
-      console.log('📡 [ClusterHealthView] Triggering health check poll. Force live refresh:', forceLiveRefresh);
       // Force probes only for storage/SLURM Resources. Docker observations arrive from the prod collector.
       if (forceLiveRefresh && liveHealthData?.resources) {
-        console.log('⚡ [ClusterHealthView] Bypassing Redis cache for resources:', liveHealthData.resources.map(r => r.resource_name));
         const results = await Promise.allSettled(
           liveHealthData.resources.filter(r => r.resource_id && !r.docker_check).map(r => refreshResourceHealth(r.resource_id!))
         );
@@ -159,7 +157,6 @@ export default function ClusterHealthView({ onNavigate }: ClusterHealthViewProps
       }
 
       const res = await fetchResourceHealthAll();
-      console.log('📦 [ClusterHealthView] Received payload from /resource/health/all:', res);
       if (res && Array.isArray(res.resources) && res.resources.length > 0) {
         setLiveHealthData(res);
         setIsLiveConnected(true);

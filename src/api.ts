@@ -31,6 +31,36 @@ export function getUserProfile(): UserProfile | null {
   }
 }
 
+export function decodeJwtPayload(token: string): any {
+  try {
+    const payloadPart = token.split('.')[1];
+    if (!payloadPart) return null;
+    return JSON.parse(atob(payloadPart));
+  } catch (err) {
+    console.warn('Failed to decode JWT payload:', err);
+    return null;
+  }
+}
+
+export function isUserAdmin(decodedToken: any): boolean {
+  if (!decodedToken || !decodedToken.scopes) return false;
+  const scopes = decodedToken.scopes;
+  const isBrainlifeAdmin = Array.isArray(scopes.brainlife) && scopes.brainlife.includes('admin');
+  const isAmarettiAdmin = Array.isArray(scopes.amaretti) && scopes.amaretti.includes('admin');
+  const isAuthAdmin = Array.isArray(scopes.auth) && scopes.auth.includes('admin');
+  const isWarehouseAdmin = Array.isArray(scopes.warehouse) && scopes.warehouse.includes('admin');
+  return isBrainlifeAdmin || isAmarettiAdmin || isAuthAdmin || isWarehouseAdmin;
+}
+
+export class NonAdminError extends Error {
+  userProfile: UserProfile;
+  constructor(userProfile: UserProfile) {
+    super('This account does not have administrative privileges.');
+    this.name = 'NonAdminError';
+    this.userProfile = userProfile;
+  }
+}
+
 export async function login(username: string, password: string): Promise<boolean> {
   const apiUrl = getApiUrl().replace(/\/$/, '');
 
@@ -61,32 +91,22 @@ export async function login(username: string, password: string): Promise<boolean
 
   const data = await response.json();
   if (data && data.jwt) {
-    setJwtToken(data.jwt);
+    const payloadDecoded = decodeJwtPayload(data.jwt);
 
-    // Decode JWT payload (standard JWT is header.payload.signature)
-    try {
-      const payloadPart = data.jwt.split('.')[1];
-      const payloadDecoded = JSON.parse(atob(payloadPart));
-      // console.log('Payload decoded:', payloadDecoded);
-      const userProfile: UserProfile = {
-        id: payloadDecoded.sub || '1',
-        username: payloadDecoded.username || payloadDecoded.sub || username,
-        fullname: payloadDecoded.fullname || payloadDecoded.username || username,
-        email: payloadDecoded.email || ''
-      };
+    const userProfile: UserProfile = {
+      id: String(payloadDecoded?.sub || payloadDecoded?.id || '1'),
+      username: payloadDecoded?.profile?.username || payloadDecoded?.username || payloadDecoded?.sub || username,
+      fullname: payloadDecoded?.profile?.fullname || payloadDecoded?.fullname || payloadDecoded?.username || username,
+      email: payloadDecoded?.profile?.email || payloadDecoded?.email || ''
+    };
 
-      localStorage.setItem('amaretti_user', JSON.stringify(userProfile));
-
-    } catch (decodeErr) {
-      console.warn('Failed to decode JWT payload, setting fallback user profile:', decodeErr);
-      const fallbackProfile: UserProfile = {
-        id: '1',
-        username: username,
-        fullname: username,
-        email: ''
-      };
-      localStorage.setItem('amaretti_user', JSON.stringify(fallbackProfile));
+    // Enforce admin access only
+    if (!isUserAdmin(payloadDecoded)) {
+      throw new NonAdminError(userProfile);
     }
+
+    setJwtToken(data.jwt);
+    localStorage.setItem('amaretti_user', JSON.stringify(userProfile));
 
     return true;
   }
@@ -329,70 +349,7 @@ export interface ResourceHealthAllResponse {
 }
 
 export async function fetchResourceHealthAll(): Promise<ResourceHealthAllResponse> {
-  console.group('🌐 [Amaretti API] GET /resource/health/all');
-  console.log('Requesting: /resource/health/all');
-  try {
-    const data = await apiFetch<ResourceHealthAllResponse>('/resource/health/all');
-    console.log('Response Payload:', data);
-    console.log('Monitored Resources Count:', data?.resources?.length ?? 0);
-    
-    // Log Resource Overview Table
-    if (data?.resources?.length) {
-      console.table(data.resources.map(r => ({
-        ID: r.resource_id,
-        Name: r.resource_name,
-        Status: r.overall_status,
-        Mounts: r.mounts?.length ?? 0,
-        TotalNodes: r.slurm?.nodes?.total_nodes ?? 'N/A',
-        TotalJobs: r.slurm?.jobs?.total_jobs ?? 'N/A',
-        LastCheck: r.last_check
-      })));
-
-      // Log Storage Mounts Table across ALL resources
-      console.groupCollapsed('📁 Storage Mounts Breakdown across All Monitored Hosts');
-      const allMountsFlat = data.resources.flatMap(r => 
-        (r.mounts || []).map(m => ({
-          Host: r.resource_name,
-          Mount: m.mount,
-          Accessible: m.accessible ? '✅ Yes' : '❌ No',
-          Latency: `${m.latency_ms} ms`,
-          FreeSpace: `${m.free_space_pct}%`,
-          Warning: m.warning || 'None',
-          Error: m.error || 'None'
-        }))
-      );
-      console.table(allMountsFlat);
-      console.groupEnd();
-
-      // Log SLURM Jobs Breakdown
-      console.groupCollapsed('⚡ SLURM Node Jobs (squeue) Breakdown across Clusters');
-      const allJobsFlat = data.resources.flatMap(r => 
-        (r.slurm?.jobs?.recent_jobs || []).map(j => ({
-          Cluster: r.resource_name,
-          JobID: j.job_id || j.id || 'N/A',
-          Name: j.name || j.job_name || 'N/A',
-          User: j.user || j.username || 'N/A',
-          Status: j.status || j.state || 'N/A',
-          Partition: j.partition || 'main',
-          Nodes: j.nodes || j.nodelist || 'N/A',
-          Runtime: j.time || j.runtime || j.duration || 'N/A'
-        }))
-      );
-      if (allJobsFlat.length > 0) {
-        console.table(allJobsFlat);
-      } else {
-        console.log('No recent SLURM node jobs currently queued or running.');
-      }
-      console.groupEnd();
-    }
-    
-    console.groupEnd();
-    return data;
-  } catch (err) {
-    console.error('Fetch /resource/health/all Failed:', err);
-    console.groupEnd();
-    throw err;
-  }
+  return apiFetch<ResourceHealthAllResponse>('/resource/health/all');
 }
 
 export async function refreshResourceHealth(resourceId: string): Promise<any> {

@@ -13,6 +13,33 @@ interface LogLine {
   projectId?: string;
 }
 
+interface WarehouseDatatype {
+  _id?: string;
+  name?: string;
+}
+
+interface WarehouseDataset {
+  _id: string;
+  desc?: string;
+  storage?: string;
+  status?: string;
+  size?: number;
+  download_headers?: unknown;
+  datatype?: WarehouseDatatype | string;
+  project?: {
+    _id?: string;
+    name?: string;
+  };
+}
+
+interface LogSearchHit {
+  task_id?: string;
+  project_id?: string;
+  instance_id?: string;
+  service: string;
+  logs?: string;
+}
+
 interface LogConsoleProps {
   task: Task | null;
 }
@@ -132,23 +159,23 @@ export default function LogConsole({ task }: LogConsoleProps) {
 
   const [activeTab, setActiveTab] = useState<'logs' | 'warehouse'>('logs');
   const [warehouseLoading, setWarehouseLoading] = useState(false);
-  const [inputDatasets, setInputDatasets] = useState<any[]>([]);
-  const [outputDatasets, setOutputDatasets] = useState<any[]>([]);
+  const [inputDatasets, setInputDatasets] = useState<WarehouseDataset[]>([]);
+  const [outputDatasets, setOutputDatasets] = useState<WarehouseDataset[]>([]);
   const [inputCount, setInputCount] = useState(0);
   const [outputCount, setOutputCount] = useState(0);
 
   // Scan config object for 24-character hexadecimal MongoDB ObjectIDs
-  const extractMongoIds = (obj: any): string[] => {
+  const extractMongoIds = (obj: unknown): string[] => {
     const ids: string[] = [];
-    const recurse = (val: any) => {
+    const recurse = (val: unknown) => {
       if (!val) return;
       if (typeof val === 'string') {
         if (/^[0-9a-fA-F]{24}$/.test(val)) {
           ids.push(val);
         }
       } else if (typeof val === 'object') {
-        for (const k in val) {
-          recurse(val[k]);
+        for (const k of Object.keys(val)) {
+          recurse((val as Record<string, unknown>)[k]);
         }
       }
     };
@@ -183,7 +210,7 @@ export default function LogConsole({ task }: LogConsoleProps) {
       if (outResponse.ok) {
         const outRes = await outResponse.json();
         // console.log("[Warehouse Debug] Raw Outputs Response:", outRes);
-        const outList = outRes.datasets || outRes.results || outRes || [];
+        const outList = (outRes.datasets || outRes.results || outRes || []) as WarehouseDataset[];
         // console.log("[Warehouse Debug] Output datasets parsed:", outList);
         setOutputDatasets(Array.isArray(outList) ? outList : []);
         setOutputCount(outRes.count || 0);
@@ -193,7 +220,10 @@ export default function LogConsole({ task }: LogConsoleProps) {
 
       // 2. Fetch Inputs (scan task.config values for 24-character ObjectIDs)
       // console.log("[Warehouse Debug] Fetching Amaretti task config details...");
-      const taskDetails = await apiFetch<any>(`/task/${task.id}`);
+      const taskDetails = await apiFetch<{
+        task?: { config?: Record<string, unknown> };
+        config?: Record<string, unknown>;
+      }>(`/task/${task.id}`);
       const taskObj = taskDetails.task || taskDetails;
       // console.log("[Warehouse Debug] Task details returned:", taskObj);
       if (taskObj && taskObj.config) {
@@ -207,7 +237,7 @@ export default function LogConsole({ task }: LogConsoleProps) {
           if (inResponse.ok) {
             const inRes = await inResponse.json();
             // console.log("[Warehouse Debug] Raw Inputs Response:", inRes);
-            const inList = inRes.datasets || inRes.results || inRes || [];
+            const inList = (inRes.datasets || inRes.results || inRes || []) as WarehouseDataset[];
             // console.log("[Warehouse Debug] Input datasets parsed:", inList);
             setInputDatasets(Array.isArray(inList) ? inList : []);
             setInputCount(inRes.count || 0);
@@ -272,7 +302,7 @@ export default function LogConsole({ task }: LogConsoleProps) {
           params.append('project_id', task.projectId);
         }
 
-        const response = await apiFetch<{ hits: any[]; total: number }>(`/task/logs/search?${params.toString()}`);
+        const response = await apiFetch<{ hits: LogSearchHit[]; total: number }>(`/task/logs/search?${params.toString()}`);
         
         // Map the Elasticsearch hits back to LogLines
         const lines: LogLine[] = [];
@@ -773,7 +803,7 @@ export default function LogConsole({ task }: LogConsoleProps) {
                         <div className="min-w-0 flex-1">
                           <div className="font-semibold text-[#F7FAFC] flex items-center gap-1.5">
                             <span className="text-[9px] uppercase font-bold text-accent-cyan px-1 bg-accent-cyan/15 rounded shrink-0">
-                              {ds.datatype?.name?.split('/').pop() || ds.datatype || 'Data'}
+                              {(typeof ds.datatype === 'object' && ds.datatype !== null ? ds.datatype.name?.split('/').pop() : ds.datatype) || 'Data'}
                             </span>
                             <span className="truncate font-mono" title={ds.desc || ds._id}>{ds.desc || ds._id.slice(-8)}</span>
                           </div>
@@ -782,7 +812,7 @@ export default function LogConsole({ task }: LogConsoleProps) {
                             {ds.size && ` • ${Math.round(ds.size / 1024 / 1024)} MB`}
                           </div>
                         </div>
-                        {ds.download_headers && (
+                        {Boolean(ds.download_headers) && (
                           <a
                             href={`${getApiUrl().replace(/\/amaretti\/?$/, '/warehouse')}/dataset/download/${ds._id}`}
                             target="_blank"
@@ -826,7 +856,7 @@ export default function LogConsole({ task }: LogConsoleProps) {
                         <div className="min-w-0 flex-1">
                           <div className="font-semibold text-[#F7FAFC] flex items-center gap-1.5">
                             <span className="text-[9px] uppercase font-bold text-status-success px-1 bg-status-success/15 rounded shrink-0">
-                              {ds.datatype?.name?.split('/').pop() || ds.datatype || 'Data'}
+                              {(typeof ds.datatype === 'object' && ds.datatype !== null ? ds.datatype.name?.split('/').pop() : ds.datatype) || 'Data'}
                             </span>
                             <span className="truncate font-mono" title={ds.desc || ds._id}>{ds.desc || ds._id.slice(-8)}</span>
                           </div>

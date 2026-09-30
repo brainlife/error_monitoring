@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { login, getApiUrl } from '../api';
-import { Loader2, AlertCircle, User, Lock, ArrowRight } from 'lucide-react';
+import { login, getApiUrl, NonAdminError } from '../api';
+import { useDashboardStore } from '../store/useDashboardStore';
+import { Loader2, AlertCircle, User, Lock, ArrowRight, ShieldAlert, AlertTriangle, LogOut } from 'lucide-react';
 
 interface LoginProps {
   onLoginSuccess: () => void;
@@ -11,6 +12,8 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const { nonAdminAttemptUser, setNonAdminAttemptUser } = useDashboardStore();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,8 +30,12 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         setError('Invalid username or password');
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : 'Authentication connection failed';
-      setError(msg);
+      if (err instanceof NonAdminError) {
+        setNonAdminAttemptUser(err.userProfile);
+      } else {
+        const msg = err instanceof Error ? err.message : 'Authentication connection failed';
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -48,7 +55,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         {/* Logo and Brand */}
         <div className="flex flex-col items-center text-center mb-6">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[#2D3748] shadow-md p-3">
-            <img src="/Assets/logo.svg" alt="Brainlife Logo" className="h-8 w-8 object-contain" />
+            <img src={`${import.meta.env.BASE_URL}Assets/logo.svg`} alt="Brainlife Logo" className="h-8 w-8 object-contain" />
           </div>
           <h2 className="mt-4 text-xl font-bold tracking-wider text-text-main">
             Brainlife Workflow
@@ -172,6 +179,81 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           </button>
         </form>
       </div>
+
+      {/* Non-Admin Access Denied Modal */}
+      {nonAdminAttemptUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-red-500/30 bg-[#1A202C] p-6 shadow-2xl">
+            {/* Top accent glow line */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-red-500 to-rose-600" />
+
+            {/* Icon */}
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 border border-red-500/25 text-red-400 mb-4 shadow-inner">
+              <ShieldAlert className="h-7 w-7 text-red-400" />
+            </div>
+
+            {/* Title & Description */}
+            <h3 className="text-center text-lg font-bold text-white tracking-wide">
+              Administrator Access Required
+            </h3>
+            <p className="mt-2 text-center text-xs text-text-muted leading-relaxed">
+              This platform is an internal monitoring and orchestration console restricted exclusively to <span className="text-white font-medium">Brainlife platform administrators</span>.
+            </p>
+
+            {/* Account Details Box */}
+            <div className="mt-5 rounded-xl border border-border-glass bg-[#141822] p-3.5 text-xs">
+              <div className="flex items-center justify-between pb-2 mb-2 border-b border-border-glass/60">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-text-faint">
+                  Authenticated Account
+                </span>
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-red-500/15 text-red-400 border border-red-500/30">
+                  Non-Admin User
+                </span>
+              </div>
+              <div className="space-y-1.5 text-[11px]">
+                <div className="flex justify-between items-center">
+                  <span className="text-text-muted">Username:</span>
+                  <span className="font-mono text-text-main font-semibold">@{nonAdminAttemptUser.username}</span>
+                </div>
+                {nonAdminAttemptUser.fullname && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-text-muted">Full Name:</span>
+                    <span className="text-text-main">{nonAdminAttemptUser.fullname}</span>
+                  </div>
+                )}
+                {nonAdminAttemptUser.email && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-text-muted">Email:</span>
+                    <span className="text-text-main">{nonAdminAttemptUser.email}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Notice */}
+            <div className="mt-3.5 flex items-start gap-2 rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 text-[11px] text-amber-200/90 leading-tight">
+              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-400 mt-0.5" />
+              <span>
+                Your credentials are valid, but your Brainlife account does not have <code>admin</code> scopes granted. Please log in with an administrator account.
+              </span>
+            </div>
+
+            {/* Action Button */}
+            <button
+              type="button"
+              onClick={() => {
+                setNonAdminAttemptUser(null);
+                setPassword('');
+                setError('');
+              }}
+              className="mt-5 w-full flex items-center justify-center gap-2 rounded-xl bg-[#2D3748] hover:bg-[#38465B] border border-[#4A5568] px-4 py-2.5 text-xs font-semibold text-white shadow-md transition-all active:scale-[0.98] cursor-pointer"
+            >
+              <LogOut className="h-4 w-4" />
+              <span>Sign In with Another Account</span>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

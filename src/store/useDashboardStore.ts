@@ -10,6 +10,8 @@ import {
   setJwtToken,
   fetchWarehouseProjects,
   fetchAuthUsers,
+  decodeJwtPayload,
+  isUserAdmin,
   type UserProfile
 } from '../api';
 
@@ -109,6 +111,17 @@ export interface DashboardState {
   tasksLimit: number;
   hasMoreTasks: boolean;
   loadMoreTasks: () => Promise<void>;
+  nonAdminAttemptUser: UserProfile | null;
+  setNonAdminAttemptUser: (user: UserProfile | null) => void;
+}
+
+const initialToken = getJwtToken();
+const initialDecoded = initialToken ? decodeJwtPayload(initialToken) : null;
+const isInitiallyAdmin = initialDecoded ? isUserAdmin(initialDecoded) : false;
+
+// If a stored session exists but does not have admin scope, clear it
+if (initialToken && !isInitiallyAdmin) {
+  apiLogout();
 }
 
 export const useDashboardStore = create<DashboardState>((set, get) => ({
@@ -126,8 +139,10 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   usersList: [],
   globalSearchOpen: false,
   globalSearchQuery: '',
-  user: getUserProfile(),
-  isAuthenticated: !!getJwtToken() && !!getUserProfile(),
+  user: isInitiallyAdmin ? getUserProfile() : null,
+  isAuthenticated: !!initialToken && !!getUserProfile() && isInitiallyAdmin,
+  nonAdminAttemptUser: null,
+  setNonAdminAttemptUser: (user) => set({ nonAdminAttemptUser: user }),
   logSearchResults: [],
   spotlightSearching: false,
   selectedResourceIdForCrossLink: null,
@@ -212,7 +227,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
     try {
       const projectList = await fetchWarehouseProjects();
-      // console.log("[Warehouse Debug] Projects loaded count (pre-loader):", projectList.length);
       projects = projectList;
       projectList.forEach(p => {
         if (p._id) {
@@ -242,7 +256,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           instances = arrayProp as AmarettiInstance[];
         }
       }
-      // console.log("[Warehouse Debug] Instances loaded count (pre-loader):", instances.length);
       instances.forEach(inst => {
         if (inst._id && inst.name) {
           map[inst._id] = inst.name;
@@ -279,7 +292,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
 
     if (uniqueProjectIds.length === 0 && uniqueInstanceIds.length === 0) return;
 
-    // console.log("[Warehouse Debug] Dynamically resolving missing projects/instances:", { uniqueProjectIds, uniqueInstanceIds });
     const newMappings: Record<string, string> = {};
     let newProjects: any[] = [];
     let newInstances: any[] = [];
@@ -300,7 +312,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           const data = await response.json();
           const list = data.projects || data.results || data || [];
           if (Array.isArray(list)) {
-            // console.log("[Warehouse Debug] Resolved missing projects count:", list.length);
             newProjects = list;
             list.forEach((p: any) => {
               if (p._id && p.name) {
@@ -321,7 +332,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
         const res = await apiFetch<any>(`/instance?find=${encodeURIComponent(instQuery)}&limit=100`);
         const list = res.instances || res.results || res || [];
         if (Array.isArray(list)) {
-          // console.log("[Warehouse Debug] Resolved missing instances count:", list.length);
           newInstances = list;
           list.forEach((inst: any) => {
             if (inst._id && inst.name) {
@@ -335,7 +345,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     }
 
     if (Object.keys(newMappings).length > 0 || newProjects.length > 0 || newInstances.length > 0) {
-      // console.log("[Warehouse Debug] Applying new dynamic mappings, projects and instances:", Object.keys(newMappings).length, newProjects.length, newInstances.length);
       set({
         projectNamesMap: {
           ...projectNamesMap,
@@ -531,7 +540,8 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   handleLoginSuccess: () => {
     set({
       user: getUserProfile(),
-      isAuthenticated: true
+      isAuthenticated: true,
+      nonAdminAttemptUser: null
     });
   },
   handleLogout: () => {
@@ -539,6 +549,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     set({
       user: null,
       isAuthenticated: false,
+      nonAdminAttemptUser: null,
       view: 'dashboard'
     });
   },
@@ -556,23 +567,36 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     const jwtFromUrl = params.get('jwt');
 
     if (jwtFromUrl) {
-      setJwtToken(jwtFromUrl);
-
       try {
-        const payloadPart = jwtFromUrl.split('.')[1];
-        const payloadDecoded = JSON.parse(atob(payloadPart));
+        const payloadDecoded = decodeJwtPayload(jwtFromUrl);
 
         const userProfile: UserProfile = {
-          id: payloadDecoded.sub || '1',
-          username: payloadDecoded.username || payloadDecoded.sub || 'user',
-          fullname: payloadDecoded.fullname || payloadDecoded.username || 'User Profile',
-          email: payloadDecoded.email || ''
+          id: String(payloadDecoded?.sub || payloadDecoded?.id || '1'),
+          username: payloadDecoded?.profile?.username || payloadDecoded?.username || payloadDecoded?.sub || 'user',
+          fullname: payloadDecoded?.profile?.fullname || payloadDecoded?.fullname || payloadDecoded?.username || 'User Profile',
+          email: payloadDecoded?.profile?.email || payloadDecoded?.email || ''
         };
 
+        // Check if SSO user has admin privilege
+        if (!isUserAdmin(payloadDecoded)) {
+          console.warn('SSO login denied: user does not have admin permissions', userProfile);
+          apiLogout();
+          set({
+            nonAdminAttemptUser: userProfile,
+            user: null,
+            isAuthenticated: false
+          });
+          const cleanUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
+          return;
+        }
+
+        setJwtToken(jwtFromUrl);
         localStorage.setItem('amaretti_user', JSON.stringify(userProfile));
         set({
           user: userProfile,
-          isAuthenticated: true
+          isAuthenticated: true,
+          nonAdminAttemptUser: null
         });
       } catch (err) {
         console.error('Failed to decode SSO JWT payload:', err);

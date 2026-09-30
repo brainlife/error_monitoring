@@ -37,7 +37,6 @@ export default function KpiCards({ running, finished, failed, resources, tasks, 
 
   // Check for offline or degraded clusters from the live resources list
   resources.forEach(r => {
-    // console.log(r)
     if (r.status === 'error') {
       criticalAlerts.push({
         id: `res-err-${r.id}`,

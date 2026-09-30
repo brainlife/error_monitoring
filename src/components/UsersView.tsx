@@ -248,7 +248,6 @@ export default function UsersView({
                   key={uId}
                   id={`user-card-${uId}`}
                   onClick={() => {
-                    // console.log("[UsersView] Clicking on user card in directory. Selected ID/Sub ID:", uId, "User Details:", u);
                     setSelectedUserId(isSelected ? null : uId);
                   }}
                   className={`flex items-center gap-3 rounded-xl p-3 border cursor-pointer select-none transition-all duration-200 hover:border-border-glass-hover hover:shadow-sm ${

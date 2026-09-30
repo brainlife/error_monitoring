@@ -312,11 +312,6 @@ export default function App() {
     resolveVisibleProjectNames();
   }, [tasksList, isAuthenticated, resolveVisibleProjectNames]);
 
-  // Log the tasksList when it changes
-  useEffect(() => {
-    // console.log("tasksList", tasksList);
-  }, [tasksList]);
-
 
   // Load auth users list
   useEffect(() => {

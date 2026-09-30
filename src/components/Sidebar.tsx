@@ -88,7 +88,7 @@ export default function Sidebar({
           title="Brainlife Orchestration"
         >
           <img 
-            src="/Assets/logo.svg" 
+            src={`${import.meta.env.BASE_URL}Assets/logo.svg`} 
             alt="Brainlife" 
             className="h-6 w-6 object-contain shrink-0" 
           />
@@ -243,10 +243,10 @@ export default function Sidebar({
             </div>
             <div className="flex items-center gap-2">
               <div className="h-5 w-5 rounded-full bg-white p-0.5 flex items-center justify-center shadow-sm">
-                <img src="/Assets/logo.svg" alt="Brainlife" className="h-3.5 w-3.5 object-contain" />
+                <img src={`${import.meta.env.BASE_URL}Assets/logo.svg`} alt="Brainlife" className="h-3.5 w-3.5 object-contain" />
               </div>
               <div className="h-5 w-5 rounded-full bg-white p-0.5 flex items-center justify-center shadow-sm">
-                <img src="/Assets/aws.png" alt="AWS" className="h-3.5 w-3.5 object-contain" />
+                <img src={`${import.meta.env.BASE_URL}Assets/aws.png`} alt="AWS" className="h-3.5 w-3.5 object-contain" />
               </div>
             </div>
           </div>
