@@ -66,7 +66,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         </div>
 
         {/* SSO Login Options */}
-        <div className="grid grid-cols-3 gap-3 mb-6">
+        {/* <div className="grid grid-cols-3 gap-3 mb-6">
           <button
             onClick={() => handleSsoLogin('google')}
             className="flex flex-col items-center justify-center gap-1.5 rounded-xl border border-border-glass bg-[#161C26] py-2.5 text-xs text-text-main hover:bg-[#252E3E] hover:border-border-glass-hover shadow-sm active:scale-[0.97] transition-all cursor-pointer"
@@ -99,17 +99,17 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             </svg>
             <span className="text-[10px] font-semibold">ORCID</span>
           </button>
-        </div>
+        </div> */}
 
         {/* Separator */}
-        <div className="relative mb-6 flex items-center justify-center">
+        {/* <div className="relative mb-6 flex items-center justify-center">
           <div className="absolute inset-0 flex items-center">
             <div className="w-full border-t border-border-glass" />
           </div>
           <span className="relative bg-[#1E2532] px-3 text-[10px] font-semibold uppercase tracking-wider text-text-faint">
             Or continue with
           </span>
-        </div>
+        </div> */}
 
         {/* Error Alert */}
         {error && (
