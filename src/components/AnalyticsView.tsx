@@ -1830,7 +1830,7 @@ export default function AnalyticsView({ tasks, projectNamesMap, userNamesMap, us
     });
 
     let slope = 10;
-    let lastVal = segments[5] || 100;
+    const lastVal = segments[5] || 100;
     
     let totalDiff = 0;
     for (let i = 1; i < 6; i++) {
@@ -1936,11 +1936,11 @@ export default function AnalyticsView({ tasks, projectNamesMap, userNamesMap, us
           <select 
             value={projectFilter} 
             onChange={(e) => setProjectFilter(e.target.value)}
-            className="rounded-lg border border-border-glass bg-[#050811] px-2.5 py-1.5 text-[10px] text-text-muted focus:outline-none cursor-pointer"
+            className="rounded-lg border border-[#2D3748] bg-[#161C26] hover:border-[#4A5568] hover:bg-[#1A2230] px-2.5 py-1.5 text-[10px] font-medium text-text-main focus:outline-none focus:border-accent-cyan/50 cursor-pointer transition-colors shadow-sm"
           >
-            <option value="all">All Projects</option>
+            <option value="all" className="bg-[#161C26] text-text-main">All Projects</option>
             {projectOptions.map((p) => (
-              <option key={p} value={p}>{projectNamesMap?.[p] || `Project ${p.slice(-6)}`}</option>
+              <option key={p} value={p} className="bg-[#161C26] text-text-main">{projectNamesMap?.[p] || `Project ${p.slice(-6)}`}</option>
             ))}
           </select>
 
@@ -1948,11 +1948,11 @@ export default function AnalyticsView({ tasks, projectNamesMap, userNamesMap, us
           <select 
             value={serviceFilter} 
             onChange={(e) => setServiceFilter(e.target.value)}
-            className="rounded-lg border border-border-glass bg-[#050811] px-2.5 py-1.5 text-[10px] text-text-muted focus:outline-none cursor-pointer"
+            className="rounded-lg border border-[#2D3748] bg-[#161C26] hover:border-[#4A5568] hover:bg-[#1A2230] px-2.5 py-1.5 text-[10px] font-medium text-text-main focus:outline-none focus:border-accent-cyan/50 cursor-pointer transition-colors shadow-sm"
           >
-            <option value="all">All Services</option>
+            <option value="all" className="bg-[#161C26] text-text-main">All Services</option>
             {serviceOptions.map((s) => (
-              <option key={s} value={s}>{s}</option>
+              <option key={s} value={s} className="bg-[#161C26] text-text-main">{s}</option>
             ))}
           </select>
 
@@ -1960,11 +1960,11 @@ export default function AnalyticsView({ tasks, projectNamesMap, userNamesMap, us
           <select 
             value={resourceFilter} 
             onChange={(e) => setResourceFilter(e.target.value)}
-            className="rounded-lg border border-border-glass bg-[#050811] px-2.5 py-1.5 text-[10px] text-text-muted focus:outline-none cursor-pointer"
+            className="rounded-lg border border-[#2D3748] bg-[#161C26] hover:border-[#4A5568] hover:bg-[#1A2230] px-2.5 py-1.5 text-[10px] font-medium text-text-main focus:outline-none focus:border-accent-cyan/50 cursor-pointer transition-colors shadow-sm"
           >
-            <option value="all">All Resources</option>
+            <option value="all" className="bg-[#161C26] text-text-main">All Resources</option>
             {resourceOptions.map((r) => (
-              <option key={r} value={r}>{getResourceDisplayName(r)}</option>
+              <option key={r} value={r} className="bg-[#161C26] text-text-main">{getResourceDisplayName(r)}</option>
             ))}
 
           </select>

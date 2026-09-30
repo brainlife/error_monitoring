@@ -423,56 +423,56 @@ export default function MobileCrashlyticsView({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search crashes, files, symbols, stack traces..."
-              className="w-full rounded-lg border border-border-glass bg-[#050811] pl-8 pr-3 py-1.5 text-[11px] text-text-main placeholder:text-text-faint focus:outline-none focus:border-accent-cyan/50"
+              className="w-full rounded-lg border border-[#2D3748] bg-[#161C26] pl-8 pr-3 py-1.5 text-[11px] text-text-main placeholder:text-text-faint focus:outline-none focus:border-accent-cyan/50 focus:bg-[#1A2230] transition-colors"
             />
           </div>
 
           {/* Platform selector */}
           <select
             value={platformFilter}
-            onChange={(e) => setPlatformFilter(e.target.value as any)}
-            className="rounded-lg border border-border-glass bg-[#050811] px-2.5 py-1.5 text-[10px] text-text-muted focus:outline-none cursor-pointer"
+            onChange={(e) => setPlatformFilter(e.target.value as 'all' | 'ios' | 'android')}
+            className="rounded-lg border border-[#2D3748] bg-[#161C26] hover:border-[#4A5568] hover:bg-[#1A2230] px-2.5 py-1.5 text-[10px] font-medium text-text-main focus:outline-none focus:border-accent-cyan/50 cursor-pointer transition-colors shadow-sm"
           >
-            <option value="all">All Platforms (iOS & Android)</option>
-            <option value="ios">iOS (iPhone & iPad)</option>
-            <option value="android">Android (APK / AAB)</option>
+            <option value="all" className="bg-[#161C26] text-text-main">All Platforms (iOS & Android)</option>
+            <option value="ios" className="bg-[#161C26] text-text-main">iOS (iPhone & iPad)</option>
+            <option value="android" className="bg-[#161C26] text-text-main">Android (APK / AAB)</option>
           </select>
 
           {/* Version selector */}
           <select
             value={versionFilter}
             onChange={(e) => setVersionFilter(e.target.value)}
-            className="rounded-lg border border-border-glass bg-[#050811] px-2.5 py-1.5 text-[10px] text-text-muted focus:outline-none cursor-pointer"
+            className="rounded-lg border border-[#2D3748] bg-[#161C26] hover:border-[#4A5568] hover:bg-[#1A2230] px-2.5 py-1.5 text-[10px] font-medium text-text-main focus:outline-none focus:border-accent-cyan/50 cursor-pointer transition-colors shadow-sm"
           >
-            <option value="all">All Versions</option>
-            <option value="v1.0.3">v1.0.3 (Current)</option>
-            <option value="v1.0.2">v1.0.2</option>
-            <option value="v1.0.1">v1.0.1</option>
+            <option value="all" className="bg-[#161C26] text-text-main">All Versions</option>
+            <option value="v1.0.3" className="bg-[#161C26] text-text-main">v1.0.3 (Current)</option>
+            <option value="v1.0.2" className="bg-[#161C26] text-text-main">v1.0.2</option>
+            <option value="v1.0.1" className="bg-[#161C26] text-text-main">v1.0.1</option>
           </select>
 
           {/* Severity selector */}
           <select
             value={severityFilter}
             onChange={(e) => setSeverityFilter(e.target.value)}
-            className="rounded-lg border border-border-glass bg-[#050811] px-2.5 py-1.5 text-[10px] text-text-muted focus:outline-none cursor-pointer"
+            className="rounded-lg border border-[#2D3748] bg-[#161C26] hover:border-[#4A5568] hover:bg-[#1A2230] px-2.5 py-1.5 text-[10px] font-medium text-text-main focus:outline-none focus:border-accent-cyan/50 cursor-pointer transition-colors shadow-sm"
           >
-            <option value="all">All Severities</option>
-            <option value="fatal">Fatal Crashes</option>
-            <option value="non-fatal">Non-Fatal Exceptions</option>
-            <option value="anr">ANR (App Not Responding)</option>
-            <option value="oom">OOM (Out Of Memory)</option>
+            <option value="all" className="bg-[#161C26] text-text-main">All Severities</option>
+            <option value="fatal" className="bg-[#161C26] text-text-main">Fatal Crashes</option>
+            <option value="non-fatal" className="bg-[#161C26] text-text-main">Non-Fatal Exceptions</option>
+            <option value="anr" className="bg-[#161C26] text-text-main">ANR (App Not Responding)</option>
+            <option value="oom" className="bg-[#161C26] text-text-main">OOM (Out Of Memory)</option>
           </select>
 
           {/* Status selector */}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-border-glass bg-[#050811] px-2.5 py-1.5 text-[10px] text-text-muted focus:outline-none cursor-pointer"
+            className="rounded-lg border border-[#2D3748] bg-[#161C26] hover:border-[#4A5568] hover:bg-[#1A2230] px-2.5 py-1.5 text-[10px] font-medium text-text-main focus:outline-none focus:border-accent-cyan/50 cursor-pointer transition-colors shadow-sm"
           >
-            <option value="all">All Statuses</option>
-            <option value="critical">Critical / Open</option>
-            <option value="investigating">Investigating</option>
-            <option value="resolved">Resolved</option>
+            <option value="all" className="bg-[#161C26] text-text-main">All Statuses</option>
+            <option value="critical" className="bg-[#161C26] text-text-main">Critical / Open</option>
+            <option value="investigating" className="bg-[#161C26] text-text-main">Investigating</option>
+            <option value="resolved" className="bg-[#161C26] text-text-main">Resolved</option>
           </select>
         </div>
 

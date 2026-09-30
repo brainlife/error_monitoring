@@ -10,7 +10,11 @@ import {
   Loader2,
   Info,
   ShieldAlert,
-  RotateCw
+  RotateCw,
+  Eye,
+  EyeOff,
+  Copy,
+  Check
 } from 'lucide-react';
 
 
@@ -35,8 +39,29 @@ export default function Settings({ onConfigChange }: SettingsProps) {
   // Form states
   const [apiUrl, setApiUrlState] = useState(getApiUrl());
   const [apiToken, setApiToken] = useState(localStorage.getItem('amaretti_jwt') || '');
+  const [showToken, setShowToken] = useState(false);
+  const [tokenCopied, setTokenCopied] = useState(false);
   const [refreshInterval, setRefreshInterval] = useState(localStorage.getItem('dashboard_refresh_interval') || '10000');
   const [telemetry, setTelemetry] = useState(localStorage.getItem('dashboard_telemetry') !== 'false');
+
+  const handleCopyToken = async () => {
+    if (!apiToken) return;
+    try {
+      await navigator.clipboard.writeText(apiToken);
+      setTokenCopied(true);
+      setTimeout(() => setTokenCopied(false), 2000);
+    } catch {
+      // Fallback in case clipboard API is restricted
+      const textarea = document.createElement('textarea');
+      textarea.value = apiToken;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textarea);
+      setTokenCopied(true);
+      setTimeout(() => setTokenCopied(false), 2000);
+    }
+  };
 
   // Notification Banner
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -229,22 +254,69 @@ export default function Settings({ onConfigChange }: SettingsProps) {
                       value={apiUrl}
                       onChange={e => setApiUrlState(e.target.value)}
                       placeholder="https://brainlife.io/api/amaretti"
-                      className="w-full rounded-lg border border-border-glass bg-[#050811] px-3.5 py-2 text-xs text-text-main focus:border-accent-cyan/40 focus:outline-none font-mono"
+                      className="w-full rounded-lg border border-[#2D3748] bg-[#161C26] hover:border-[#4A5568] focus:bg-[#1A2230] px-3.5 py-2 text-xs text-text-main focus:border-accent-cyan/40 focus:outline-none font-mono transition-colors shadow-sm"
                     />
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[10px] font-semibold uppercase tracking-wider text-text-muted flex items-center gap-1.5">
-                      JWT Authentication Token
-                    </label>
-                    <textarea
-                      value={apiToken}
-                      onChange={e => setApiToken(e.target.value)}
-                      placeholder="Paste your amaretti_jwt token here..."
-                      rows={4}
-                      className="w-full rounded-lg border border-border-glass bg-[#050811] px-3.5 py-2 text-xs text-text-main focus:border-accent-cyan/40 focus:outline-none font-mono resize-none"
-                    />
-                    <p className="text-[9px] text-text-faint">Your authentication token is stored locally in your browser context.</p>
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-semibold uppercase tracking-wider text-text-muted flex items-center gap-1.5">
+                        JWT Authentication Token
+                      </label>
+                      {apiToken && (
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => setShowToken(!showToken)}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-text-muted hover:text-text-main bg-white/[0.04] hover:bg-white/[0.08] border border-[#2D3748] transition-colors cursor-pointer"
+                            title={showToken ? 'Hide token' : 'Reveal token'}
+                          >
+                            {showToken ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3 text-accent-cyan" />}
+                            <span>{showToken ? 'Hide' : 'Reveal'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={handleCopyToken}
+                            className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium text-accent-cyan hover:text-accent-cyan-dim bg-accent-cyan/10 hover:bg-accent-cyan/20 border border-accent-cyan/20 transition-colors cursor-pointer"
+                            title="Copy token to clipboard"
+                          >
+                            {tokenCopied ? (
+                              <>
+                                <Check className="h-3 w-3 text-status-success" />
+                                <span className="text-status-success font-semibold">Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="h-3 w-3" />
+                                <span>Copy</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                    {showToken ? (
+                      <textarea
+                        value={apiToken}
+                        onChange={e => setApiToken(e.target.value)}
+                        placeholder="Paste your amaretti_jwt token here..."
+                        rows={4}
+                        className="w-full rounded-lg border border-[#2D3748] bg-[#161C26] hover:border-[#4A5568] focus:bg-[#1A2230] px-3.5 py-2 text-xs text-text-main focus:border-accent-cyan/40 focus:outline-none font-mono resize-none transition-colors shadow-sm"
+                      />
+                    ) : (
+                      <div className="relative flex items-center">
+                        <input
+                          type="password"
+                          value={apiToken}
+                          onChange={e => setApiToken(e.target.value)}
+                          placeholder="Paste your amaretti_jwt token here..."
+                          className="w-full rounded-lg border border-[#2D3748] bg-[#161C26] hover:border-[#4A5568] focus:bg-[#1A2230] px-3.5 py-2 text-xs text-text-main focus:border-accent-cyan/40 focus:outline-none font-mono tracking-widest transition-colors shadow-sm"
+                        />
+                      </div>
+                    )}
+                    <p className="text-[9px] text-text-faint">
+                      Token is masked for privacy. It is stored securely in your browser's local storage context.
+                    </p>
                   </div>
                 </div>
               )}
